@@ -34,7 +34,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
     return (
       <div className="space-y-5 pt-4">
         <h1 className="text-3xl font-semibold tracking-tight">Hi {first}</h1>
-        <p className="text-[15px] leading-relaxed">Your coach uses RepReady to adjust your sessions to how you actually are. Before your first check-in, here is what happens with your answers.</p>
+        <p className="text-[15px] leading-relaxed">Your coach uses RepReady to adjust your sessions using your daily check-in. Before your first check-in, this is what happens with your answers.</p>
         <Card className="space-y-2 p-4 text-sm leading-relaxed">
           <p>Your coach sees what you enter: sleep, soreness, stress, any notes, and how hard sessions felt. If you connect a Polar device, we also read your sleep and heart-rate variability from Polar Flow, and you can disconnect any time.</p>
           <p>An AI model, reached through OpenRouter, reads those numbers to suggest a change to your session. Your coach approves or rejects it. You only see what your coach sends.</p>

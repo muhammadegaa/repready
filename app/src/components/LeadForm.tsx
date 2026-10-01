@@ -5,7 +5,7 @@ import { joinWaitlist } from "@/actions/public";
 import { PendingButton } from "./Pending";
 import { btn } from "./ui";
 
-export function LeadForm({ id, cta = "Get early access" }: { id: string; cta?: string }) {
+export function LeadForm({ id, cta = "Join the waitlist" }: { id: string; cta?: string }) {
   const [state, action] = useActionState(joinWaitlist, null);
   if (state?.ok) {
     return <p className="rounded-lg border border-ok/30 bg-ok-bg px-4 py-3 text-sm font-medium text-ok" role="status">{state.message}</p>;

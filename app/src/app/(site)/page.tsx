@@ -18,46 +18,46 @@ const edits = [
 ];
 
 const steps = [
-  ["Your plan stays yours", "Paste the program you already wrote. Nothing changes until you approve it."],
-  ["Athletes check in", "Sleep, soreness and stress from a link on their phone, in under a minute. A Polar device fills in the sleep for them."],
-  ["You get a proposal", "One change to today’s session, the reason in plain words, and the rule it came from."],
-  ["You decide", "Approve it, change the numbers, or keep your plan. The athlete sees only what you send."],
+  ["Import your program", "Paste it as a CSV: date, session, exercise, sets, reps, load, target RPE. Nothing changes until you approve an edit."],
+  ["Athletes check in", "Sleep hours, soreness 0 to 10, stress 0 to 10 and an optional note, from a link in their phone browser. A connected Polar device fills in the sleep."],
+  ["The agent proposes an edit", "It reads the last 14 days and applies one of ten rules. The proposal lists the exercises it would change and the rule it used."],
+  ["You decide", "Approve it, change the numbers, or keep your plan. The athlete sees the session you sent, with changed values highlighted."],
 ];
 
-const compare = [
-  ["Shows you the numbers", "Yes, you collect and read them", "Yes", "Yes"],
-  ["Proposes the edit to the session", "No", "Usually left to you", "Yes, one specific edit"],
-  ["You approve before the athlete sees it", "Not applicable", "Not applicable", "Always"],
-  ["Tells you which rule it used", "No", "Rarely", "Every proposal"],
-  ["Hard limits it cannot cross", "No", "No", "Never raises load, never cuts over 25%"],
+const proposal = [
+  "The decision: reduce volume, swap an exercise, rest, or check with the athlete before training",
+  "The session with old and new values for every change",
+  "The rule used, with its trigger in plain words",
+  "What the agent saw: sleep, soreness, stress, device HRV and heart rate, and the athlete's note",
+  "A flag if something needs your judgement, such as a pain note",
 ];
 
 const views = [
-  { who: "Coach", points: ["Today: who needs you and who is on plan", "The proposal as a session diff, with the rule behind it", "Edit the numbers or add a note before it goes out", "Protect an exercise the agent must never touch"] },
-  { who: "Athlete", points: ["A one-minute check-in on a phone", "Today’s session with the changes highlighted", "Effort log after training", "Delete their own data in one tap"] },
-  { who: "Sports scientist", points: ["Edit each rule and attach its citation", "Label scenarios with the call they would make", "Run the agent against those labels", "See agreement against a pass bar"] },
+  { who: "Coach", points: ["Today: who has checked in, who needs a decision", "Approve, approve with changed numbers, or keep your plan", "Add a note the athlete sees with the session", "Mark an exercise as protected so the agent never edits it", "A 14-day view of sleep, soreness, stress and effort per athlete"] },
+  { who: "Athlete", points: ["Consent screen before the first check-in", "Three questions and an optional note", "Today's session with changes highlighted", "Effort log (1 to 10) after training", "Delete their own data from their page"] },
+  { who: "Sports scientist", points: ["Edit each rule and attach its citation", "Label 30 test athletes with the decision you would make", "Run the agent against those labels", "See agreement against the pass bar"] },
 ];
 
 const limits = [
   "Never raises sets, reps or load above your plan.",
-  "Never cuts volume or load by more than 25%. You can cut deeper yourself.",
-  "Does not edit around pain or illness. It flags them to you.",
-  "No medical advice, and no claim about preventing injury.",
+  "Cuts volume or load by at most 25%. You can cut more yourself.",
+  "Does not edit exercises when a note mentions pain or illness. It flags the note to you.",
+  "No medical advice and no claims about preventing injury.",
   "Adult athletes only.",
 ];
 
 const faqs = [
-  ["What does the athlete have to do?", "Open a link on their phone and answer three quick questions. No app to install. If they connect a Polar device, the sleep is filled in for them."],
-  ["What if I disagree with a proposal?", "Change the numbers yourself, add a note, or keep your plan. Nothing reaches the athlete until you send it."],
-  ["Who decides the rules?", "A fixed rule set, and the agent can only apply those rules. Each rule is being reviewed and cited by a sports scientist, and the scientist’s view shows how often the agent agrees with their own calls on thirty test athletes."],
-  ["Which devices work?", "Polar is the first live integration. WHOOP, Garmin, Oura and Fitbit are planned. Apple Watch is not connected yet. Without a device, athletes type their sleep."],
-  ["Is athlete health data safe?", "Sleep and soreness are health data. Athletes consent before the first check-in and can delete their own data at any time. Storage is in the UK. A data protection assessment is being finished before any real athlete data is stored."],
-  ["What does a founding place include?", "Up to 50 athletes and unlimited coaches on the same program. 30 days free, then £79 a month. Cancel before the first charge and you pay nothing."],
+  ["What does the athlete have to do?", "Open a link on their phone and answer three questions. There is no app to install. After training they can log how hard the session felt."],
+  ["What if I disagree with a proposal?", "Change the numbers, add a note, or keep your plan. Nothing reaches the athlete until you send it."],
+  ["Who decides the rules?", "The agent can only apply the ten rules in the rule set. A sports scientist edits them and adds a citation to each. At the moment none of the ten has been reviewed and the agent has no evaluation score yet."],
+  ["Which devices work?", "Polar sleep and HRV sync is built and in testing. WHOOP, Garmin, Oura and Fitbit are not connected, and neither is Apple Watch. Without a device, athletes type their sleep."],
+  ["Where is the data stored?", "In London (Google Cloud europe-west2). Athletes consent before their first check-in and can delete their own data at any time. Sleep and soreness are health data. A data protection assessment is not finished, so the pilot is not open to real athletes yet."],
+  ["What does the founding price include?", "Up to 50 athletes and unlimited coaches on one shared program. It is free for 30 days, then £79 a month. Cancel before the first charge and you pay nothing."],
 ];
 
-function Access({ id, dark = false }: { id: string; dark?: boolean }) {
+function Access({ id }: { id: string }) {
   return (
-    <div id={id} className={dark ? "space-y-3" : "space-y-3"}>
+    <div id={id} className="space-y-3">
       {CHECKOUT_LIVE ? (
         <div className="space-y-2">
           <a href={PAYMENT_LINK} className={`${btn} px-6 py-3 text-base`}>Start 30 days free</a>
@@ -65,8 +65,8 @@ function Access({ id, dark = false }: { id: string; dark?: boolean }) {
         </div>
       ) : (
         <div className="space-y-2">
-          <LeadForm id={id} />
-          <p className="text-sm text-muted">No card needed. We use your email only to tell you when your founding place opens. £79 a month after 30 days free.</p>
+          <LeadForm id={id} cta="Join the waitlist" />
+          <p className="text-sm text-muted">No card. We use your email only to tell you when your place opens. Founding price: £79 a month after 30 days free.</p>
         </div>
       )}
     </div>
@@ -80,14 +80,14 @@ export default function Landing() {
         <div>
           <Eyebrow>For strength and conditioning coaches</Eyebrow>
           <h1 className="mt-4 text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-[56px]">
-            Adjust today’s session to how each athlete actually is.
+            Adjust today’s session for each athlete, using their check-in.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-            Athletes check in on their phone. RepReady suggests one specific change to the session you wrote, with the reason. You approve it in a tap, and only then does the athlete see it.
+            Athletes answer three questions on their phone. RepReady proposes one change to the session you wrote and names the rule behind it. You approve, edit or reject it, and the athlete sees only what you send.
           </p>
           <div className="mt-8"><Access id="hero" /></div>
           <ul className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
-            {["You approve every change", "Never cuts more than 25%", "Data stored in the UK"].map((t) => (
+            {["Never raises load above your plan", "Cuts at most 25%", "Data stored in London"].map((t) => (
               <li key={t} className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-sm bg-marker ring-1 ring-ink/70" />{t}</li>
             ))}
           </ul>
@@ -105,7 +105,7 @@ export default function Landing() {
             <div className="space-y-4 px-5 py-4">
               <div>
                 <div className="font-semibold tracking-tight">Reduce today’s volume</div>
-                <p className="mt-0.5 text-sm leading-relaxed">Slept 5.5 h and 5.4 h the last two nights (Polar), so reps drop by one on the two accessory lifts.</p>
+                <p className="mt-0.5 text-sm leading-relaxed">Slept 5.5 h and 5.4 h on the last two nights, so reps drop by one on the two accessory lifts.</p>
               </div>
               <SessionTable planned={sample} edits={edits} />
               <div className="flex items-center gap-2 text-xs text-muted"><span className="rounded bg-paper px-1.5 py-0.5 font-mono ring-1 ring-line">R1</span>Short sleep, two nights</div>
@@ -115,20 +115,20 @@ export default function Landing() {
               <span className={`${btnGhost} pointer-events-none`}>Keep my plan</span>
             </div>
           </Card>
-          <p className="mt-3 text-center text-xs text-muted">Example proposal. Highlighted values are what changed.</p>
+          <p className="mt-3 text-center text-xs text-muted">Example proposal. Highlighted values are the changes.</p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-3xl space-y-5 text-center">
+      <section className="mx-auto max-w-3xl space-y-4">
         <Eyebrow>The problem</Eyebrow>
-        <h2 className="text-balance text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">The plan was right on Sunday.</h2>
+        <h2 className="text-balance text-3xl font-semibold leading-tight tracking-tight">A weekly program does not see this morning’s check-in.</h2>
         <p className="text-lg leading-relaxed text-muted">
-          By Wednesday your prop slept five hours, your winger’s hamstrings are tight, and the plan still says 4 × 5 at 85%. You can rewrite thirty sessions by hand every morning, or run the plan as written and hope. RepReady reads the check-ins for you and puts the few edits that matter in front of you.
+          Sleep, soreness and stress change daily, and adjusting each athlete by hand takes time. RepReady reads the check-ins and lists the athletes who need a decision.
         </p>
       </section>
 
       <section className="space-y-6">
-        <Eyebrow>How a morning works</Eyebrow>
+        <Eyebrow>How it works</Eyebrow>
         <ol className="grid gap-5 md:grid-cols-4">
           {steps.map(([t, b], i) => (
             <li key={t} className="space-y-2 border-t border-ink pt-4">
@@ -142,10 +142,13 @@ export default function Landing() {
 
       <section className="grid items-center gap-10 lg:grid-cols-[1fr_320px]">
         <div className="space-y-4">
-          <Eyebrow>What the athlete sees</Eyebrow>
-          <h2 className="text-balance text-3xl font-semibold leading-tight tracking-tight">Only what you decided to send.</h2>
-          <p className="max-w-xl text-lg leading-relaxed text-muted">
-            The athlete never sees a raw suggestion. They see today’s session with your changes highlighted, your note if you wrote one, and a way to log how hard it felt. When you approve, their phone updates by itself.
+          <Eyebrow>What a proposal contains</Eyebrow>
+          <ul className="space-y-2.5">
+            {proposal.map((p) => <li key={p} className="flex gap-3 text-[15px] leading-relaxed"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-sm bg-marker ring-1 ring-ink/70" />{p}</li>)}
+          </ul>
+          <h2 className="pt-4 text-xl font-semibold tracking-tight">What the athlete sees</h2>
+          <p className="max-w-xl text-[15px] leading-relaxed text-muted">
+            Today’s session with your changes highlighted, your note if you wrote one, and a box to log how hard it felt. The page updates when you approve, within a few seconds, without a reload.
           </p>
         </div>
         <div className="mx-auto w-full max-w-[300px] rounded-[2rem] border border-line-strong bg-paper p-3 shadow-[0_24px_60px_-30px_rgb(0_0_0/0.35)]">
@@ -155,7 +158,7 @@ export default function Landing() {
             <div className="rounded-lg border border-line bg-paper p-3 text-sm">
               <Chip tone="marker">From your coach</Chip>
               <p className="mt-2 font-medium">Your coach adjusted today’s session.</p>
-              <p className="mt-1 text-muted">“Rough week, I know. Take the lighter version.”</p>
+              <p className="mt-1 text-muted">“Rough week. Take the lighter version.”</p>
             </div>
             <SessionTable planned={sample} edits={edits} />
           </div>
@@ -163,39 +166,7 @@ export default function Landing() {
       </section>
 
       <section className="space-y-6">
-        <div>
-          <Eyebrow>Not another dashboard</Eyebrow>
-          <h2 className="mt-3 max-w-2xl text-balance text-3xl font-semibold leading-tight tracking-tight">Numbers are easy to collect. The edit is the work.</h2>
-        </div>
-        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead>
-              <tr className="border-b border-line bg-paper text-left font-mono text-[11px] uppercase tracking-[0.12em] text-muted">
-                <th className="px-4 py-3 font-medium" />
-                <th className="px-4 py-3 font-medium">Forms and spreadsheets</th>
-                <th className="px-4 py-3 font-medium">Monitoring dashboards</th>
-                <th className="bg-marker px-4 py-3 font-medium text-marker-ink">RepReady</th>
-              </tr>
-            </thead>
-            <tbody>
-              {compare.map(([k, a, b, c]) => (
-                <tr key={k} className="border-b border-line last:border-0">
-                  <td className="px-4 py-3 font-medium">{k}</td>
-                  <td className="px-4 py-3 text-muted">{a}</td>
-                  <td className="px-4 py-3 text-muted">{b}</td>
-                  <td className="px-4 py-3 font-medium">{c}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="space-y-6">
-        <div>
-          <Eyebrow>Three views, one record</Eyebrow>
-          <p className="mt-3 max-w-2xl text-lg text-muted">When an athlete checks in, your screen updates. When you decide, their phone updates. No refresh, no message to chase.</p>
-        </div>
+        <Eyebrow>Who uses it</Eyebrow>
         <div className="grid gap-4 md:grid-cols-3">
           {views.map((v) => (
             <Card key={v.who} className="p-5">
@@ -206,31 +177,32 @@ export default function Landing() {
             </Card>
           ))}
         </div>
+        <p className="text-sm text-muted">The three screens share one record. A change on one shows on the others within a few seconds.</p>
       </section>
 
       <section className="grid gap-10 md:grid-cols-2">
         <div className="space-y-4">
-          <Eyebrow>What it will not do</Eyebrow>
-          <h2 className="text-balance text-3xl font-semibold leading-tight tracking-tight">You stay the coach.</h2>
+          <Eyebrow>Limits</Eyebrow>
           <ul className="space-y-2.5">
             {limits.map((l) => <li key={l} className="flex gap-3 text-[15px] leading-relaxed"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-sm bg-marker ring-1 ring-ink/70" />{l}</li>)}
           </ul>
         </div>
         <div className="space-y-4">
-          <Eyebrow>Rules you can inspect</Eyebrow>
-          <h2 className="text-balance text-3xl font-semibold leading-tight tracking-tight">Every proposal names its rule.</h2>
-          <p className="text-[15px] leading-relaxed text-muted">The agent can only apply the rules in a fixed set. A sports scientist edits each rule and attaches its citation, and the agent is scored against that scientist’s own decisions on thirty test athletes before you rely on it.</p>
-          <Chip tone="warn">Pilot: rule review in progress</Chip>
+          <Eyebrow>Rules</Eyebrow>
+          <p className="text-[15px] leading-relaxed text-muted">
+            The agent can only apply the ten rules in a fixed set, and every proposal names the rule it used. A sports scientist edits the rules and cites a source for each. The agent is then scored against that scientist’s own decisions on 30 test athletes. The pass bar is 80% agreement overall and 100% on the cases where the right call is no change.
+          </p>
+          <Chip tone="warn">Status: review in progress, no score yet</Chip>
         </div>
       </section>
 
       <section className="mx-auto w-full max-w-xl">
         <Card className="space-y-4 p-7">
-          <Eyebrow>Founding place</Eyebrow>
+          <Eyebrow>Founding price</Eyebrow>
           <div className="flex items-baseline gap-2"><span className="text-5xl font-semibold tracking-tight">£79</span><span className="text-muted">a month</span></div>
           <ul className="space-y-1.5 text-sm text-muted">
-            <li>30 days free</li>
-            <li>Up to 50 athletes, unlimited coaches, one program</li>
+            <li>Free for the first 30 days</li>
+            <li>Up to 50 athletes, unlimited coaches, one shared program</li>
             <li>Cancel before the first charge and you pay nothing</li>
           </ul>
           <Access id="pricing" />
@@ -250,12 +222,12 @@ export default function Landing() {
       </section>
 
       <section className="rounded-2xl bg-ink px-6 py-12 text-center text-paper sm:px-12">
-        <h2 className="mx-auto max-w-2xl text-balance text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">Stop running the Sunday plan on a Wednesday body.</h2>
-        <p className="mx-auto mt-3 max-w-xl text-paper/70">Get a founding place and shape what gets built next.</p>
+        <h2 className="mx-auto max-w-2xl text-balance text-3xl font-semibold leading-tight tracking-tight">Join the waitlist for a founding place</h2>
+        <p className="mx-auto mt-3 max-w-xl text-paper/70">£79 a month after 30 days free. Up to 50 athletes.</p>
         <div className="mx-auto mt-8 flex max-w-md justify-center [&_input]:border-paper/30 [&_input]:bg-paper [&_input]:text-ink [&_button]:bg-marker [&_button]:text-marker-ink [&_p]:text-paper/70">
-          <Access id="final" dark />
+          <Access id="final" />
         </div>
-        <p className="mt-6 text-sm text-paper/60">Already have a link from your coach? Athletes use that link. Coaches can <Link href="/signin" className="underline underline-offset-4">sign in</Link>.</p>
+        <p className="mt-6 text-sm text-paper/60">Athletes use the link their coach sends. Coaches can <Link href="/signin" className="underline underline-offset-4">sign in</Link>.</p>
       </section>
     </div>
   );
