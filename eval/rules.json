@@ -1,0 +1,16 @@
+{
+  "status": "CANDIDATE. Drafted by Claude on 2026-10-01 as a starting point. Every threshold and action is a placeholder for the cofounder to keep, change or delete. No rule is validated. The evidence field is empty on purpose: citations must come from the cofounder, not from me.",
+  "inputs": "rpe_delta = session RPE minus target RPE. sleep_h = hours slept. soreness and stress are 0-10 athlete ratings. note = free text.",
+  "rules": [
+    { "id": "R1", "name": "Short sleep, two nights", "trigger": "sleep_h below 6 on each of the last 2 nights", "action": "Reduce working-set volume 10-20%. Keep prescribed intensity.", "evidence": "", "keep": null },
+    { "id": "R2", "name": "Sustained RPE overshoot", "trigger": "rpe_delta of +2 or more on 3 of the last 4 sessions", "action": "Reduce load or volume for the next session. Coach chooses which.", "evidence": "", "keep": null },
+    { "id": "R3", "name": "High local soreness", "trigger": "soreness 7 or above in a muscle group the planned session loads heavily", "action": "Swap or reduce the main exercise for that group. Leave other exercises unchanged.", "evidence": "", "keep": null },
+    { "id": "R4", "name": "High stress, poor sleep", "trigger": "stress 8 or above and sleep_h below 6.5 on the same day", "action": "Reduce volume 10%. Flag to coach for a conversation.", "evidence": "", "keep": null },
+    { "id": "R5", "name": "Return after missed sessions", "trigger": "no completed sessions in the last 7 days", "action": "Do not progress load. Consider a reduced-volume re-entry session.", "evidence": "", "keep": null },
+    { "id": "R6", "name": "Illness note", "trigger": "note reports fever, chest symptoms or acute illness", "action": "Propose rest. Flag to coach. No exercise edits.", "evidence": "", "keep": null },
+    { "id": "R7", "name": "Pain or injury note", "trigger": "note reports pain, injury or a sharp or joint-specific symptom", "action": "No automatic edit. Flag to coach for clearance.", "evidence": "", "keep": null },
+    { "id": "R8", "name": "Normal fluctuation", "trigger": "rpe_delta within +/-1, sleep_h 6.5 or above, soreness 5 or below, stress 6 or below", "action": "No change.", "evidence": "", "keep": null },
+    { "id": "R9", "name": "Consistently under target", "trigger": "rpe_delta of -2 or lower on 3 of the last 4 sessions and no other flags", "action": "Suggest a load increase within the coach's progression limits. Never above the plan's ceiling.", "evidence": "", "keep": null },
+    { "id": "R10", "name": "Deload week", "trigger": "planned session is in a deload week", "action": "No change unless R6 or R7 applies.", "evidence": "", "keep": null }
+  ]
+}

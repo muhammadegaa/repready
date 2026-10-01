@@ -1,0 +1,243 @@
+<title>Adaptive S&C Plan</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column (max 880px), sticky loop tracker on top, sections as flat blocks, tables scroll inside their own container */
+:root{
+  --bg:#f6f7f9; --surface:#ffffff; --fg:#14181f; --muted:#5a6472; --line:#dde1e7;
+  --accent:#0b6e8a; --good:#1a7f4b; --warn:#a15c00; --bad:#b3261e; --chip:#e8eef3;
+  --font-body:'Instrument Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1318; --surface:#171c23; --fg:#e8ecf1; --muted:#9aa5b3; --line:#2a323c;
+    --accent:#4cb8d6; --good:#4cc38a; --warn:#e0a240; --bad:#f0756c; --chip:#1f2730; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1318; --surface:#171c23; --fg:#e8ecf1; --muted:#9aa5b3; --line:#2a323c;
+  --accent:#4cb8d6; --good:#4cc38a; --warn:#e0a240; --bad:#f0756c; --chip:#1f2730; color-scheme:dark;
+}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.55;padding-inline:16px;padding-block:0 64px}
+.wrap{max-width:880px;margin-inline:auto}
+h1{font-size:clamp(26px,5vw,36px);line-height:1.15;margin:32px 0 8px;text-wrap:balance;letter-spacing:-0.01em}
+h2{font-size:20px;margin:0 0 12px;text-wrap:balance}
+h3{font-size:15px;margin:0 0 4px}
+p{margin:0 0 12px;max-width:68ch}
+a{color:var(--accent)}
+.lede{color:var(--muted);font-size:16px;max-width:62ch}
+.meta{font-family:var(--font-mono);font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+section{margin-top:40px;padding-top:24px;border-top:1px solid var(--line)}
+.loop{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 0}
+.loop span{font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:4px 8px;border:1px solid var(--line);border-radius:4px;color:var(--muted)}
+.loop span.done{color:var(--good);border-color:var(--good)}
+.loop span.here{background:var(--accent);border-color:var(--accent);color:var(--bg);font-weight:500}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;background:var(--chip)}
+tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-family:var(--font-mono);font-size:10.5px;padding:1px 6px;border-radius:3px;border:1px solid currentColor;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.t-sourced{color:var(--good)} .t-estimate{color:var(--accent)} .t-hyp{color:var(--warn)} .t-open{color:var(--bad)}
+.gate{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin-bottom:10px}
+.gate h3{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.gate .id{font-family:var(--font-mono);font-size:12px;color:var(--accent)}
+.gate dl{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;margin:8px 0 0;font-size:13.5px}
+.gate dt{color:var(--muted);font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em;padding-top:2px}
+.gate dd{margin:0;min-width:0}
+@media (max-width:520px){.gate dl{grid-template-columns:1fr}.gate dt{padding-top:6px}}
+ul{margin:0 0 12px;padding-left:20px;max-width:68ch} li{margin-bottom:4px}
+.note{border-left:3px solid var(--warn);padding:8px 12px;background:var(--surface);margin:12px 0;max-width:68ch}
+.pre-mermaid{margin:12px 0}
+code{font-family:var(--font-mono);font-size:12.5px;background:var(--chip);padding:1px 5px;border-radius:3px}
+.src{font-size:12.5px;color:var(--muted);word-break:break-word}
+.src li{margin-bottom:6px}
+</style>
+<div class="wrap">
+  <p class="meta" style="margin-top:28px">egglabs · adaptive-sc · 2026-10-01 · draft 1 for sign-off</p>
+  <h1>Adaptive S&C agent: plan for sign-off</h1>
+  <p class="lede">A coach-in-the-loop agent that reads athlete readiness (RPE, wellness, sleep, wearables) and proposes reasoned edits to the planned session. Gates G1 to G7 were locked with all defaults on 2026-10-01 ("lock all"). Execution has started.</p>
+  <div class="loop" aria-label="Working loop position">
+    <span class="done">1 Brief</span><span class="done">2 Principles</span><span class="done">3 Plan</span><span class="done">4 Sign-off</span><span class="here">5 Execute</span><span>6 Self-audit</span><span>7 Deliver + log</span>
+  </div>
+
+  <section>
+    <h2>1. Brief, in your words</h2>
+    <ul>
+      <li>"agentic product that can sell": a product strangers pay for, not a sales agent.</li>
+      <li>"make strength and conditioning program more adaptable to real athlete conditions that recorded through multiple input sources including wearables like smartwatches".</li>
+      <li>"we cant waste time on asking people, we just need legit desk research, look at reviews, interviews etc". So no cold outreach to strangers in this phase.</li>
+      <li>"quality of work that is on par with VC backed companies", measured against how YC and Antler evaluate.</li>
+      <li>Cofounder: PhD in sports science, University of Salford, 3 hours a week. Market moved from Indonesia (APKI) to the UK.</li>
+    </ul>
+    <p class="meta">Tag key</p>
+    <p><span class="tag t-sourced">sourced</span> has a link in section 9 &nbsp; <span class="tag t-estimate">estimate</span> my arithmetic on sourced inputs &nbsp; <span class="tag t-hyp">hypothesis</span> untested &nbsp; <span class="tag t-open">open</span> needs an answer</p>
+  </section>
+
+  <section>
+    <h2>2. Principles that authorize the work</h2>
+    <ul>
+      <li>Shortest path to revenue: this plan reaches a live payment link in week 5 with the cofounder at 3 hours a week (section 6).</li>
+      <li>WIP = 1: starting this parks codehere outreach. Already logged in <code>studio-os/NOW.md</code> on 2026-10-01.</li>
+      <li>Verify before asserting: the agent is gated on an expert-scored test set, and every market claim carries a tag.</li>
+      <li>Surgical scope: wearables, native apps and messaging are out of the first build.</li>
+    </ul>
+    <div class="note"><strong>Flag.</strong> The studio target in <code>NOW.md</code> was "one stranger pays by 30 Sept 2026". That date passed yesterday, and the file shows no £ in. This plan sets a new first-money test (week 3 payment link) but does not reset the studio target. That is your call.</div>
+  </section>
+
+  <section>
+    <h2>3. Gates to lock</h2>
+    <p>Each gate has a default. Reply "lock all" to accept every default, or name the gate you want to change.</p>
+
+    <div class="gate"><h3><span class="id">G1</span> Active bet</h3><dl>
+      <dt>Default</dt><dd>Adaptive S&C agent becomes the active bet. Codehere outreach stays parked.</dd>
+      <dt>Alternative</dt><dd>Keep codehere active and run this as a side project at a lower hours share.</dd>
+      <dt>Why</dt><dd>Two bets at 10–15 hours a week means neither reaches a paying user. Antler explicitly looks for commitment with no side projects.</dd></dl></div>
+
+    <div class="gate"><h3><span class="id">G2</span> First buyer</h3><dl>
+      <dt>Default</dt><dd>UK school, college and lower-league club S&C coaches, adult athletes only at first.</dd>
+      <dt>Alternative</dt><dd>UK personal trainers (about 25,000 businesses, larger but crowded at $9–£52 a month).</dd>
+      <dt>Why</dt><dd>The team-coach slot is the open one. The cofounder's credibility sits with S&C coaches. <span class="tag t-hyp">hypothesis</span></dd></dl></div>
+
+    <div class="gate"><h3><span class="id">G3</span> Product shape</h3><dl>
+      <dt>Default</dt><dd>Agent proposes, coach approves, athlete sees the adjusted session. Nothing applies without approval.</dd>
+      <dt>Alternative</dt><dd>Athlete-facing autonomous adjustment, like WHOOP Coach or JuggernautAI.</dd>
+      <dt>Why</dt><dd>The coach is accountable for the athlete, so approval is the trust mechanism. It also avoids competing with consumer apps on their ground.</dd></dl></div>
+
+    <div class="gate"><h3><span class="id">G4</span> Wearables in the first build</h3><dl>
+      <dt>Default</dt><dd>No. Inputs are RPE, sleep, soreness, stress and a note. The <code>readiness_signal</code> table exists so wearables plug in later.</dd>
+      <dt>Alternative</dt><dd>Include one aggregator from week 1 (Terra at $399 a month, or Junction at about $0.50 per user per month with a $300 minimum).</dd>
+      <dt>Why</dt><dd>That fixed cost starts before any revenue, and the evidence for wearable readiness in strength work is thin (section 5). Add it once a paying pilot names the device its athletes use.</dd></dl></div>
+
+    <div class="gate"><h3><span class="id">G5</span> First price to test</h3><dl>
+      <dt>Default</dt><dd>£79 a month for up to 50 athletes, unlimited coaches.</dd>
+      <dt>Alternative</dt><dd>Per-athlete pricing from £1.50 an athlete.</dd>
+      <dt>Why</dt><dd>Sits between Volt (cheapest in the S&C guide) and TeamBuildr ($90–280). <span class="tag t-hyp">hypothesis</span> The payment link is the test.</dd></dl></div>
+
+    <div class="gate"><h3><span class="id">G6</span> Distribution</h3><dl>
+      <dt>Default</dt><dd>The cofounder publishes evidence-based posts on auto-regulation for S&C coaches. Each links to the landing page.</dd>
+      <dt>Alternative</dt><dd>Cold outreach to coaches. Excluded by your "no asking people" rule.</dd>
+      <dt>Why</dt><dd>Public posts from a PhD are also the credibility signal investors ask about. At 3 hours a week the cofounder cannot write posts, so I draft and they review and publish, about 30 minutes a week.</dd></dl></div>
+
+    <div class="gate"><h3><span class="id">G7</span> Pass bar for the agent</h3><dl>
+      <dt>Default</dt><dd>At least 80% agreement with the cofounder on 30 scenarios, and 100% on the 8 "do nothing" cases.</dd>
+      <dt>Alternative</dt><dd>A different threshold, or agreement measured against a second sports scientist.</dd>
+      <dt>Why</dt><dd>It turns "works" into a check that can fail. The 80% figure is our choice, not a published standard.</dd></dl></div>
+  </section>
+
+  <section>
+    <h2>4. How investors would score this today</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>Criterion</th><th>Source</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Founders: something each has built or achieved</td><td>YC</td><td><span class="tag t-open">open</span> cofounder's publications and coaching experience; yours is the studio's shipped products</td></tr>
+        <tr><td>Founder-market fit</td><td>Antler, YC</td><td>Strong on paper: sports-science PhD plus a builder. <span class="tag t-open">open</span> cofounder's coaching exposure</td></tr>
+        <tr><td>Commitment</td><td>Antler</td><td>Weak today: both part-time. Affects Antler more than YC</td></tr>
+        <tr><td>Insight and why now</td><td>YC</td><td>Reasonable. Team coaches lack adaptive tools, LLM agents can now produce reasoned edits <span class="tag t-hyp">hypothesis</span></td></tr>
+        <tr><td>Traction</td><td>YC</td><td>None yet. First test is the week-3 payment link</td></tr>
+        <tr><td>Market size</td><td>Generic pre-seed</td><td>Small for team S&C alone: about $6M–18M total revenue at TeamBuildr's claimed scale <span class="tag t-estimate">estimate</span>. Needs an expansion story</td></tr>
+        <tr><td>MVP with customer validation</td><td>Generic pre-seed</td><td>Spec exists, no build, no customers</td></tr>
+        <tr><td>Legal</td><td>Generic pre-seed</td><td>HRV and sleep data are health data under UK GDPR. <span class="tag t-open">open</span> consent wording and whether a DPIA is required. Founder agreement unwritten</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>5. Evidence, and its limits</h2>
+    <h3>Problem</h3>
+    <ul>
+      <li>TeamBuildr coach side described as "cumbersome and counter-intuitive", with editing, copying and pasting movements "far too difficult". <span class="tag t-sourced">sourced</span> Excerpt only, the review sites returned HTTP 403.</li>
+      <li>TeamBuildr iOS app: 3.2 out of 5 from 260 ratings, and release notes show repeated crash, sign-out, offline and messaging fixes. <span class="tag t-sourced">sourced</span></li>
+      <li>TrainHeroic: crashes, slow loads, entries that sometimes do not save. <span class="tag t-sourced">sourced</span></li>
+      <li>Not evidenced: that coaches want automatic adjustment, or will pay for it. This is the central hypothesis.</li>
+    </ul>
+    <h3>Science</h3>
+    <ul>
+      <li>HRV-guided training: small positive effect in endurance athletes, VO2max effect size about 0.40, varying by athlete level and sex. <span class="tag t-sourced">sourced</span></li>
+      <li>No strength-specific equivalent found. <span class="tag t-open">open</span> The cofounder should supply it.</li>
+      <li>Claims allowed: time saved, earlier visibility of overload. Claims not allowed yet: better performance, injury prevention, anything medical.</li>
+    </ul>
+    <h3>Competition</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>Segment</th><th>Examples</th><th>Adapts to wearables</th><th>Sold to teams</th></tr></thead>
+      <tbody>
+        <tr><td>Individual lifters</td><td>JuggernautAI, Fitbod, SensAI, WHOOP Coach</td><td>Yes, varies</td><td>No</td></tr>
+        <tr><td>Endurance</td><td>Athletica, Humango, Garmin Coach</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Team programming</td><td>TeamBuildr, TrainHeroic, Bridge</td><td>No</td><td>Yes</td></tr>
+        <tr><td>Team monitoring</td><td>Kitman, Smartabase, CoachMePlus</td><td>Shows data</td><td>Yes</td></tr>
+        <tr><td>Budget monitoring</td><td>Coach ID App, Mingle, Fractall, Metrifit</td><td>Shows data</td><td>Yes</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:10px">Kitman supplies all Premier League and EFL academies through the league's Elite Player Performance Plan. That tier is closed. <span class="tag t-sourced">sourced</span> The "open slot" in team adaptation comes from a limited search and is not proven.</p>
+  </section>
+
+  <section>
+    <h2>6. Build plan</h2>
+    <p>Builder about 12 hours a week, cofounder 3 hours a week. Each week ends at a gate. The cofounder reviews and labels drafts instead of writing from scratch: I draft the candidate rules and scenarios from the cited literature, and the cofounder's edits and decisions are the ground truth. Risk: reviewing a draft can anchor the expert toward it. Mitigation: the cofounder writes each scenario's decision before reading the drafted one.</p>
+    <pre class="mermaid">
+flowchart LR
+  A[Coach imports program] --> B[Athlete daily check-in]
+  B --> C[Agent drafts edits + reasons]
+  C --> D{Coach decision}
+  D -->|approve or edit| E[Athlete sees adjusted session]
+  D -->|reject| F[Planned session unchanged]
+  E --> G[Audit log]
+  F --> G
+    </pre>
+    <div class="scroll"><table>
+      <thead><tr><th>Week</th><th>Work</th><th>Gate</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Cofounder (3h): edits 10 drafted rules, labels 10 scenarios including 3 "do nothing". Builder: schema, program import, agent, evaluation harness.</td><td>Harness runs on the first 10 scenarios</td></tr>
+        <tr><td>2</td><td>Cofounder (3h): labels 10 more scenarios. Builder: agent tuned on the first 20, check-in PWA.</td><td>Agreement reported on 20 scenarios</td></tr>
+        <tr><td>3</td><td>Cofounder (3h): labels the last 10 and confirms the rule set. Builder: approval queue, session view, audit log.</td><td>G7 pass bar on all 30, or the kill criterion fires</td></tr>
+        <tr><td>4</td><td>Cofounder (3h): reviews the landing copy and first two posts (I draft). Builder: landing page, Stripe payment link, privacy notice and consent screen.</td><td>Landing page and payment link live</td></tr>
+        <tr><td>5</td><td>Deploy, post the first two pieces of content, start the 30-day payment test.</td><td>Public link live, payment works</td></tr>
+        <tr><td>6+</td><td>Wearable sync through an aggregator, after a pilot exists.</td><td>Pilot coach's athletes connected</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:10px">Stack: Next.js, TypeScript, Tailwind, Supabase, Anthropic SDK, Vercel, Stripe. Hard limits are enforced in code, not in the prompt: no load above plan, volume change capped at ±25%, no edits on flagged injuries without coach clearance, no medical language.</p>
+    <div class="note"><strong>Hours check.</strong> At 3 hours a week the cofounder's work is about 9 hours over three weeks. My estimate is 10 to 15 minutes per scenario to label, plus rule editing. That makes this a five-week build to a live payment link, not three. The first-money test moves from week 3 to week 5. If the cofounder can give 6 hours a week, weeks 1 to 3 compress to 2.</div>
+  </section>
+
+  <section>
+    <h2>7. Kill criteria</h2>
+    <ul>
+      <li>The cofounder cannot write at least 10 distinct, evidence-backed adjustment rules for strength sessions in one sitting.</li>
+      <li>The agent agrees with the cofounder on less than 80% of the 30 scenarios after two prompt iterations.</li>
+      <li>The landing page, with live content distribution, gets no paid deposit or pre-order within 30 days.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>8. Open questions</h2>
+    <ul>
+      <li>Cofounder: weekly hours, coaching or club experience, publications, and equity split in writing.</li>
+      <li>Product name and domain.</li>
+      <li>UK GDPR: consent wording, DPIA, and whether under-18 athletes (school sport) are in scope. Default: adults only.</li>
+      <li>UK SAM and SOM: count of UK schools, colleges, clubs and gyms with a paid S&C coach.</li>
+      <li>Expansion path to a venture-scale market, stated in one paragraph.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>9. Self-audit</h2>
+    <ul>
+      <li>I first wrote this as Markdown (<code>MEMO.md</code>, <code>SPEC.md</code> in this project). Your own rule says plans rot in Markdown past 200 lines. This page is the plan of record. The Markdown files are the source text and can be deleted on your word.</li>
+      <li>I could not read Trustpilot, G2 or Capterra directly, so problem evidence rests on excerpts and the App Store.</li>
+      <li>Aggregator prices and the TeamBuildr customer count come from third-party pages and a vendor claim. Re-check before relying on them.</li>
+      <li>I found the WAY_OF_WORK file after writing the Markdown versions. I should have looked for it first.</li>
+    </ul>
+    <h3>Sources</h3>
+    <ul class="src">
+      <li>TeamBuildr: <a href="https://www.teambuildr.com/pricing">pricing</a>, <a href="https://www.teambuildr.com/features">features</a>, <a href="https://apps.apple.com/us/app/teambuildr-training/id1588729407">App Store</a></li>
+      <li>Reviews and guides: <a href="https://www.softwareadvice.com/fitness/trainheroic-profile/">TrainHeroic</a>, <a href="https://softwarefinder.com/analytics-software/kitman-labs/reviews">Kitman reviews</a>, <a href="https://strengthandconditioning.com/best-strength-and-conditioning-software/">S&C software guide</a>, <a href="https://fractall.fit/blog/posts/best-budget-athlete-monitoring-app-coaches">budget monitoring apps</a></li>
+      <li><a href="https://www.premierleague.com/en/news/3750826">Premier League and Kitman academies</a></li>
+      <li>Adaptive apps: <a href="https://www.sensai.fit/blog/workout-app-adjusts-for-fatigue">SensAI roundup</a>, <a href="https://alphaprogression.com/en/blog/best-ai-strength-training-apps">AlphaProgression</a></li>
+      <li>HRV evidence: <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7663087/">PMC meta-analysis</a>, <a href="https://www.jsams.org/article/S1440-2440(21)00108-0/fulltext">JSAMS review</a></li>
+      <li>Aggregators: <a href="https://sahha.ai/compare/terra-alternatives/">Terra alternatives</a>, <a href="https://www.tryvital.com/pricing">Vital</a>, <a href="https://www.spikeapi.com/pricing">Spike</a></li>
+      <li>UK market: <a href="https://create.fit/how-many-personal-trainers-are-there-in-the-uk/">PT count</a>, <a href="https://www.researchgate.net/publication/332242423_The_future_development_pathway_of_strength_and_conditioning_a_proposed_model_from_the_UKSCA">UKSCA pathway paper</a></li>
+      <li>Investor criteria: <a href="https://www.ycombinator.com/howtoapply">YC</a>, <a href="https://www.antler.co/blog/what-antler-looks-for-in-a-founder">Antler</a>, <a href="https://microventures.com/checklist-for-vc-due-diligence">MicroVentures checklist</a></li>
+      <li>Method: <code>codehere/agent/test/evidence/planning/WAY_OF_WORK-2026-05-22.html</code>, <code>codehere/agent/docs/CLAUDE_CODE_TEAM_LOOP.md</code></li>
+    </ul>
+  </section>
+</div>
