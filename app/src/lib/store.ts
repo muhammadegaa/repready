@@ -163,3 +163,15 @@ export async function setNotice(k: string, v: string | null): Promise<void> {
   if (v === null) await ref.delete();
   else await ref.set({ v });
 }
+
+export async function deleteAthleteData(code: string): Promise<void> {
+  for (const c of ["checkins", "readiness", "session_logs", "proposals"]) {
+    const q = await fs.collection(c).where("athlete_code", "==", code).get();
+    for (let i = 0; i < q.docs.length; i += 400) {
+      const batch = fs.batch();
+      q.docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+  }
+  await fs.collection("athletes").doc(code).delete();
+}

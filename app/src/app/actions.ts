@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { parseProgram } from "@/lib/program";
 import { requireCoach, signIn, signOut } from "@/lib/coach-auth";
 import { runAgentFor, todayStr } from "@/lib/run-agent";
-import { createAthlete, decideProposal, getAthlete, giveConsentTo, replaceSessions, saveCheckin, saveReadiness, saveSessionLog, sessionBefore, setNotice } from "@/lib/store";
+import { createAthlete, decideProposal, deleteAthleteData, getAthlete, giveConsentTo, replaceSessions, saveCheckin, saveReadiness, saveSessionLog, sessionBefore, setNotice } from "@/lib/store";
 import { PREVIEW } from "@/lib/wearables";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -25,6 +25,14 @@ export async function addAthlete(f: FormData) {
   const name = text(f, "name");
   if (!name || name.length > 80) return;
   await createAthlete(name);
+  revalidatePath("/coach");
+}
+
+export async function removeAthlete(f: FormData) {
+  await requireCoach();
+  const code = text(f, "code");
+  if (f.get("confirm") !== "yes" || !/^[0-9a-f]{10}$/.test(code)) return;
+  await deleteAthleteData(code);
   revalidatePath("/coach");
 }
 

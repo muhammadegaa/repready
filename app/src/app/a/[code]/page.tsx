@@ -15,6 +15,7 @@ export default async function AthletePage(props: PageProps<"/a/[code]">) {
   const a = await getAthlete(code);
   if (!a) notFound();
   const today = todayStr();
+  const preview = !process.env.JUNCTION_API_KEY && process.env.NODE_ENV !== "production";
 
   if (!a.consented_at) {
     return (
@@ -71,20 +72,20 @@ export default async function AthletePage(props: PageProps<"/a/[code]">) {
         <p className="mt-1 text-sm text-muted">{today}{session.week_type === "deload" ? " · deload week" : ""}</p>
       </header>
 
-      {wearable ? <WearableStrip w={wearable} /> : (
+      {wearable ? <WearableStrip w={wearable} /> : preview ? (
         <form action={previewWearable} className="space-y-3 rounded-lg border border-line bg-card p-4">
           <div>
             <h2 className="text-sm font-medium">Connect a wearable</h2>
-            <p className="mt-1 text-sm text-muted">WHOOP, Garmin, Oura, Fitbit or Polar. One login covers all of them.</p>
+            <p className="mt-1 text-sm text-muted">Preview with sample data. Live connection for WHOOP, Garmin, Oura, Fitbit and Polar is not switched on yet.</p>
           </div>
           <input type="hidden" name="code" value={code} />
           <label htmlFor="provider" className="sr-only">Device</label>
           <select id="provider" name="provider" className={input} defaultValue="whoop">
             {Object.keys(PREVIEW).map((p) => <option key={p} value={p}>{providerName(p)}</option>)}
           </select>
-          <button className={btn}>Use last night</button>
+          <button className={btn}>Use a sample night</button>
         </form>
-      )}
+      ) : null}
 
       {!checkin && (
         <form action={submitCheckin} className="space-y-4">

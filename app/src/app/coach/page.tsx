@@ -3,7 +3,7 @@ import { describeEdit } from "@/lib/agent/apply";
 import { todayStr } from "@/lib/run-agent";
 import { countSessions, getNotice, getReadiness, listAthletes, listProposals, type ProposalRow, type ReadinessRow } from "@/lib/store";
 import { providerName } from "@/lib/wearables";
-import { addAthlete, coachLogin, coachLogout, decide, importProgram } from "../actions";
+import { addAthlete, coachLogin, coachLogout, decide, importProgram, removeAthlete } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +84,14 @@ export default async function Coach() {
                   {w && <p className="mt-0.5 text-sm text-muted"><WearableLine w={w} /></p>}
                 </div>
                 <a href={`/a/${a.code}`} className="text-sm text-accent">Open their page</a>
+                <details className="w-full text-sm">
+                  <summary className="cursor-pointer text-muted">Remove athlete</summary>
+                  <form action={removeAthlete} className="mt-2 flex flex-wrap items-center gap-3">
+                    <input type="hidden" name="code" value={a.code} />
+                    <label className="flex items-center gap-2"><input type="checkbox" name="confirm" value="yes" required />Delete {a.name} and all their check-ins, proposals and device data. This cannot be undone.</label>
+                    <button className={ghost}>Delete</button>
+                  </form>
+                </details>
               </li>
             );
           })}

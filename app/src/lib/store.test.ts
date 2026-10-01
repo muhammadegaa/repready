@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countSessions, createAthlete, decideProposal, getAthlete, getCheckins, getNotice, getProposal, getSessionLogs, giveConsentTo, hasCheckin, listAthletes, listProposals, replaceSessions, saveCheckin, saveProposal, saveSessionLog, sessionBefore, sessionOn, sessionsOnDates, setNotice } from "./store";
+import { countSessions, createAthlete, decideProposal, deleteAthleteData, getAthlete, getCheckins, getNotice, getProposal, getSessionLogs, giveConsentTo, hasCheckin, listAthletes, listProposals, replaceSessions, saveCheckin, saveProposal, saveSessionLog, sessionBefore, sessionOn, sessionsOnDates, setNotice } from "./store";
 
 // Needs the Firestore emulator: npm run test:emulator
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator)", () => {
@@ -59,6 +59,27 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     await decideProposal(id, "rejected");
     expect((await getProposal(code, "2030-04-01"))?.status).toBe("approved");
     expect((await listProposals(10)).some((p) => p.id === id)).toBe(true);
+  });
+
+  it("deletes an athlete and everything stored for them, and nobody else's data", async () => {
+    const gone = await createAthlete("Gone");
+    const stays = await createAthlete("Stays");
+    for (const code of [gone, stays]) {
+      await saveCheckin(code, "2030-05-01", { sleep_h: 7, soreness: 2, stress: 2, note: null });
+      await saveSessionLog(code, "2030-05-01", 7);
+      await saveProposal({
+        athlete_code: code, athlete_name: code, session_label: "A", on_date: "2030-05-01", decision: "none", edits: [], reason: null,
+        rules_applied: [], flag: null, status: "no_change", error: null, created_at: new Date().toISOString(), decided_at: null,
+      });
+    }
+    await deleteAthleteData(gone);
+    expect(await getAthlete(gone)).toBeNull();
+    expect(await hasCheckin(gone, "2030-05-01")).toBe(false);
+    expect((await getSessionLogs(gone, ["2030-05-01"])).size).toBe(0);
+    expect(await getProposal(gone, "2030-05-01")).toBeNull();
+    expect(await getAthlete(stays)).not.toBeNull();
+    expect(await hasCheckin(stays, "2030-05-01")).toBe(true);
+    expect(await getProposal(stays, "2030-05-01")).not.toBeNull();
   });
 
   it("sets and clears a notice", async () => {
