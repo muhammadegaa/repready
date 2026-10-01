@@ -110,11 +110,11 @@ export default async function Today(props: PageProps<"/coach">) {
 
           {leadCount > 0 && (
             <section className="space-y-3">
-              <Eyebrow>Waitlist · {leadCount}</Eyebrow>
+              <Eyebrow>Pilot requests · {leadCount}</Eyebrow>
               <Card className="divide-y divide-line">
                 {leads.map((l) => (
                   <div key={l.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                    <a href={`mailto:${l.email}`} className="min-w-0 truncate underline-offset-4 hover:underline">{l.email}</a>
+                    <a href={`mailto:${l.email}`} className="min-w-0 truncate underline-offset-4 hover:underline">{l.club ? `${l.club} · ` : ""}{l.email}</a>
                     <span className="shrink-0 font-mono text-[11px] text-muted">{ago(l.created_at)}</span>
                   </div>
                 ))}

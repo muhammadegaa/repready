@@ -348,14 +348,14 @@ export async function listEvalRuns(limit: number): Promise<EvalRun[]> {
 }
 
 // ---- waitlist
-export type LeadRow = { id: string; email: string; source: string; created_at: string };
+export type LeadRow = { id: string; email: string; club: string; source: string; created_at: string };
 
-export async function saveLead(email: string, source: string): Promise<boolean> {
+export async function saveLead(email: string, source: string, club = ""): Promise<boolean> {
   const id = createHash("sha256").update(email.toLowerCase()).digest("hex").slice(0, 20);
   const ref = fs.collection("leads").doc(id);
   if ((await ref.get()).exists) return false;
-  await ref.set({ email, source, created_at: new Date().toISOString() });
-  await logEvent({ type: "lead", athlete_code: null, athlete_name: null, text: "New waitlist sign-up" });
+  await ref.set({ email, club, source, created_at: new Date().toISOString() });
+  await logEvent({ type: "lead", athlete_code: null, athlete_name: null, text: `New pilot request${club ? ` from ${club}` : ""}` });
   await touch("coach");
   return true;
 }

@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
   title: { default: "RepReady", template: "%s · RepReady" },
-  description: "Athletes check in daily. The agent proposes edits to the planned session with reasons. You approve every change.",
+  description: "Players check in daily. The agent proposes edits to the planned session with reasons. Your staff approve every change.",
 };
 
 export const viewport: Viewport = { themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f5f4ef" }, { media: "(prefers-color-scheme: dark)", color: "#0f1012" }] };

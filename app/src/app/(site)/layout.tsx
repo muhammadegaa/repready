@@ -34,7 +34,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         )}
       </header>
       <main className="flex-1 py-8">{children}</main>
-      <footer className="border-t border-line py-6 text-xs text-muted">RepReady · Session adjustments for strength and conditioning coaches. Adults only. Not medical advice.</footer>
+      <footer className="border-t border-line py-6 text-xs text-muted">RepReady · Session adjustments for football performance staff. Players 18 and over. Not medical advice.</footer>
     </div>
   );
 }

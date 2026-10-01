@@ -166,10 +166,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
   });
 
   it("keeps one waitlist entry per email, ignoring case", async () => {
-    expect(await saveLead("Coach@Example.com", "landing")).toBe(true);
+    expect(await saveLead("Coach@Example.com", "landing", "Example FC")).toBe(true);
     expect(await saveLead("coach@example.com", "landing")).toBe(false);
     const leads = await listLeads(10);
     expect(leads.filter((l) => l.email.toLowerCase() === "coach@example.com")).toHaveLength(1);
+    expect(leads.find((l) => l.email.toLowerCase() === "coach@example.com")?.club).toBe("Example FC");
     expect(await countLeads()).toBeGreaterThanOrEqual(1);
   });
 });
