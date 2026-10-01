@@ -1,9 +1,14 @@
-import { getApps, initializeApp } from "firebase-admin/app";
+import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type DocumentData } from "firebase-admin/firestore";
 import { randomBytes } from "node:crypto";
 import type { Edit, Exercise } from "./agent/schema";
 
-const app = getApps()[0] ?? initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID ?? "repready-7dacd" });
+// Hosted (Vercel): FIREBASE_SERVICE_ACCOUNT holds the service-account JSON on one line.
+// Local with the emulator: no credential is needed, only FIRESTORE_EMULATOR_HOST.
+const account = process.env.FIREBASE_SERVICE_ACCOUNT;
+const app =
+  getApps()[0] ??
+  initializeApp(account ? { credential: cert(JSON.parse(account)) } : { projectId: process.env.FIREBASE_PROJECT_ID ?? "repready-7dacd" });
 const fs = getFirestore(app);
 
 export type AthleteRow = { code: string; name: string; consented_at: string | null };
