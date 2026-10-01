@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  robots: { index: false, follow: false },
   title: "RepReady: session adjustments for strength and conditioning coaches",
   description:
     "Athletes check in daily. The agent proposes edits to the planned session with reasons. You approve every change.",
