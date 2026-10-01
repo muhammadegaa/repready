@@ -13,15 +13,15 @@ In (weeks 1–3):
 - Audit log of every proposal, its inputs and the decision.
 - Landing page with a payment link (Stripe).
 
-Out until one coach is using it (week 4+): wearable sync, native apps, team feed and messaging, reports, multi-coach permissions, AI-generated programs from scratch.
+Out until one coach is using it: native apps, Apple Watch (needs a phone app), team feed and messaging, reports, multi-coach permissions, AI-generated programs from scratch.
 
 ## Stack
-Next.js (App Router), TypeScript, Tailwind, Supabase (Postgres, Auth), Anthropic SDK, Vercel, Stripe. Matches studio defaults.
+Next.js (App Router), TypeScript, Tailwind, Firebase (Firestore through the Admin SDK, rules deny all client access), OpenRouter (Claude Sonnet 5.5), Stripe. Changed from Supabase and the Anthropic SDK on 2026-10-01: Firestore because the founder chose Firebase and GitHub as the platform, OpenRouter because it is the key available. Hosting is Firebase App Hosting, not yet set up. Wearables go through one aggregator (Junction), not one SDK per brand.
 
 ## Data model (minimum)
 - `coach`, `athlete` (belongs to coach), `program` → `session` → `exercise_prescription` (sets, reps, load or %1RM, target RPE).
 - `checkin` (athlete, date, rpe, sleep_h, soreness, stress, note, source).
-- `readiness_signal` (athlete, date, type, value, source). Wearable rows arrive here later. Keep it in the schema now so the agent's input contract does not change.
+- `readiness_signal` (athlete, date, type, value, source). Wearable rows arrive here from the Junction webhook. In Firestore this is a readiness collection keyed by athlete and date.
 - `proposal` (athlete, session, edits JSON, reason, inputs snapshot, status, decided_by, decided_at).
 
 ## Agent design
@@ -42,10 +42,10 @@ Next.js (App Router), TypeScript, Tailwind, Supabase (Postgres, Auth), Anthropic
 - Week 1: rule set and the 30 scenarios (cofounder), schema, program import, agent with evaluation harness. Gate: evaluation result.
 - Week 2: check-in PWA, approval queue, audit log, session view.
 - Week 3: landing page, Stripe payment link, content post drafts for the cofounder, privacy notice and consent screen (health data), deploy.
-- Week 4+: wearable sync via an aggregator once a paying pilot exists; start with one provider the pilot coach's athletes actually use.
+- Wearables: the webhook receiver and a local sample-data button exist. Live connection needs a Junction key (sandbox is free, live is $300 a month). The sample button is local-only and must not ship to real athletes.
 
 ## Open items
-- Product name and domain.
+- Domain for RepReady (name chosen 2026-10-01).
 - Cofounder hours per week and equity split, in writing.
 - UK GDPR: consent wording and whether a DPIA is required. Confirm before any real athlete data.
 - Whether athletes under 18 are in scope (school sport). If yes, parental consent and safeguarding rules apply. Default for MVP: adults only.

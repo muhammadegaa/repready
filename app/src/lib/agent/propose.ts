@@ -12,7 +12,9 @@ Rules:
 - Never raise sets, reps or load above the plan. Never cut volume or load by more than 25%.
 - Express load changes as set_load_pct with to_pct_of_planned (100 is the plan).
 - Pain, injury or illness notes: do not edit exercises. Use decision "flag_only" or "rest" and put the message for the coach in flag_to_coach.
-- Write the reason in one plain sentence that cites the inputs. No medical advice, diagnosis or claims about preventing injury.`;
+- reason: one sentence of at most 25 words. Name the inputs (for example sleep hours, RPE vs target) and the change. Do not use the word "I" and do not describe your own process. No medical advice, diagnosis or claims about preventing injury.
+- flag_to_coach: set it only when the coach must check or decide something the edits do not cover. At most two sentences. Leave it out otherwise, and never use it to explain the reason again.
+- If wearable is set, sleep_h is measured by that device. reported_sleep_h is what the athlete typed. hrv_ms and resting_hr are context. Still apply only rules from the rule set.`;
 
 export type Scenario = {
   athlete: Record<string, unknown>;

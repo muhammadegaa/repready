@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:emulator": "firebase emulators:exec --only firestore --project repready-7dacd --config ../firebase.json \"vitest run\""
   },
   "dependencies": {
+    "firebase-admin": "^14.5.0",
     "next": "16.3.8",
     "react": "19.2.8",
     "react-dom": "19.2.8",

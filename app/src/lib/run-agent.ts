@@ -1,10 +1,8 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import db from "./db";
 import { propose, type Scenario } from "./agent/propose";
 import type { Exercise } from "./agent/schema";
-
-type SessionRow = { id: number; on_date: string; label: string; week_type: string; exercises: string };
+import { getAthlete, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionOn, sessionsOnDates, type ProposalRow, type SessionRow } from "./store";
 
 export const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -24,60 +22,69 @@ function meanTarget(ex: Exercise[]): number | null {
   return t.length ? t.reduce((a, b) => a + b, 0) / t.length : null;
 }
 
-function buildScenario(athleteId: number, today: string, session: SessionRow): Scenario {
-  const days = [];
-  for (let back = 13; back >= 0; back--) {
-    const date = dayStr(today, back);
-    const c = db.prepare("select * from checkin where athlete_id = ? and on_date = ?").get(athleteId, date) as
-      | { sleep_h: number; soreness: number; stress: number; note: string | null } | undefined;
-    const log = db.prepare("select rpe from session_log where athlete_id = ? and on_date = ?").get(athleteId, date) as { rpe: number } | undefined;
-    const planned = db.prepare("select exercises from session where on_date = ? limit 1").get(date) as { exercises: string } | undefined;
-    const target = planned ? meanTarget(JSON.parse(planned.exercises)) : null;
-    days.push({
-      day: -back,
-      sleep_h: c?.sleep_h ?? null,
+async function buildScenario(code: string, today: string, session: SessionRow): Promise<Scenario> {
+  const dates = Array.from({ length: 14 }, (_, i) => dayStr(today, 13 - i));
+  const [checkins, logs, sessions, readiness] = await Promise.all([
+    getCheckins(code, dates),
+    getSessionLogs(code, dates),
+    sessionsOnDates(dates),
+    getReadinessOn(code, dates),
+  ]);
+  const target = new Map(sessions.map((s) => [s.on_date, meanTarget(s.exercises)]));
+  const days = dates.map((date, i) => {
+    const c = checkins.get(date);
+    const r = readiness.get(date);
+    const rpe = logs.get(date);
+    const t = target.get(date) ?? null;
+    return {
+      day: i - 13,
+      sleep_h: r?.sleep_h ?? c?.sleep_h ?? null,
+      reported_sleep_h: c?.sleep_h ?? null,
+      hrv_ms: r?.hrv_ms ?? null,
+      resting_hr: r?.resting_hr ?? null,
+      wearable: r?.provider ?? null,
       stress: c?.stress ?? null,
       soreness: { overall: c?.soreness ?? null, by_region: {} },
-      session: log ? { completed: true, rpe_delta: target == null ? null : Math.round((log.rpe - target) * 10) / 10 } : null,
+      session: rpe === undefined ? null : { completed: true, rpe_delta: t === null ? null : Math.round((rpe - t) * 10) / 10 },
       note: c?.note || null,
-    });
-  }
+    };
+  });
   return {
     athlete: { age_group: "adult" },
-    planned_session: { label: session.label, week_type: session.week_type, exercises: JSON.parse(session.exercises) },
+    planned_session: { label: session.label, week_type: session.week_type, exercises: session.exercises },
     last_14_days: days,
   };
 }
 
-export async function runAgentFor(athleteId: number, today: string): Promise<void> {
-  const session = db.prepare("select * from session where on_date = ? order by id limit 1").get(today) as SessionRow | undefined;
-  if (!session) return;
-  const existing = db.prepare("select status from proposal where athlete_id = ? and on_date = ?").get(athleteId, today) as { status: string } | undefined;
+export async function runAgentFor(code: string, today: string): Promise<void> {
+  const [athlete, session, existing] = await Promise.all([getAthlete(code), sessionOn(today), getProposal(code, today)]);
+  if (!athlete || !session) return;
   if (existing && (existing.status === "approved" || existing.status === "rejected")) return;
 
-  let row: { decision: string | null; edits: string; reason: string | null; rules: string; flag: string | null; status: string; error: string | null };
+  const base = { athlete_code: code, athlete_name: athlete.name, session_label: session.label, on_date: today, created_at: new Date().toISOString(), decided_at: null };
+  let row: Omit<ProposalRow, "id">;
   try {
-    const { proposal, verdict } = await propose(buildScenario(athleteId, today, session), loadRules());
+    const { proposal, verdict } = await propose(await buildScenario(code, today, session), loadRules());
     const dropped = verdict.rejected.map((r) => r.why);
     if (!verdict.reasonOk) {
-      row = { decision: proposal.decision, edits: "[]", reason: null, rules: "[]", flag: null, status: "error", error: "Agent reason contained medical language and was discarded. Planned session stands." };
+      row = { ...base, decision: proposal.decision, edits: [], reason: null, rules_applied: [], flag: null, status: "error", error: "Agent reason contained medical language and was discarded. Planned session stands." };
     } else {
-      const needsCoach = proposal.decision !== "none" && (verdict.accepted.length > 0 || Boolean(proposal.flag_to_coach) || proposal.decision === "rest" || proposal.decision === "flag_only");
+      const needsCoach =
+        proposal.decision !== "none" &&
+        (verdict.accepted.length > 0 || Boolean(proposal.flag_to_coach) || proposal.decision === "rest" || proposal.decision === "flag_only");
       row = {
+        ...base,
         decision: proposal.decision,
-        edits: JSON.stringify(verdict.accepted),
+        edits: verdict.accepted,
         reason: proposal.reason,
-        rules: JSON.stringify(proposal.rules_applied),
+        rules_applied: proposal.rules_applied,
         flag: proposal.flag_to_coach ?? null,
         status: needsCoach ? "pending" : "no_change",
         error: dropped.length ? `Limits removed ${dropped.length} edit(s): ${dropped.join("; ")}` : null,
       };
     }
   } catch (e) {
-    row = { decision: null, edits: "[]", reason: null, rules: "[]", flag: null, status: "error", error: `Agent unavailable: ${(e as Error).message}` };
+    row = { ...base, decision: null, edits: [], reason: null, rules_applied: [], flag: null, status: "error", error: `Agent unavailable: ${(e as Error).message}` };
   }
-  db.prepare("delete from proposal where athlete_id = ? and on_date = ?").run(athleteId, today);
-  db.prepare(
-    "insert into proposal (athlete_id, session_id, on_date, decision, edits, reason, rules_applied, flag, status, error, created_at) values (?,?,?,?,?,?,?,?,?,?,?)",
-  ).run(athleteId, session.id, today, row.decision, row.edits, row.reason, row.rules, row.flag, row.status, row.error, new Date().toISOString());
+  await saveProposal(row);
 }

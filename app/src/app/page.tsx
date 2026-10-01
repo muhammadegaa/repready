@@ -3,99 +3,111 @@ const PAYMENT_LINK = process.env.NEXT_PUBLIC_PAYMENT_LINK;
 
 const steps = [
   { title: "Your plan stays yours", body: "Import the program you already wrote. Nothing changes until you approve it." },
-  { title: "Athletes check in", body: "Session RPE, sleep, soreness and stress, in under a minute from a link on their phone." },
-  { title: "The agent proposes edits", body: "For each athlete it suggests specific changes to today's session and gives the reason, citing their own numbers." },
-  { title: "You decide", body: "Approve, edit or reject. The athlete sees the session you approved." },
+  { title: "Athletes check in", body: "Sleep, soreness and stress, from a link on their phone. A wearable can fill in the sleep." },
+  { title: "You get a proposal", body: "One change to today's session, the reason, and the rule it came from." },
+  { title: "You decide", body: "Approve or reject. The athlete sees only the session you kept." },
 ];
 
 const limits = [
   "Never raises sets, reps or load above your plan.",
   "Never cuts volume or load by more than 25%.",
-  "Does not edit around pain or illness notes. It flags them to you.",
-  "Gives no medical advice and makes no claim about preventing injury.",
-  "Adult athletes only for now.",
+  "Does not edit around pain or illness. It flags them to you.",
+  "No medical advice, and no claim about preventing injury.",
+  "Adult athletes only.",
+];
+
+const proofs = [
+  "You approve every change",
+  "Rules written by a Salford PhD",
+  "Volume stays within 25% of your plan",
 ];
 
 const faqs = [
   {
     q: "What data does it use?",
-    a: "Check-ins your athletes enter: session RPE, hours slept, soreness and stress. Wearable sync is planned and is not live yet.",
+    a: "What the athlete reports, plus sleep, HRV and resting heart rate when a wearable is connected. WHOOP, Garmin, Oura, Fitbit and Polar share one login. Apple Watch is not connected yet.",
   },
   {
     q: "Who decides the adjustment rules?",
-    a: "A sports scientist with a PhD (University of Salford) writes and reviews the rule set. The agent can only apply rules from that set, and every proposal names the rule it used.",
+    a: "A sports scientist with a PhD from the University of Salford writes the rule set. The agent can only apply those rules, and every proposal names the one it used.",
   },
   {
     q: "Is athlete health data safe?",
-    a: "Sleep and soreness are health data. Athletes give explicit consent before their first check-in, and we will publish what we store and why before launch. We are finishing the data protection assessment before real athlete data goes in.",
+    a: "Sleep and soreness are health data. Athletes consent before the first check-in. A data protection assessment is being finished before any real athlete data is stored.",
   },
   {
     q: "What does a founding place include?",
-    a: "Up to 50 athletes and unlimited coaches. You start a 30-day free trial with a card, are charged £79 a month after it, and can cancel before the first charge.",
+    a: "Up to 50 athletes and unlimited coaches. Card required. Nothing is charged for 30 days, then £79 a month. Cancel before the first charge.",
   },
 ];
 
+const cta = "inline-flex items-center justify-center rounded-md bg-accent px-5 py-3 text-sm font-medium text-[#f4f2ec] hover:opacity-90 dark:text-[#111210]";
+
 export default function Home() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 pb-24 sm:px-6">
-      <header className="pt-10 sm:pt-16">
-        <p className="font-mono text-xs uppercase tracking-wider text-teal-700 dark:text-teal-400">{PRODUCT} · for S&C coaches</p>
-        <h1 className="mt-3 text-balance text-3xl font-semibold leading-tight sm:text-5xl">
-          Adjust today&apos;s session to how each athlete is today.
+    <main className="pb-20">
+      <header className="pt-12 sm:pt-20">
+        <p className="text-xs font-medium uppercase tracking-[0.16em] text-accent">{PRODUCT} · for S&C coaches</p>
+        <h1 className="mt-4 max-w-2xl text-balance text-4xl font-semibold leading-[1.1] tracking-tight sm:text-5xl">
+          Adjust today&apos;s session to how each athlete actually is.
         </h1>
-        <p className="mt-4 max-w-xl text-lg text-neutral-600 dark:text-neutral-400">
-          Athletes check in. {PRODUCT} proposes edits to your planned session, with the reason. You approve every change.
+        <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
+          Athletes check in. {PRODUCT} proposes a specific edit to the session you wrote, and says why. Nothing reaches the athlete until you approve it.
         </p>
-        <div className="mt-6">
+        <div className="mt-8 flex flex-col items-start gap-3">
           {PAYMENT_LINK ? (
-            <a
-              href={PAYMENT_LINK}
-              className="inline-block rounded-md bg-teal-700 px-5 py-3 font-medium text-white hover:bg-teal-800 dark:bg-teal-500 dark:text-neutral-950 dark:hover:bg-teal-400"
-            >
-              Reserve a founding place, 30 days free
-            </a>
+            <a href={PAYMENT_LINK} className={cta}>Reserve a founding place</a>
           ) : (
-            <span className="inline-block rounded-md border border-neutral-300 px-5 py-3 text-neutral-500 dark:border-neutral-700">
-              Payment link not set
-            </span>
+            <span className="inline-flex rounded-md border border-line px-5 py-3 text-sm text-muted">Payment link not set</span>
           )}
-          <p className="mt-2 text-sm text-neutral-500">
-            Up to 50 athletes, unlimited coaches. Card required, nothing charged for 30 days, then £79 a month. Cancel any time before the first charge.
-          </p>
+          <p className="text-sm text-muted">£79 a month after 30 days free · up to 50 athletes · cancel before you are charged</p>
         </div>
+        <ul className="mt-10 flex flex-col gap-2 border-t border-line pt-6 text-sm sm:flex-row sm:gap-8">
+          {proofs.map((p) => (
+            <li key={p} className="text-muted">{p}</li>
+          ))}
+        </ul>
       </header>
 
       <section className="mt-16">
-        <h2 className="text-xl font-semibold">How it works</h2>
-        <ol className="mt-4 grid gap-3">
+        <h2 className="text-sm font-medium uppercase tracking-[0.14em] text-muted">How a morning works</h2>
+        <ol className="mt-4 grid gap-3 sm:grid-cols-2">
           {steps.map((s, i) => (
-            <li key={s.title} className="flex gap-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-              <span className="font-mono text-sm text-teal-700 dark:text-teal-400">{i + 1}</span>
-              <div>
-                <h3 className="font-medium">{s.title}</h3>
-                <p className="mt-1 text-neutral-600 dark:text-neutral-400">{s.body}</p>
-              </div>
+            <li key={s.title} className="rounded-lg border border-line bg-card p-4">
+              <p className="font-mono text-xs text-accent">{String(i + 1).padStart(2, "0")}</p>
+              <h3 className="mt-2 font-medium">{s.title}</h3>
+              <p className="mt-1 text-sm leading-relaxed text-muted">{s.body}</p>
             </li>
           ))}
         </ol>
       </section>
 
-      <section className="mt-16">
-        <h2 className="text-xl font-semibold">What it will not do</h2>
-        <ul className="mt-4 list-disc space-y-2 pl-5 text-neutral-700 dark:text-neutral-300">
-          {limits.map((l) => (
-            <li key={l}>{l}</li>
-          ))}
-        </ul>
+      <section className="mt-16 grid gap-10 sm:grid-cols-2">
+        <div>
+          <h2 className="text-sm font-medium uppercase tracking-[0.14em] text-muted">What it will not do</h2>
+          <ul className="mt-4 space-y-3 text-sm leading-relaxed">
+            {limits.map((l) => (
+              <li key={l} className="border-t border-line pt-3">{l}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-lg border border-line bg-card p-5">
+          <p className="text-sm font-medium uppercase tracking-[0.14em] text-muted">Founding place</p>
+          <p className="mt-3 text-3xl font-semibold tracking-tight">£79<span className="text-base font-normal text-muted"> / month</span></p>
+          <p className="mt-2 text-sm leading-relaxed text-muted">Up to 50 athletes. Unlimited coaches on the same program. 30 days free, then the card you left is charged.</p>
+          {PAYMENT_LINK && (
+            <a href={PAYMENT_LINK} className={`${cta} mt-5`}>Start the 30 days</a>
+          )}
+        </div>
       </section>
 
       <section className="mt-16">
-        <h2 className="text-xl font-semibold">Questions</h2>
-        <dl className="mt-4 space-y-5">
+        <h2 className="text-sm font-medium uppercase tracking-[0.14em] text-muted">Questions</h2>
+        <dl className="mt-4 divide-y divide-line border-y border-line">
           {faqs.map((f) => (
-            <div key={f.q}>
+            <div key={f.q} className="py-4">
               <dt className="font-medium">{f.q}</dt>
-              <dd className="mt-1 text-neutral-600 dark:text-neutral-400">{f.a}</dd>
+              <dd className="mt-1 text-sm leading-relaxed text-muted">{f.a}</dd>
             </div>
           ))}
         </dl>
