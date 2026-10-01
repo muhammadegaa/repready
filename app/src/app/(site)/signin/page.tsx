@@ -14,11 +14,16 @@ export default async function SignIn(props: PageProps<"/signin">) {
   return (
     <div className="mx-auto max-w-sm pt-10">
       <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
-      <p className="mt-1 text-sm text-muted">One passcode opens the view that goes with it: coach or sports scientist. Athletes use their own link.</p>
+      <p className="mt-1 text-sm text-muted">Choose your view and enter its passcode. Athletes use the link their coach sent.</p>
       <Card className="mt-6 p-5">
         {!enabled && <Notice>No passcode is configured. Set COACH_PASSCODE (and SCIENTIST_PASSCODE) and restart.</Notice>}
         {error && <div className="mb-4"><Notice tone="bad">That passcode did not match.</Notice></div>}
         <form action={signIn} className="space-y-3">
+          <fieldset className="flex gap-4 text-sm">
+            <legend className="sr-only">View</legend>
+            <label className="flex items-center gap-2"><input type="radio" name="view" value="coach" defaultChecked />Coach</label>
+            <label className="flex items-center gap-2"><input type="radio" name="view" value="scientist" />Sports scientist</label>
+          </fieldset>
           <label htmlFor="passcode" className="block text-sm font-medium">Passcode</label>
           <input id="passcode" name="passcode" type="password" autoComplete="current-password" required className={input} autoFocus />
           <PendingButton className={`${btn} w-full`} pending="Checking…">Continue</PendingButton>

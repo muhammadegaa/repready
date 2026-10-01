@@ -25,17 +25,34 @@ export async function requireRole(role: Role): Promise<void> {
   if ((await getRole()) !== role) throw new Error(`Not signed in as ${role}`);
 }
 
-export async function signInWith(attempt: string): Promise<Role | null> {
-  for (const role of ["coach", "scientist"] as const) {
+// True when one passcode opens both views, so a signed-in person can switch without typing it again.
+export const sharedPasscode = () => Boolean(process.env.COACH_PASSCODE) && process.env.COACH_PASSCODE === process.env.SCIENTIST_PASSCODE;
+
+function setRole(role: Role, pass: string, jar: Awaited<ReturnType<typeof cookies>>) {
+  jar.set("rr_role", `${role}.${sig(role, pass)}`, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 30,
+  });
+}
+
+export async function switchRole(): Promise<Role | null> {
+  const current = await getRole();
+  if (!current || !sharedPasscode()) return null;
+  const next: Role = current === "coach" ? "scientist" : "coach";
+  setRole(next, passcodeFor(next)!, await cookies());
+  return next;
+}
+
+// With one shared passcode the person's choice decides the view; otherwise the passcode does.
+export async function signInWith(attempt: string, prefer: Role = "coach"): Promise<Role | null> {
+  const order: Role[] = prefer === "coach" ? ["coach", "scientist"] : ["scientist", "coach"];
+  for (const role of order) {
     const pass = passcodeFor(role);
     if (pass && same(sig(role, attempt), sig(role, pass))) {
-      (await cookies()).set("rr_role", `${role}.${sig(role, pass)}`, {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30,
-      });
+      setRole(role, pass, await cookies());
       return role;
     }
   }

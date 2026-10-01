@@ -1,7 +1,7 @@
-import { signOutAction } from "@/actions/auth";
+import { signOutAction, switchView } from "@/actions/auth";
 import { Brand } from "@/components/Brand";
 import { Nav } from "@/components/Nav";
-import { getRole } from "@/lib/auth";
+import { getRole, sharedPasscode } from "@/lib/auth";
 
 const LINKS = {
   coach: [{ href: "/coach", label: "Today" }, { href: "/coach/program", label: "Program" }],
@@ -18,10 +18,17 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           {role && <Nav links={LINKS[role]} />}
         </div>
         {role ? (
+          <div className="flex items-center gap-2">
+            {sharedPasscode() && (
+              <form action={switchView}>
+                <button className="rounded-md px-3 py-1.5 text-sm font-medium text-muted hover:text-ink">{role === "coach" ? "Switch to scientist view" : "Switch to coach view"}</button>
+              </form>
+            )}
           <form action={signOutAction} className="flex items-center gap-3">
             <span className="hidden font-mono text-[11px] uppercase tracking-[0.14em] text-muted sm:inline">{role === "coach" ? "Coach" : "Sports scientist"}</span>
             <button className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-paper">Sign out</button>
           </form>
+          </div>
         ) : (
           <a href="/signin" className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-paper">Sign in</a>
         )}
