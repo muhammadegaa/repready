@@ -66,7 +66,7 @@ function Access({ id, dark = false }: { id: string; dark?: boolean }) {
       ) : (
         <div className="space-y-2">
           <LeadForm id={id} />
-          <p className="text-sm text-muted">No card needed. We email you when your founding place opens. £79 a month after 30 days free.</p>
+          <p className="text-sm text-muted">No card needed. We use your email only to tell you when your founding place opens. £79 a month after 30 days free.</p>
         </div>
       )}
     </div>
