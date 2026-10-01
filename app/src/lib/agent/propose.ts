@@ -10,6 +10,7 @@ Rules:
 - Use only the rules in the rule set you are given. Name the rule ids you applied. If no rule applies, the decision is "none" with no edits.
 - You only propose. The coach approves every change.
 - Never raise sets, reps or load above the plan. Never cut volume or load by more than 25%.
+- Volume is sets x reps. Check each exercise before you propose: dropping 1 set from 4 is exactly 25% and allowed; dropping 1 set from 3 is 33% and NOT allowed (cut reps by 1 or load by up to 25% instead); dropping 1 rep from 5 is 20% and allowed.
 - Express load changes as set_load_pct with to_pct_of_planned (100 is the plan).
 - Pain, injury or illness notes: do not edit exercises. Use decision "flag_only" or "rest" and put the message for the coach in flag_to_coach.
 - reason: one sentence of at most 25 words. Name the inputs (for example sleep hours, RPE vs target) and the change. Do not use the word "I" and do not describe your own process. No medical advice, diagnosis or claims about preventing injury.
@@ -22,7 +23,9 @@ export type Scenario = {
   last_14_days: unknown[];
 };
 
-export type Result = { proposal: Proposal; verdict: Verdict };
+export type Result = { proposal: Proposal; verdict: Verdict; corrected: boolean };
+
+type Message = { role: "system" | "user" | "assistant"; content: string };
 
 function env(name: string): string {
   const v = process.env[name];
@@ -30,11 +33,7 @@ function env(name: string): string {
   return v;
 }
 
-export async function propose(
-  scenario: Scenario,
-  rules: unknown,
-  ctx: LimitContext = { injuryFlaggedExercises: [], clearedExercises: [] },
-): Promise<Result> {
+async function ask(messages: Message[]): Promise<Proposal> {
   const base = process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1";
   const res = await fetch(`${base}/chat/completions`, {
     method: "POST",
@@ -42,16 +41,7 @@ export async function propose(
     body: JSON.stringify({
       model: env("OPENROUTER_MODEL"),
       max_tokens: 4096,
-      messages: [
-        { role: "system", content: SYSTEM },
-        {
-          role: "user",
-          content: `Rule set:\n${JSON.stringify(rules)}\n\nAthlete and planned session:\n${JSON.stringify({
-            athlete: scenario.athlete,
-            planned_session: scenario.planned_session,
-          })}\n\nLast 14 days (day 0 is today):\n${JSON.stringify(scenario.last_14_days)}`,
-        },
-      ],
+      messages,
       tools: [
         {
           type: "function",
@@ -75,6 +65,39 @@ export async function propose(
   } catch {
     throw new Error(`model returned malformed tool arguments (finish_reason: ${body.choices?.[0]?.finish_reason}, completion_tokens: ${body.usage?.completion_tokens})`);
   }
-  const proposal = Proposal.parse(parsed);
-  return { proposal, verdict: enforceLimits(scenario.planned_session.exercises, proposal, ctx) };
+  return Proposal.parse(parsed);
+}
+
+export async function propose(
+  scenario: Scenario,
+  rules: unknown,
+  ctx: LimitContext = { injuryFlaggedExercises: [], clearedExercises: [] },
+): Promise<Result> {
+  const messages: Message[] = [
+    { role: "system", content: SYSTEM },
+    {
+      role: "user",
+      content: `Rule set:\n${JSON.stringify(rules)}\n\nAthlete and planned session:\n${JSON.stringify({
+        athlete: scenario.athlete,
+        planned_session: scenario.planned_session,
+      })}\n\nLast 14 days (day 0 is today):\n${JSON.stringify(scenario.last_14_days)}`,
+    },
+  ];
+  const planned = scenario.planned_session.exercises;
+  const first = await ask(messages);
+  const firstVerdict = enforceLimits(planned, first, ctx);
+  if (!firstVerdict.rejected.length || (first.decision !== "reduce" && first.decision !== "swap")) {
+    return { proposal: first, verdict: firstVerdict, corrected: false };
+  }
+
+  // The hard limits removed some edits. Give the model the reasons once and let it propose again within them.
+  const feedback = firstVerdict.rejected.map((r) => `${JSON.stringify(r.edit)}: ${r.why}`).join("\n");
+  const second = await ask([
+    ...messages,
+    { role: "assistant", content: JSON.stringify(first) },
+    { role: "user", content: `The hard limits rejected these edits:\n${feedback}\nPropose again so every edit is within the limits, keeping the same rule if it still applies.` },
+  ]);
+  const secondVerdict = enforceLimits(planned, second, ctx);
+  const better = secondVerdict.rejected.length < firstVerdict.rejected.length || secondVerdict.accepted.length > firstVerdict.accepted.length;
+  return better ? { proposal: second, verdict: secondVerdict, corrected: true } : { proposal: first, verdict: firstVerdict, corrected: false };
 }

@@ -1,17 +1,18 @@
 import { propose, type Scenario } from "./agent/propose";
-import ruleFile from "./agent/rules.json";
 import type { Exercise } from "./agent/schema";
-import { getAthlete, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionOn, sessionsOnDates, type ProposalRow, type SessionRow } from "./store";
+import { allRules, forModel } from "./rules";
+import {
+  getAthlete, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionOn, sessionsOnDates,
+  type ProposalRow, type SessionRow,
+} from "./store";
 
 export const todayStr = () => new Date().toISOString().slice(0, 10);
 
-const dayStr = (today: string, back: number) => {
+export const dayStr = (today: string, back: number) => {
   const d = new Date(`${today}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - back);
   return d.toISOString().slice(0, 10);
 };
-
-const loadRules = () => ruleFile.rules.filter((r: { keep: string | null }) => r.keep !== "delete");
 
 function meanTarget(ex: Exercise[]): number | null {
   const t = ex.map((e) => e.target_rpe).filter((x): x is number => typeof x === "number");
@@ -58,23 +59,28 @@ export async function runAgentFor(code: string, today: string): Promise<void> {
   if (existing && (existing.status === "approved" || existing.status === "rejected")) return;
 
   const base = { athlete_code: code, athlete_name: athlete.name, session_label: session.label, on_date: today, created_at: new Date().toISOString(), decided_at: null };
-  let row: Omit<ProposalRow, "id">;
+  let row: Omit<ProposalRow, "id" | "coach_note" | "edited_by_coach">;
   try {
-    const { proposal, verdict } = await propose(await buildScenario(code, today, session), loadRules());
+    const rules = forModel(await allRules());
+    const ctx = { injuryFlaggedExercises: athlete.protected, clearedExercises: [] as string[] };
+    const { proposal, verdict } = await propose(await buildScenario(code, today, session), rules, ctx);
     const dropped = verdict.rejected.map((r) => r.why);
     if (!verdict.reasonOk) {
       row = { ...base, decision: proposal.decision, edits: [], reason: null, rules_applied: [], flag: null, status: "error", error: "Agent reason contained medical language and was discarded. Planned session stands." };
     } else {
+      // A proposal whose edits were all stripped by the limits must still reach the coach: the rule fired and the athlete's numbers did not change.
+      const strippedAll = dropped.length > 0 && verdict.accepted.length === 0;
       const needsCoach =
         proposal.decision !== "none" &&
-        (verdict.accepted.length > 0 || Boolean(proposal.flag_to_coach) || proposal.decision === "rest" || proposal.decision === "flag_only");
+        (verdict.accepted.length > 0 || strippedAll || Boolean(proposal.flag_to_coach) || proposal.decision === "rest" || proposal.decision === "flag_only");
+      const flag = proposal.flag_to_coach ?? (strippedAll ? "The agent wanted to change this session, but its edits went past the safety limits and were removed. Set the numbers yourself if you agree." : null);
       row = {
         ...base,
         decision: proposal.decision,
         edits: verdict.accepted,
         reason: proposal.reason,
         rules_applied: proposal.rules_applied,
-        flag: proposal.flag_to_coach ?? null,
+        flag,
         status: needsCoach ? "pending" : "no_change",
         error: dropped.length ? `Limits removed ${dropped.length} edit(s): ${dropped.join("; ")}` : null,
       };

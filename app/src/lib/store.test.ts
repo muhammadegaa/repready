@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { countSessions, createAthlete, decideProposal, deleteAthleteData, getAthlete, getCheckins, getNotice, getProposal, getSessionLogs, giveConsentTo, hasCheckin, listAthletes, listProposals, replaceSessions, saveCheckin, saveProposal, saveSessionLog, sessionBefore, sessionOn, sessionsOnDates, setNotice } from "./store";
+import {
+  countSessions, createAthlete, decideProposal, deleteAthleteData, getAthlete, getCheckin, getCheckins, getNotice, getProposal, getPulse, getSessionLogs,
+  giveConsentTo, hasCheckin, listAthletes, listEvalRuns, listEvents, listLabels, listProposals, listProposalsFor, listRuleOverrides, listSessions,
+  logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionOn,
+  sessionsOnDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads,
+} from "./store";
 
 // Needs the Firestore emulator: npm run test:emulator
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator)", () => {
@@ -87,5 +92,84 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     expect(await getNotice("import")).toBe("Row 2: bad");
     await setNotice("import", null);
     expect(await getNotice("import")).toBeNull();
+  });
+
+  it("moves the pulse on every write so open views know to refresh", async () => {
+    const before = await getPulse("coach");
+    await new Promise((r) => setTimeout(r, 5));
+    const code = await createAthlete("Pulse");
+    const afterAdd = await getPulse("coach");
+    expect(afterAdd).toBeGreaterThan(before);
+    await new Promise((r) => setTimeout(r, 5));
+    await saveCheckin(code, "2030-06-01", { sleep_h: 7, soreness: 1, stress: 1, note: null });
+    expect(await getPulse(`a_${code}`)).toBeGreaterThan(0);
+    expect(await getPulse("coach")).toBeGreaterThan(afterAdd);
+    await touch("science");
+    expect(await getPulse("science")).toBeGreaterThan(0);
+    expect(await getPulse("a_0000000001")).toBe(0);
+  });
+
+  it("keeps an activity feed, newest first", async () => {
+    await logEvent({ type: "t", athlete_code: null, athlete_name: null, text: "first" });
+    await new Promise((r) => setTimeout(r, 5));
+    await logEvent({ type: "t", athlete_code: null, athlete_name: null, text: "second" });
+    const ev = await listEvents(50);
+    expect(ev.findIndex((e) => e.text === "second")).toBeLessThan(ev.findIndex((e) => e.text === "first"));
+  });
+
+  it("protects exercises without duplicates and stores the check-in time", async () => {
+    const code = await createAthlete("Protect");
+    await setProtected(code, ["Back squat", "Back squat", " Split squat "]);
+    expect((await getAthlete(code))?.protected).toEqual(["Back squat", "Split squat"]);
+    await saveCheckin(code, "2030-06-02", { sleep_h: 6, soreness: 2, stress: 2, note: "tight" });
+    const c = await getCheckin(code, "2030-06-02");
+    expect(c?.note).toBe("tight");
+    expect(c?.created_at).toBeTruthy();
+  });
+
+  it("records the coach's note and edits, and notes the decision in the feed", async () => {
+    const code = await createAthlete("Decide");
+    await saveProposal({
+      athlete_code: code, athlete_name: "Decide", session_label: "A", on_date: "2030-07-01", decision: "reduce",
+      edits: [{ kind: "set_sets", exercise: "Back squat", to: 3 }], reason: "r", rules_applied: ["R1"], flag: null,
+      status: "pending", error: null, created_at: new Date().toISOString(), decided_at: null,
+    });
+    const id = `${code}_2030-07-01`;
+    const d = await decideProposal(id, "approved", { note: " go easy ", edits: [{ kind: "set_sets", exercise: "Back squat", to: 2 }] });
+    expect(d?.edited_by_coach).toBe(true);
+    const p = await getProposal(code, "2030-07-01");
+    expect(p?.coach_note).toBe("go easy");
+    expect(p?.edits).toEqual([{ kind: "set_sets", exercise: "Back squat", to: 2 }]);
+    expect(await decideProposal(id, "rejected")).toBeNull();
+    expect((await listProposalsFor(code, 5)).length).toBe(1);
+    expect((await listEvents(50)).some((e) => e.text.includes("approved with changes for Decide"))).toBe(true);
+  });
+
+  it("lists upcoming sessions in date order", async () => {
+    await replaceSessions([
+      { on_date: "2031-01-03", label: "C", week_type: "normal", exercises: ex },
+      { on_date: "2031-01-01", label: "A", week_type: "normal", exercises: ex },
+      { on_date: "2030-12-30", label: "Past", week_type: "normal", exercises: ex },
+    ]);
+    expect((await listSessions("2031-01-01", 10)).map((x) => x.label)).toEqual(["A", "C"]);
+  });
+
+  it("saves rules, labels and evaluation runs", async () => {
+    await saveRule({ id: "R1", name: "Short sleep", trigger: "t", action: "a", evidence: "Smith 2020", keep: "keep" }, "scientist");
+    const r = (await listRuleOverrides()).find((x) => x.id === "R1");
+    expect(r?.evidence).toBe("Smith 2020");
+    expect(r?.updated_by).toBe("scientist");
+    await saveLabel({ id: "S01", decision: "none", edits: [], reason: "normal", rules_applied: [], labeled_at: new Date().toISOString() });
+    expect((await listLabels()).find((l) => l.id === "S01")?.decision).toBe("none");
+    const runId = await saveEvalRun({ at: new Date().toISOString(), model: "m", rules_hash: "abc", results: [], agreement: 80, do_nothing_agreement: 100, holdout_agreement: null, labeled: 1 });
+    expect((await listEvalRuns(5)).some((x) => x.id === runId && x.agreement === 80)).toBe(true);
+  });
+
+  it("keeps one waitlist entry per email, ignoring case", async () => {
+    expect(await saveLead("Coach@Example.com", "landing")).toBe(true);
+    expect(await saveLead("coach@example.com", "landing")).toBe(false);
+    const leads = await listLeads(10);
+    expect(leads.filter((l) => l.email.toLowerCase() === "coach@example.com")).toHaveLength(1);
+    expect(await countLeads()).toBeGreaterThanOrEqual(1);
   });
 });
