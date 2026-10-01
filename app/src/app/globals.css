@@ -1,45 +1,89 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4f2ec;
-  --foreground: #1c1b17;
-  --card: #fffcf7;
-  --line: #e3dfd4;
-  --muted: #6d695f;
-  --accent: #0c6b5c;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-line: var(--line);
-  --color-muted: var(--muted);
-  --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --paper: #f5f4ef;
+  --surface: #ffffff;
+  --ink: #16181b;
+  --muted: #666b72;
+  --line: #e3e1d9;
+  --line-strong: #cdcabf;
+  --marker: #ffe35c;
+  --marker-ink: #2b2500;
+  --ok: #1e7f48;
+  --ok-bg: #e4f3ea;
+  --warn: #a35f08;
+  --warn-bg: #faeed6;
+  --bad: #b8352a;
+  --bad-bg: #fae6e3;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #111210;
-    --foreground: #f4f1e8;
-    --card: #1a1c18;
-    --line: #2e312b;
-    --muted: #a8a292;
-    --accent: #7dcec0;
+    --paper: #0f1012;
+    --surface: #16181b;
+    --ink: #eceded;
+    --muted: #9a9fa6;
+    --line: #25282c;
+    --line-strong: #363a3f;
+    --marker: #f2d14b;
+    --marker-ink: #1f1a00;
+    --ok: #4cc38a;
+    --ok-bg: #12261b;
+    --warn: #e0a240;
+    --warn-bg: #2b2112;
+    --bad: #f0756c;
+    --bad-bg: #2d1613;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), sans-serif;
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-marker: var(--marker);
+  --color-marker-ink: var(--marker-ink);
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-bad: var(--bad);
+  --color-bad-bg: var(--bad-bg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
-input,
-textarea,
-select,
-button {
-  font: inherit;
+html {
+  background: var(--paper);
+  color: var(--ink);
 }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+
+input, textarea, select, button { font: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+::selection { background: var(--marker); color: var(--marker-ink); }
+summary { list-style: none; }
+summary::-webkit-details-marker { display: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-dot { animation: pulse 2.4s ease-in-out infinite; }
+}
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+summary.disclosure { display: flex; align-items: center; gap: 0.6rem; }
+summary.disclosure::before {
+  content: "+";
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.15rem; height: 1.15rem; border: 1px solid var(--line-strong); border-radius: 4px;
+  font-family: var(--font-mono), monospace; font-size: 0.8rem; line-height: 1; flex: none;
+}
+details[open] > summary.disclosure::before { content: "−"; }

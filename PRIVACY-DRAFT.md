@@ -11,7 +11,10 @@ Not legal advice. This lists what the code does today so a lawyer or the ICO's g
 | Sleep hours, soreness 0-10, stress 0-10, optional free-text note | Athlete check-in | Firestore `checkins` |
 | Last-session RPE | Athlete | Firestore `session_logs` |
 | Device sleep hours, HRV, resting heart rate, provider | Wearable via Junction webhook (not live yet) | Firestore `readiness` |
-| Agent proposal: decision, edits, reason, flag, rule ids, coach decision | Agent, coach | Firestore `proposals` |
+| Agent proposal: decision, edits, reason, flag, rule ids, coach decision and note | Agent, coach | Firestore `proposals` |
+| Polar access token, Polar user id, last sync time | Athlete connects Polar (OAuth) | Firestore `polar_links` |
+| Device sleep, HRV and lowest night heart rate from Polar | Polar AccessLink, pulled on sync | Firestore `readiness` |
+| Email address of a coach who joins the waitlist | Landing page form | Firestore `leads` |
 
 Sleep, soreness, stress, HRV and resting heart rate are health data. Under UK GDPR that is special-category data (Article 9), which needs a lawful basis plus an Article 9 condition. The app asks for explicit consent before the first check-in.
 
@@ -21,9 +24,10 @@ The coach signs in with one shared passcode. No coach personal data is stored.
 
 | Recipient | What they get | Notes |
 |---|---|---|
-| Google Firebase (Firestore) | Everything above | Database location **open**: the project has no Firestore location set yet. Choosing a UK or EU region is a one-time, irreversible choice. |
+| Google Firebase (Firestore) | Everything above | Database is in europe-west2 (London), created 2026-10-01. |
 | OpenRouter | Per check-in: planned session, 14 days of sleep, soreness, stress, RPE deltas, notes, device figures. Not the athlete's name. | Free-text notes can contain names or health detail. OpenRouter routes to an upstream model provider; one error message during testing showed Amazon Bedrock. Upstream region, retention and training use **open**. |
-| Junction (when live) | The athlete's wearable account link and sleep data | US company, **open**: transfer terms. |
+| Polar (AccessLink) | The athlete authorises read access to their Polar sleep and Nightly Recharge data; we send their link code as a member id | Polar Electro is Finnish, so likely inside UK/EU adequacy, **open**: confirm. A Polar access token is stored per athlete. |
+| Junction (webhook receiver exists, not live) | The athlete's wearable account link and sleep data | US company, **open**: transfer terms. |
 | Stripe | The coach's payment details, not athletes' | Out of athlete scope. |
 | Hosting provider | Request logs | **open**: not chosen. |
 
@@ -35,6 +39,8 @@ The coach or their organisation decides why and how athlete data is used, so the
 
 - Consent screen before the first check-in, naming the AI model and OpenRouter.
 - The coach can delete an athlete and all their check-ins, session logs, device data and proposals (`Remove athlete`, coach page).
+- The athlete can delete their own data from their page. Both paths deregister the athlete from Polar before deleting.
+- The athlete can disconnect Polar at any time, which deregisters them and removes the stored token.
 - Adults only for the pilot. Under-18s would need parental consent and safeguarding rules.
 - Firestore rules deny all browser access. Only the server reads and writes.
 
@@ -44,12 +50,13 @@ The coach or their organisation decides why and how athlete data is used, so the
 2. **Published privacy notice** for athletes, covering the table above, rights (access, deletion, withdrawing consent) and a contact.
 3. **DPIA.** A DPIA is likely required: health data, new technology (AI), systematic monitoring. **open**: complete it with the transfer answers above.
 4. **International transfer mechanism** for OpenRouter's upstream provider and Junction, if any are outside the UK.
-5. **Withdrawal of consent** from the athlete's side. Today only the coach can delete.
+5. ~~Withdrawal of consent from the athlete's side.~~ Done: athletes can delete their own data.
+5b. **Waitlist emails** are stored with no stated retention and no unsubscribe link yet. Add both before emailing anyone.
 6. **Breach process** and who to notify.
 
 ## Decisions needed
 
-1. Firestore region (UK recommended: europe-west2, London).
+1. ~~Firestore region~~ Decided: London (europe-west2).
 2. Whether free-text notes go to the model as written, or are dropped or masked first.
 3. Whether to use a model route with a no-retention guarantee, and confirm it in writing.
 4. Retention period.
