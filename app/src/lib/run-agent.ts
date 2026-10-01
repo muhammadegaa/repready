@@ -1,6 +1,5 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { propose, type Scenario } from "./agent/propose";
+import ruleFile from "./agent/rules.json";
 import type { Exercise } from "./agent/schema";
 import { getAthlete, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionOn, sessionsOnDates, type ProposalRow, type SessionRow } from "./store";
 
@@ -12,10 +11,7 @@ const dayStr = (today: string, back: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-function loadRules() {
-  const file = JSON.parse(readFileSync(path.join(process.cwd(), "..", "eval", "rules.json"), "utf8"));
-  return file.rules.filter((r: { keep: string | null }) => r.keep !== "delete");
-}
+const loadRules = () => ruleFile.rules.filter((r: { keep: string | null }) => r.keep !== "delete");
 
 function meanTarget(ex: Exercise[]): number | null {
   const t = ex.map((e) => e.target_rpe).filter((x): x is number => typeof x === "number");

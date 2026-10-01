@@ -6,7 +6,7 @@ import { propose } from "../src/lib/agent/propose";
 import type { Edit, Exercise } from "../src/lib/agent/schema";
 
 const dir = new URL("../../eval/", import.meta.url);
-const rules = JSON.parse(readFileSync(new URL("rules.json", dir), "utf8"));
+const rules = JSON.parse(readFileSync(new URL("../src/lib/agent/rules.json", import.meta.url), "utf8"));
 const { scenarios } = JSON.parse(readFileSync(new URL("scenarios.json", dir), "utf8"));
 const only = new Set(process.argv.slice(2));
 
