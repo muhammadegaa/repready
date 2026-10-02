@@ -45,6 +45,7 @@ async function buildScenario(code: string, today: string, session: SessionRow): 
       stress: c?.stress ?? null,
       soreness: { overall: c?.soreness ?? null, by_region: {} },
       session: rpe === undefined ? null : { completed: true, rpe_delta: t === null ? null : Math.round((rpe - t) * 10) / 10 },
+      availability: c?.availability ?? null,
       note: c?.note || null,
     };
   });

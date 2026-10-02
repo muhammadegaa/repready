@@ -51,6 +51,9 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     const c = await getCheckins(code, ["2030-03-01", "2030-03-02"]);
     expect(c.get("2030-03-01")?.sleep_h).toBe(6.5);
     expect(c.has("2030-03-02")).toBe(false);
+    expect(c.get("2030-03-01")?.availability).toBe("full"); // older check-ins and ones that skip the item read as available
+    await saveCheckin(code, "2030-03-02", { sleep_h: 7, soreness: 1, stress: 1, note: null, availability: "limited" });
+    expect((await getCheckins(code, ["2030-03-02"])).get("2030-03-02")?.availability).toBe("limited");
     await saveSessionLog(code, "2030-03-01", 8.5);
     expect((await getSessionLogs(code, ["2030-03-01", "2030-03-02"])).get("2030-03-01")).toBe(8.5);
   });

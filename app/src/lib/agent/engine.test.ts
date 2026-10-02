@@ -74,3 +74,23 @@ describe("rules engine", () => {
     expect(r.proposal.edits.some((e) => e.exercise === "Back squat")).toBe(false);
   });
 });
+
+describe("availability", () => {
+  const withAvail = (a: string) => scn(quiet.map((d) => (d.day === 0 ? { ...d, availability: a } : d)));
+  it("flags a player who says they cannot train, with no edits", () => {
+    const r = decide(withAvail("out"), ALL);
+    expect(r.proposal.decision).toBe("flag_only");
+    expect(r.proposal.edits).toEqual([]);
+    expect(r.proposal.rules_applied).toEqual(["AV"]);
+  });
+  it("flags limited availability", () => {
+    expect(decide(withAvail("limited"), ALL).proposal.decision).toBe("flag_only");
+  });
+  it("does nothing for full availability", () => {
+    expect(decide(withAvail("full"), ALL).proposal.decision).toBe("none");
+  });
+  it("still lets illness win over availability", () => {
+    const days = quiet.map((d) => (d.day === 0 ? { ...d, availability: "out", note: "fever" } : d));
+    expect(decide(scn(days), ALL).proposal.decision).toBe("rest");
+  });
+});

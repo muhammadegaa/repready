@@ -33,7 +33,10 @@ export type AthleteRow = {
   created_at: string;
 };
 export type SessionRow = { id: string; on_date: string; label: string; week_type: string; exercises: Exercise[] };
-export type CheckinRow = { sleep_h: number; soreness: number; stress: number; note: string | null };
+export type Availability = "full" | "limited" | "out";
+export const AVAILABILITY: Availability[] = ["full", "limited", "out"];
+export type CheckinRow = { sleep_h: number; soreness: number; stress: number; note: string | null; availability: Availability };
+const availabilityOf = (v: unknown): Availability => (AVAILABILITY as unknown[]).includes(v) ? (v as Availability) : "full";
 export type ReadinessRow = { sleep_h: number | null; hrv_ms: number | null; resting_hr: number | null; provider: string };
 export type ProposalRow = {
   id: string;
@@ -384,9 +387,9 @@ export async function sessionBefore(club: string, date: string): Promise<{ on_da
 }
 
 // ---- athlete inputs
-export async function saveCheckin(code: string, date: string, c: CheckinRow): Promise<void> {
+export async function saveCheckin(code: string, date: string, c: Omit<CheckinRow, "availability"> & { availability?: Availability }): Promise<void> {
   const club = clubOf(code);
-  await col(club, "checkins").doc(key(code, date)).set({ athlete_code: code, on_date: date, created_at: new Date().toISOString(), ...c });
+  await col(club, "checkins").doc(key(code, date)).set({ athlete_code: code, on_date: date, created_at: new Date().toISOString(), ...c, availability: c.availability ?? "full" });
   await touch(club, "coach", `a_${code}`);
 }
 
@@ -394,14 +397,14 @@ export async function getCheckins(code: string, dates: string[]): Promise<Map<st
   const club = clubOf(code);
   const snaps = await fs.getAll(...dates.map((d) => col(club, "checkins").doc(key(code, d))));
   const out = new Map<string, CheckinRow>();
-  snaps.forEach((s, i) => s.exists && out.set(dates[i], { sleep_h: s.get("sleep_h"), soreness: s.get("soreness"), stress: s.get("stress"), note: s.get("note") ?? null }));
+  snaps.forEach((s, i) => s.exists && out.set(dates[i], { sleep_h: s.get("sleep_h"), soreness: s.get("soreness"), stress: s.get("stress"), note: s.get("note") ?? null, availability: availabilityOf(s.get("availability")) }));
   return out;
 }
 
 export async function getCheckin(code: string, date: string): Promise<(CheckinRow & { created_at: string | null }) | null> {
   const s = await col(clubOf(code), "checkins").doc(key(code, date)).get();
   if (!s.exists) return null;
-  return { sleep_h: s.get("sleep_h"), soreness: s.get("soreness"), stress: s.get("stress"), note: s.get("note") ?? null, created_at: s.get("created_at") ?? null };
+  return { sleep_h: s.get("sleep_h"), soreness: s.get("soreness"), stress: s.get("stress"), note: s.get("note") ?? null, availability: availabilityOf(s.get("availability")), created_at: s.get("created_at") ?? null };
 }
 
 export async function hasCheckin(code: string, date: string): Promise<boolean> {

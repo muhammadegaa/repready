@@ -106,10 +106,33 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
           <Eyebrow>Check in</Eyebrow>
           <Card className="space-y-5 p-5">
             <div>
-              <label htmlFor="sleep_h" className="block text-sm font-medium">Hours slept last night</label>
-              {readiness?.sleep_h != null && <p className="text-xs text-muted">From {providerName(readiness.provider)}. Change it if that is wrong.</p>}
-              <input id="sleep_h" name="sleep_h" type="number" inputMode="decimal" step="0.5" min="0" max="16" required defaultValue={readiness?.sleep_h ?? undefined} className={`${input} mt-2 max-w-32 text-base`} />
+              <div className="mb-2 text-sm font-medium">Can you train today?</div>
+              <div className="flex flex-wrap gap-2 text-sm">
+                {([["full", "Yes, as planned"], ["limited", "Limited"], ["out", "No"]] as const).map(([v, label]) => (
+                  <label key={v} className="cursor-pointer rounded-md border border-line-strong bg-surface px-3 py-2 has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-paper">
+                    <input type="radio" name="availability" value={v} defaultChecked={v === "full"} className="sr-only" />
+                    {label}
+                  </label>
+                ))}
+              </div>
             </div>
+            {readiness?.sleep_h != null ? (
+              <div>
+                <div className="text-sm font-medium">Hours slept last night</div>
+                <p className="mt-1 text-[15px]">From {providerName(readiness.provider)}: <span className="font-mono tabular-nums">{readiness.sleep_h} h</span>. Right?</p>
+                <details className="mt-2 text-sm">
+                  <summary className="cursor-pointer text-muted">No, change it</summary>
+                  <label htmlFor="sleep_override" className="mt-2 block text-muted">Hours you actually slept</label>
+                  <input id="sleep_override" name="sleep_override" type="number" inputMode="decimal" step="0.1" min="0" max="16" className={`${input} mt-1 max-w-32 text-base`} />
+                </details>
+                <input type="hidden" name="sleep_h" value={readiness.sleep_h} />
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="sleep_h" className="block text-sm font-medium">Hours slept last night</label>
+                <input id="sleep_h" name="sleep_h" type="number" inputMode="decimal" step="0.5" min="0" max="16" required className={`${input} mt-2 max-w-32 text-base`} />
+              </div>
+            )}
             <div>
               <div className="mb-2 text-sm font-medium">Soreness</div>
               <Pills name="soreness" from={0} to={10} labelFrom="None" labelTo="Severe" />

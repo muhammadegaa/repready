@@ -9,11 +9,12 @@ import { runAgentFor, todayStr } from "@/lib/run-agent";
 import { PREVIEW } from "@/lib/wearables";
 import { POSITIONS } from "@/lib/squad";
 import {
-  createPlayers, getInvite, inviteUsable, deleteAthleteData, getAthlete, giveConsentTo, logEvent, saveCheckin, saveReadiness, saveSessionLog, sessionBefore,
+  AVAILABILITY, type Availability, createPlayers, getInvite, inviteUsable, deleteAthleteData, getAthlete, giveConsentTo, logEvent, saveCheckin, saveReadiness, saveSessionLog, sessionBefore,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const whole = (v: string, min: number, max: number) => /^\d+$/.test(v) && Number(v) >= min && Number(v) <= max;
+const tenth = (v: string, min: number, max: number) => /^\d+(\.\d)?$/.test(v) && Number(v) >= min && Number(v) <= max;
 const half = (v: string, min: number, max: number) => /^\d+(\.5|\.0)?$/.test(v) && Number(v) >= min && Number(v) <= max;
 
 // A player opens the club's squad link and adds themselves. They wait for staff to confirm before they can check in.
@@ -57,14 +58,16 @@ export async function claimDevice(f: FormData) {
 export async function submitCheckin(f: FormData) {
   const code = text(f, "code");
   const a = await requirePlayer(code);
-  const sleep = text(f, "sleep_h"), soreness = text(f, "soreness"), stress = text(f, "stress");
+  const sleep = text(f, "sleep_override") || text(f, "sleep_h"), soreness = text(f, "soreness"), stress = text(f, "stress");
   const note = text(f, "note").slice(0, 500);
-  if (!half(sleep, 0, 16) || !whole(soreness, 0, 10) || !whole(stress, 0, 10)) return;
+  const availability = text(f, "availability") || "full";
+  if (!(AVAILABILITY as string[]).includes(availability)) return;
+  if (!tenth(sleep, 0, 16) || !whole(soreness, 0, 10) || !whole(stress, 0, 10)) return;
   const today = todayStr();
-  await saveCheckin(code, today, { sleep_h: Number(sleep), soreness: Number(soreness), stress: Number(stress), note: note || null });
+  await saveCheckin(code, today, { sleep_h: Number(sleep), soreness: Number(soreness), stress: Number(stress), note: note || null, availability: availability as Availability });
   await logEvent(a.club, {
     type: "checkin", athlete_code: code, athlete_name: a.name,
-    text: `${a.name} checked in: ${sleep} h sleep, soreness ${soreness}, stress ${stress}${note ? ", with a note" : ""}`,
+    text: `${a.name} checked in: ${sleep} h sleep, soreness ${soreness}, stress ${stress}${availability !== "full" ? `, availability ${availability}` : ""}${note ? ", with a note" : ""}`,
   });
   after(async () => {
     await syncPolar(code); // pulls last night from the device, if one is connected, so the agent sees it

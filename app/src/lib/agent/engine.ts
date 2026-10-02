@@ -9,6 +9,7 @@ type Day = {
   soreness?: { overall?: number | null } | null;
   session?: { completed?: boolean; rpe_delta?: number | null } | null;
   note?: string | null;
+  availability?: "full" | "limited" | "out" | null;
 };
 
 const ILLNESS = /\b(fever|feverish|flu|covid|cough\w*|chest|sick|ill|vomit\w*|nausea|sore throat|felt hot)\b/i;
@@ -28,6 +29,10 @@ export function evaluate(s: Scenario, active: Set<string>): Finding[] {
   if (note && ILLNESS.test(note)) on("R6", "Note mentions illness symptoms.", out);
   if (note && PAIN.test(note)) on("R7", "Note mentions pain or an injury.", out);
   if (out.length) return out; // illness or pain stops everything else: the coach decides.
+
+  // The player's own statement about today. Not a scientist's rule, so it is always on, and it only ever raises a flag.
+  if (today?.availability === "out") return [{ rule: "AV", why: "Player says they cannot train today." }];
+  if (today?.availability === "limited") return [{ rule: "AV", why: "Player says they can only train in a limited way today." }];
 
   if (s.planned_session.week_type === "deload") {
     on("R10", "Planned session is in a deload week.", out);
@@ -85,6 +90,7 @@ export function decide(s: Scenario, active: Set<string>, ctx: LimitContext = { i
 
   if (!findings.length) return done({ decision: "none", edits: [], reason: "No rule fired.", rules_applied: [] });
   if (ids.includes("R6")) return done({ decision: "rest", edits: [], reason, rules_applied: ids, flag_to_coach: NOTE_FLAG.R6 });
+  if (ids.includes("AV")) return done({ decision: "flag_only", edits: [], reason, rules_applied: ids, flag_to_coach: "The player reported their own availability. Decide what they do today; no edit is proposed." });
   if (ids.includes("R7")) return done({ decision: "flag_only", edits: [], reason, rules_applied: ids, flag_to_coach: NOTE_FLAG.R7 });
   if (ids.includes("R10")) return done({ decision: "none", edits: [], reason, rules_applied: ids });
   if (ids.length === 1 && ids[0] === "R9") {
