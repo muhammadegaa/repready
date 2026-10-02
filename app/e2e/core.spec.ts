@@ -90,3 +90,23 @@ test("staff pages need a sign-in, and a wrong password is refused", async ({ pag
   await page.locator("form button").click();
   await expect(page.getByText("That email and password did not match.")).toBeVisible();
 });
+
+test("the player's session shows a picture only where the library has the exact exercise", async ({ page, browser }) => {
+  await signUp(page);
+  await importProgram(page, [`${today()},Lower,normal,Back squat,4,5,85%,8`, `${today()},Lower,normal,Nordics,3,5,BW,8`]);
+  await addPlayer(page, "Pic Player");
+  const phone = await newPhone(browser);
+  await phone.page.goto(await playerLink(page));
+  await agreeAndClaim(phone.page);
+  const squat = phone.page.locator("tr", { hasText: "Back squat" });
+  const nordic = phone.page.locator("tr", { hasText: "Nordic hamstring curl" });
+  await expect(squat.locator("img")).toHaveAttribute("src", /\/api\/exercise-image\/Barbell_Full_Squat/);
+  await expect(nordic).toBeVisible();
+  await expect(nordic.locator("img")).toHaveCount(0);
+  // The route answers from our own address (the pinned upstream is only reached when the network allows it).
+  const res = await phone.page.request.get("/api/exercise-image/Barbell_Full_Squat");
+  expect([200, 502]).toContain(res.status());
+  if (res.status() === 200) expect(res.headers()["content-type"]).toMatch(/^image\//);
+  expect((await phone.page.request.get("/api/exercise-image/not-in-library")).status()).toBe(404);
+  await phone.ctx.close();
+});

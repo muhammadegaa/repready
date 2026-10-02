@@ -178,7 +178,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
       {session && (
         <section className="space-y-3">
           <Eyebrow>Today’s session</Eyebrow>
-          <SessionTable planned={session.exercises} edits={proposal?.status === "approved" ? proposal.edits : []} muted={rest} />
+          <SessionTable planned={session.exercises} edits={proposal?.status === "approved" ? proposal.edits : []} muted={rest} pictures />
           {proposal?.status === "pending" && <p className="text-xs text-muted">Shown as planned. It may change once your coach decides.</p>}
         </section>
       )}

@@ -1,9 +1,11 @@
+import Image from "next/image";
 import { applyEdits } from "@/lib/agent/apply";
 import type { Edit, Exercise } from "@/lib/agent/schema";
+import { imageForName } from "@/lib/library";
 import { Mark } from "./ui";
 
 // The session as a whiteboard: planned values stay plain, changed values are struck through and highlighted.
-export function SessionTable({ planned, edits = [], muted = false }: { planned: Exercise[]; edits?: Edit[]; muted?: boolean }) {
+export function SessionTable({ planned, edits = [], muted = false, pictures = false }: { planned: Exercise[]; edits?: Edit[]; muted?: boolean; pictures?: boolean }) {
   const shown = applyEdits(planned, edits);
   return (
     <div className={`overflow-x-auto rounded-lg border border-line ${muted ? "opacity-60" : ""}`}>
@@ -21,7 +23,10 @@ export function SessionTable({ planned, edits = [], muted = false }: { planned: 
             return (
               <tr key={i} className="border-b border-line last:border-0">
                 <td className="px-3 py-2.5 font-medium">
-                  {s.name !== p.name ? (<><s className="mr-1.5 font-normal text-muted">{p.name}</s><Mark>{s.name}</Mark></>) : p.name}
+                  <div className="flex items-center gap-2.5">
+                    {pictures && <Thumb name={s.name} />}
+                    <div>{s.name !== p.name ? (<><s className="mr-1.5 font-normal text-muted">{p.name}</s><Mark>{s.name}</Mark></>) : p.name}</div>
+                  </div>
                 </td>
                 <td className="px-3 py-2.5 font-mono tabular-nums">
                   {s.sets !== p.sets ? (<><s className="mr-1 text-muted">{p.sets}</s><Mark>{s.sets}</Mark></>) : p.sets}
@@ -38,4 +43,11 @@ export function SessionTable({ planned, edits = [], muted = false }: { planned: 
       </table>
     </div>
   );
+}
+
+// A small picture when the library has one for this exact exercise; otherwise nothing, so no row ever shows a wrong picture.
+function Thumb({ name }: { name: string }) {
+  const src = imageForName(name);
+  if (!src) return <span aria-hidden className="h-10 w-10 shrink-0" />;
+  return <Image src={src} alt="" width={40} height={40} unoptimized loading="lazy" className="h-10 w-10 shrink-0 rounded-md border border-line bg-paper object-cover" />;
 }

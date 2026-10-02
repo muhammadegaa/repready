@@ -75,3 +75,7 @@ Testing so far: unit tests, Firestore emulator tests (74 passing) and manual bro
 ## Step 8 status
 
 `app/e2e/core.spec.ts`: six browser tests pass against the emulator (checklist, bulk add keeps list, squad-link join and confirm, pain note flag with exercise-alias matching, cross-club 404, sign-in guard). Not covered: password reset (needs the mailed token), digest, Polar, the player's RPE log, program import errors, mobile layouts. No CI workflow yet.
+
+## Step 6 status
+
+Player session view shows a picture only for an exact library match (or a football entry whose own name or alias is exactly a library name). Pictures are served through `/api/exercise-image/[id]` from a pinned free-exercise-db commit, cached for a year, so players' phones never contact GitHub; the route only resolves ids in the bundled library. Changed values were already shown struck-through and highlighted. No picture exists for Nordic hamstring curl, Copenhagen adduction and other football-specific entries; they show text only. Not done: instructions text, multiple images per exercise, self-hosting the images.
