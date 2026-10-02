@@ -45,3 +45,10 @@ jobs:
         run: npx --yes firebase-tools@latest emulators:exec --only firestore --project repready-7dacd --config ../firebase.json "npx vitest run"
       - name: Browser tests
         run: npx --yes firebase-tools@latest emulators:exec --only firestore --project repready-7dacd --config ../firebase.json "npx playwright test"
+      - name: Keep failure screenshots and traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failures
+          path: app/test-results/
+          if-no-files-found: ignore

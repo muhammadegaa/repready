@@ -11,6 +11,8 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: [["list"]],
   use: {
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
     baseURL: `http://localhost:${port}`,
     launchOptions: process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {},
   },

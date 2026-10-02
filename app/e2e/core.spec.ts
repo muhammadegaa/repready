@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addPlayer, agreeAndClaim, importProgram, newPhone, PASSWORD, playerLink, signUp, squadLink, today, uniq } from "./helpers";
+import { addPlayer, agreeAndClaim, importProgram, newPhone, PASSWORD, pick, playerLink, signUp, squadLink, today, uniq } from "./helpers";
 
 test("a new coach lands on a checklist that updates as they set up", async ({ page }) => {
   await signUp(page);
@@ -55,8 +55,8 @@ test("a pain note reaches the coach as a flag with no automatic edit", async ({ 
   await phone.page.goto(link);
   await agreeAndClaim(phone.page);
   await phone.page.locator('input[name="sleep_h"]').fill("7");
-  await phone.page.locator('input[name="soreness"]').nth(2).check({ force: true });
-  await phone.page.locator('input[name="stress"]').nth(2).check({ force: true });
+  await pick(phone.page, "soreness", 2);
+  await pick(phone.page, "stress", 2);
   await phone.page.locator('textarea[name="note"]').fill("sharp pain in left knee after the match");
   await phone.page.getByRole("button", { name: "Send check-in" }).click();
   await expect(phone.page.getByText("Your coach is reviewing")).toBeVisible({ timeout: 20_000 });

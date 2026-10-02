@@ -20,8 +20,9 @@ export async function importProgram(page: Page, rows: string[]) {
   await page.goto("/coach/program");
   await page.locator("#csv").fill(["date,label,week_type,exercise,sets,reps,load,target_rpe", ...rows].join("\n"));
   await page.getByRole("button", { name: /import program|replace program/i }).click();
-  await expect(page.getByText("Upcoming sessions")).toBeVisible();
-  await page.waitForLoadState("networkidle");
+  // The heading is on the page before and after the import, so wait for the first imported session itself.
+  const label = rows[0].split(",")[1];
+  await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
 }
 
 export async function addPlayer(page: Page, name: string) {
@@ -62,4 +63,13 @@ export async function agreeAndClaim(page: Page) {
   }
   const claim = page.getByText("Use this phone for RepReady?");
   if (await claim.isVisible().catch(() => false)) await page.getByRole("button", { name: "Continue" }).click();
+}
+
+// Taps a visible pill like a player does and confirms it stuck. Retried, because a page that is still hydrating can drop an early tap.
+export async function pick(page: Page, name: string, value: number) {
+  const pill = page.locator(`label:has(input[name="${name}"][value="${value}"])`);
+  await expect(async () => {
+    await pill.click();
+    await expect(page.locator(`input[name="${name}"][value="${value}"]`)).toBeChecked({ timeout: 1000 });
+  }).toPass({ timeout: 15_000 });
 }
