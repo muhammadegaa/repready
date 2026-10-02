@@ -25,7 +25,8 @@ export async function GET(req: Request) {
     const res = back(athleteCode, "connected");
     res.cookies.delete({ name: "polar_nonce", path: "/api/polar" });
     return res;
-  } catch {
+  } catch (e) {
+    console.error("polar callback failed:", (e as Error).message);
     return back(athleteCode, "error");
   }
 }
