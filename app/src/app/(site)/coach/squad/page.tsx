@@ -6,7 +6,7 @@ import { rotateSquadLink } from "@/actions/club";
 import { CopyButton } from "@/components/CopyButton";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
-import { btn, btnGhost, Card, Chip, Eyebrow, input } from "@/components/ui";
+import { btn, btnGhost, Card, Chip, Eyebrow, input, Notice } from "@/components/ui";
 import { requirePage } from "@/lib/auth";
 import { inviteMessage, POSITIONS, squadMessage } from "@/lib/squad";
 import { getNotice, getPulse, listAthletes, squadInvite, type AthleteRow } from "@/lib/store";
@@ -20,11 +20,12 @@ function status(a: AthleteRow): { label: string; tone: "neutral" | "warn" | "ok"
   return { label: "On their phone", tone: "ok" };
 }
 
-export default async function Squad() {
+export default async function Squad(props: PageProps<"/coach/squad">) {
   const { club, clubName, admin } = await requirePage("coach");
+  const { added } = await props.searchParams;
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
-  const [all, notice, pulse, joinToken] = await Promise.all([listAthletes(club), getNotice(club, "squad"), getPulse(club, "coach"), squadInvite(club)]);
+  const [all, notice, pastedList, pulse, joinToken] = await Promise.all([listAthletes(club), getNotice(club, "squad"), getNotice(club, "squad_list"), getPulse(club, "coach"), squadInvite(club)]);
   const waiting = all.filter((p) => !p.approved);
   const players = all.filter((p) => p.approved);
   const joinPath = `/join/${joinToken}`;
@@ -41,6 +42,12 @@ export default async function Squad() {
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Squad</h1>
         <p className="mt-1 text-muted">{players.length} player{players.length === 1 ? "" : "s"}, {joined} on their own phone. Each personal link works on one phone: the first phone to agree to the terms keeps it.</p>
       </header>
+
+      {typeof added === "string" && added && (
+        <Notice tone="ok">
+          {/^\d+$/.test(added) ? `Added ${added} players.` : `Added ${added}.`} They are listed under <a href="#players" className="font-medium underline underline-offset-4">Players and links</a>. Send each their link, or share the squad link.
+        </Notice>
+      )}
 
       <Card className="space-y-3 p-5">
         <Eyebrow>Squad link</Eyebrow>
@@ -103,13 +110,13 @@ export default async function Squad() {
           {notice && <pre className="whitespace-pre-wrap rounded-md border border-bad/30 bg-bad-bg p-3 text-sm text-bad">{notice}</pre>}
           <form action={addPlayers} className="space-y-3">
             <label htmlFor="list" className="block text-sm text-muted">One player per line: name, shirt number, position, squad. Paste straight from a spreadsheet. Only the name is needed.</label>
-            <textarea id="list" name="list" rows={5} placeholder={"J. Mensah, 5, Centre-back\nL. Ortiz, 9, Forward, U21"} className={`${input} font-mono text-[13px]`} />
+            <textarea id="list" name="list" rows={5} defaultValue={notice ? pastedList ?? "" : ""} placeholder={"J. Mensah, 5, Centre-back\nL. Ortiz, 9, Forward, U21"} className={`${input} font-mono text-[13px]`} />
             <PendingButton className={btnGhost} pending="Adding…">Add players</PendingButton>
           </form>
         </Card>
       </section>
 
-      <section className="space-y-3">
+      <section id="players" className="space-y-3">
         <Eyebrow>Players and links</Eyebrow>
         {sorted.length === 0 ? (
           <Card className="px-5 py-6 text-sm text-muted">No players yet. Add one above, or paste the squad.</Card>

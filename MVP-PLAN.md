@@ -64,3 +64,10 @@ Calibration mode. Oura adapter (build once the pilot club names its devices). Wh
 | 6 to 9 | Not started: player session images, privacy documents (notice, DPA, DPIA), browser test suite, pilot pack. Open: Vercel deployments were failing; cause not yet found |
 
 Testing so far: unit tests, Firestore emulator tests (74 passing) and manual browser runs against the emulator. No automated browser tests yet (step 8). Polar has not been run against a real device in this branch.
+
+## First-run experience (added after review feedback)
+
+- Coach: sign-up now lands on Today with a four-step Getting started checklist computed from real state (players, program, links agreed, first check-in). Squad shows a confirmation after adding players and keeps a pasted list when one line is bad.
+- Player: a first-time card on the check-in page (add to home screen).
+- Scientist: a three-step review guide, and the Rules page now says plainly that editing a rule's text does not change its thresholds (they are fixed in code); only Delete changes behaviour. Making thresholds editable is a real gap to decide on.
+- Not browser-verified: the player first-time card (needs a program in place) and the scientist guide.

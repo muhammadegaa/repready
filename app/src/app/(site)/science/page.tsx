@@ -27,8 +27,19 @@ export default async function Rules() {
       <Live scope="science" initial={pulse} />
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold tracking-tight">Rules</h1>
-        <p className="max-w-2xl text-muted">The agent can only apply the rules on this page. Edits take effect on the next check-in for every coach, so cite the evidence and re-run the evaluation after you change anything.</p>
+        <p className="max-w-2xl text-muted">Only the rules on this page can change a session. Each rule&apos;s thresholds are fixed in code today, so editing the text records your intent and evidence but does not move the numbers: <strong>Delete</strong> switches a rule off for every coach on the next check-in, and a changed threshold needs a code change. Cite the evidence and re-run the evaluation after you change anything.</p>
       </header>
+
+      {reviewed === 0 && (
+        <Card className="space-y-2 p-5">
+          <Eyebrow>Your review, in three steps</Eyebrow>
+          <ol className="list-decimal space-y-1 pl-5 text-sm">
+            <li>Read each rule below. Mark it Keep, Changed or Delete, and add a citation. These are draft placeholders until you do.</li>
+            <li>On <Link href="/science/evaluation" className="font-medium underline underline-offset-4">Evaluation</Link>, open each of the 30 test players and write down what you would do, before you look at what the rules did.</li>
+            <li>Run the evaluation. It shows how often the rules agree with you, and where they do not.</li>
+          </ol>
+        </Card>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Card className="px-4 py-3"><div className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted">Reviewed</div><div className="mt-1 text-2xl font-semibold tabular-nums">{reviewed}/{rules.length}</div></Card>

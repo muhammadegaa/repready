@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CopyButton } from "@/components/CopyButton";
+import { GetStarted } from "@/components/GetStarted";
 import { Live } from "@/components/Live";
 import { ProposalCard } from "@/components/ProposalCard";
 import { Spark } from "@/components/Spark";
@@ -8,17 +9,17 @@ import { requirePage } from "@/lib/auth";
 import { ago, dateLabel } from "@/lib/copy";
 import { allRules } from "@/lib/rules";
 import { todayStr } from "@/lib/run-agent";
-import { getPulse } from "@/lib/store";
+import { countSessions, getPulse } from "@/lib/store";
 import { coachToday, STATUS } from "@/lib/views";
 
 export const metadata = { title: "Today" };
 export const dynamic = "force-dynamic";
 
 export default async function Today(props: PageProps<"/coach">) {
-  const { club } = await requirePage("coach");
+  const { club, name } = await requirePage("coach");
   const today = todayStr();
   const { notice } = await props.searchParams;
-  const [data, rules, pulse] = await Promise.all([coachToday(club, today), allRules(club), getPulse(club, "coach")]);
+  const [data, rules, pulse, sessionCount] = await Promise.all([coachToday(club, today), allRules(club), getPulse(club, "coach"), countSessions(club)]);
   const { session, roster, pending, events, counts, waiting } = data;
   const notIn = roster.filter((r) => r.status === "waiting");
 
@@ -38,6 +39,11 @@ export default async function Today(props: PageProps<"/coach">) {
           <Link href="/coach/program" className="text-sm font-medium underline underline-offset-4">No session today. Open the program</Link>
         )}
       </header>
+
+      <GetStarted
+        name={name}
+        state={{ players: counts.athletes, waiting, sessions: sessionCount, agreed: roster.filter((r) => r.athlete.consented_at).length, checkedIn: counts.checkedIn }}
+      />
 
       {notice && <Notice>{notice}</Notice>}
       {waiting > 0 && (
@@ -68,13 +74,8 @@ export default async function Today(props: PageProps<"/coach">) {
           <section className="space-y-3">
             <Eyebrow>Squad today</Eyebrow>
             {roster.length === 0 ? (
-              <Card className="px-5 py-6">
-                <p className="font-medium">Start here</p>
-                <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted">
-                  <li>Add your players in <Link href="/coach/squad" className="underline underline-offset-4">Squad</Link>, one by one or pasted from a spreadsheet.</li>
-                  <li>Import your program in <Link href="/coach/program" className="underline underline-offset-4">Program</Link>.</li>
-                  <li>Send each player their link, or share the squad link so players add themselves. They agree to the terms once on their own phone, then check in daily.</li>
-                </ol>
+              <Card className="px-5 py-6 text-sm text-muted">
+                No players yet. Follow the steps above, or open <Link href="/coach/squad" className="underline underline-offset-4">Squad</Link>.
               </Card>
             ) : (
               <Card className="divide-y divide-line">

@@ -34,19 +34,25 @@ export async function addPlayer(f: FormData) {
   await createPlayers(club, [{ name, shirt: shirt === "" ? null : Number(shirt), position: (POSITIONS as readonly string[]).includes(position) ? position : "", squad }]);
   revalidatePath("/coach");
   revalidatePath("/coach/squad");
+  redirect(`/coach/squad?added=${encodeURIComponent(name)}`);
 }
 
 export async function addPlayers(f: FormData) {
   const { club } = await requireStaff("coach");
-  const { players, errors } = parsePlayers(text(f, "list"));
+  const raw = text(f, "list");
+  const { players, errors } = parsePlayers(raw);
   if (errors.length) {
+    // Keep what was pasted so one bad line does not cost the coach the whole list.
     await setNotice(club, "squad", errors.join("\n"));
+    await setNotice(club, "squad_list", raw.slice(0, 20000));
   } else if (players.length) {
     await createPlayers(club, players);
     await setNotice(club, "squad", null);
+    await setNotice(club, "squad_list", null);
   }
   revalidatePath("/coach");
   revalidatePath("/coach/squad");
+  if (!errors.length && players.length) redirect(`/coach/squad?added=${players.length}`);
 }
 
 export async function resetPlayerLink(f: FormData) {

@@ -100,6 +100,13 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
 
       {!session && <Card className="p-5 text-sm text-muted">Nothing is scheduled for you today. Your coach will add the next session.</Card>}
 
+      {session && !checkin && week.every((d) => !d.checked) && (
+        <Card className="space-y-1 p-4 text-sm">
+          <div className="font-medium">First time here</div>
+          <p className="text-muted">It takes under a minute. Answer the questions, send them, and your coach sees them. Add this page to your home screen (Share, then Add to Home Screen) so it is one tap each morning.</p>
+        </Card>
+      )}
+
       {session && !checkin && (
         <form action={submitCheckin} className="space-y-5">
           <input type="hidden" name="code" value={code} />

@@ -35,7 +35,7 @@ export async function signUp(f: FormData) {
   const made = await createClubWithOwner(club, owner);
   if (!made) fail("/signup", "That email already has an account. Sign in instead.");
   await startSession(made!.staff);
-  redirect("/coach/squad");
+  redirect("/coach");
 }
 
 export async function joinStaff(f: FormData) {
