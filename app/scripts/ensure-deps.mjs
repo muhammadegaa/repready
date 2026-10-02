@@ -26,7 +26,8 @@ console.log(`[ensure-deps] node_modules at ${existsSync("node_modules") ? "./nod
 let gone = missing();
 if (gone.length) {
   console.error(`[ensure-deps] ${gone.length} declared dependencies do not resolve: ${gone.join(", ")}. Running npm ci once.`);
-  execSync("npm ci", { stdio: "inherit" });
+  // --include=dev: the build needs Tailwind and TypeScript even when NODE_ENV=production is set.
+  execSync("npm ci --include=dev", { stdio: "inherit" });
   gone = missing();
   if (gone.length) {
     console.error(`[ensure-deps] Still missing after npm ci: ${gone.join(", ")}. Failing the build here on purpose.`);
