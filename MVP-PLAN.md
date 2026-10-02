@@ -51,3 +51,15 @@ Calibration mode. Oura adapter (build once the pilot club names its devices). Wh
 - A lawyer should confirm the WhatsApp doorbell approach and consent in an employment relationship.
 - First club and what devices its players use.
 - The sports scientist's review time: the overlay (about 1.5 hours) and the 10 rules.
+
+## Progress (2026-10-02, branch claude/jolly-curie-vqeims)
+
+| Step | State |
+|---|---|
+| 1 Rules engine | Done. `app/src/lib/agent/engine.ts` decides; the model is out of the morning loop. Scientist's evaluation scores it. Note matching is keyword-only; a raise-only model classifier is optional and would need the consent text and PRIVACY-DRAFT changed first |
+| 2 Library, overlay, aliases, match-day tags, fixtures | Done at minimum. Overlay is an unreviewed draft. No rule uses `match_day` yet: that needs the scientist |
+| 3 Adaptive check-in | Availability item and device-sleep confirm done. Quiet-day "I'm good" tap deliberately not built: it would invent soreness and stress values |
+| 4 Signal record | The record already existed (`ReadinessRow`: Polar, Junction webhook and samples write to it). Added `oura.ts` mapper and client. Not verified against the live Oura API (host blocked in the build sandbox). Oura OAuth connect flow and UI not built |
+| 5 to 9 | Not started: email provider (password reset, digest, chase), player session images, privacy documents, browser test suite, pilot pack |
+
+Testing so far: unit tests, Firestore emulator tests (74 passing) and manual browser runs against the emulator. No automated browser tests yet (step 8). Polar has not been run against a real device in this branch.
