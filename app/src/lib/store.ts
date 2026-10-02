@@ -125,6 +125,11 @@ const inviteRow = (token: string, d: DocumentData): InviteRow => ({ token, kind:
 
 export const STAFF_INVITE_DAYS = 7;
 
+export async function listClubs(): Promise<ClubRow[]> {
+  const q = await fs.collection("clubs").get();
+  return q.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ClubRow, "id">) }));
+}
+
 export async function getClub(id: string): Promise<ClubRow | null> {
   if (!/^[0-9a-f]{6}$/.test(id)) return null;
   const s = await fs.collection("clubs").doc(id).get();

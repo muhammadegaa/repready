@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CopyButton } from "@/components/CopyButton";
 import { Live } from "@/components/Live";
 import { ProposalCard } from "@/components/ProposalCard";
 import { Spark } from "@/components/Spark";
@@ -19,6 +20,7 @@ export default async function Today(props: PageProps<"/coach">) {
   const { notice } = await props.searchParams;
   const [data, rules, pulse] = await Promise.all([coachToday(club, today), allRules(club), getPulse(club, "coach")]);
   const { session, roster, pending, events, counts, waiting } = data;
+  const notIn = roster.filter((r) => r.status === "waiting");
 
   return (
     <div className="space-y-8">
@@ -98,6 +100,26 @@ export default async function Today(props: PageProps<"/coach">) {
         </div>
 
         <aside className="space-y-8">
+          {notIn.length > 0 && (
+            <section className="space-y-3">
+              <Eyebrow>Not checked in ({notIn.length})</Eyebrow>
+              <Card className="divide-y divide-line">
+                {notIn.map((e) => (
+                  <div key={e.athlete.code} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                    <span className="text-sm">{e.athlete.name}</span>
+                    <CopyButton
+                      path={`/a/${e.athlete.code}`}
+                      label="Copy reminder"
+                      message={`Morning ${e.athlete.name.split(" ")[0]}, please do your RepReady check-in before training: {url}`}
+                      className={`${btnGhost} px-3 py-1 text-xs`}
+                    />
+                  </div>
+                ))}
+              </Card>
+              <p className="text-xs text-muted">Copies a message with that player’s own link. Paste it into your team chat or a direct message.</p>
+            </section>
+          )}
+
           <section className="space-y-3">
             <Eyebrow>Squad</Eyebrow>
             <Card className="space-y-2 p-4">
