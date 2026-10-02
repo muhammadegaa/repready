@@ -6,3 +6,7 @@ node_modules/
 app/data/
 
 *-debug.log
+
+# Playwright
+app/test-results/
+app/playwright-report/

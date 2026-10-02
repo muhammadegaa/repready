@@ -71,3 +71,7 @@ Testing so far: unit tests, Firestore emulator tests (74 passing) and manual bro
 - Player: a first-time card on the check-in page (add to home screen).
 - Scientist: a three-step review guide, and the Rules page now says plainly that editing a rule's text does not change its thresholds (they are fixed in code); only Delete changes behaviour. Making thresholds editable is a real gap to decide on.
 - Not browser-verified: the player first-time card (needs a program in place) and the scientist guide.
+
+## Step 8 status
+
+`app/e2e/core.spec.ts`: six browser tests pass against the emulator (checklist, bulk add keeps list, squad-link join and confirm, pain note flag with exercise-alias matching, cross-club 404, sign-in guard). Not covered: password reset (needs the mailed token), digest, Polar, the player's RPE log, program import errors, mobile layouts. No CI workflow yet.

@@ -24,7 +24,7 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npm run dev -- -p 3100
 FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npx tsx --env-file=.env.local scripts/seed-demo.mts
 ```
 
-Tests: `npm test` runs the unit tests; `npm run test:emulator` also runs the Firestore store tests.
+Tests: `npm test` runs the unit tests; `npm run test:emulator` also runs the Firestore store tests; `npm run test:e2e` runs the browser tests (sign-up and checklist, adding and joining players, a pain note reaching the coach, cross-club isolation, sign-in) against the emulator. Install the browsers once with `npx playwright install chromium`, or set `PW_CHROMIUM` to an existing Chromium. If a dev server is already running on another port, set `E2E_PORT` to it.
 
 ## How it fits together
 
