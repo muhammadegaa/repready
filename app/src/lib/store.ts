@@ -336,6 +336,17 @@ export async function setProtected(code: string, names: string[]): Promise<void>
   await touch(clubOf(code), "coach", `a_${code}`);
 }
 
+// ---- fixtures
+export async function getFixtures(club: string): Promise<string[]> {
+  const s = await fs.collection("clubs").doc(club).get();
+  return (s.data()?.fixtures as string[] | undefined) ?? [];
+}
+
+export async function setFixtures(club: string, dates: string[]): Promise<void> {
+  await fs.collection("clubs").doc(club).update({ fixtures: dates });
+  await touch(club, "coach");
+}
+
 // ---- program
 export async function replaceSessions(club: string, sessions: Omit<SessionRow, "id">[]): Promise<void> {
   const old = await col(club, "sessions").get();

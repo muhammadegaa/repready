@@ -19,7 +19,7 @@ Rules:
 
 export type Scenario = {
   athlete: Record<string, unknown>;
-  planned_session: { label: string; week_type: string; exercises: Exercise[] };
+  planned_session: { label: string; week_type: string; match_day?: string | null; exercises: Exercise[] };
   last_14_days: unknown[];
 };
 

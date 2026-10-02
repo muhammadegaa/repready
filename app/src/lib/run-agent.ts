@@ -1,9 +1,10 @@
 import { decide } from "./agent/engine";
+import { matchDayTag } from "./fixtures";
 import type { Scenario } from "./agent/propose";
 import type { Exercise } from "./agent/schema";
 import { activeRules, allRules } from "./rules";
 import {
-  clubOf, getAthlete, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionOn, sessionsOnDates,
+  clubOf, getAthlete, getFixtures, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionOn, sessionsOnDates,
   type ProposalRow, type SessionRow,
 } from "./store";
 
@@ -49,7 +50,7 @@ async function buildScenario(code: string, today: string, session: SessionRow): 
   });
   return {
     athlete: { age_group: "adult" },
-    planned_session: { label: session.label, week_type: session.week_type, exercises: session.exercises },
+    planned_session: { label: session.label, week_type: session.week_type, match_day: matchDayTag(session.on_date, await getFixtures(clubOf(code))), exercises: session.exercises },
     last_14_days: days,
   };
 }

@@ -1,13 +1,14 @@
 import Link from "next/link";
-import { importProgram } from "@/actions/coach";
+import { importProgram, saveFixtureList } from "@/actions/coach";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { SessionTable } from "@/components/SessionTable";
 import { btn, Card, Chip, Eyebrow, input } from "@/components/ui";
 import { requirePage } from "@/lib/auth";
 import { dateLabel } from "@/lib/copy";
+import { matchDayTag } from "@/lib/fixtures";
 import { todayStr } from "@/lib/run-agent";
-import { getNotice, getPulse, listSessions } from "@/lib/store";
+import { getFixtures, getNotice, getPulse, listSessions } from "@/lib/store";
 
 export const metadata = { title: "Program" };
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function Program() {
   const { club } = await requirePage("coach");
   const today = todayStr();
-  const [sessions, importError, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "import"), getPulse(club, "coach")]);
+  const [sessions, importError, fixtureError, fixtures, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "import"), getNotice(club, "fixtures"), getFixtures(club), getPulse(club, "coach")]);
   const example = `date,label,week_type,exercise,sets,reps,load,target_rpe
 ${today},Lower strength,normal,Back squat,4,5,85% 1RM,8
 ${today},Lower strength,normal,Romanian deadlift,3,8,70% 1RM,7
@@ -44,6 +45,7 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
                     <div className="text-xs text-muted">{dateLabel(s.on_date)}</div>
                   </div>
                   <div className="flex gap-1.5">
+                    {matchDayTag(s.on_date, fixtures) && <Chip tone="neutral">{matchDayTag(s.on_date, fixtures)}</Chip>}
                     {s.on_date === today && <Chip tone="marker">Today</Chip>}
                     {s.week_type === "deload" && <Chip tone="neutral">Deload</Chip>}
                   </div>
@@ -53,6 +55,19 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
             ))}
           </div>
         )}
+      </section>
+
+      <section className="space-y-3">
+        <Eyebrow>Fixtures</Eyebrow>
+        <Card className="space-y-3 p-5">
+          {fixtureError && <pre className="whitespace-pre-wrap rounded-md border border-bad/30 bg-bad-bg p-3 text-sm text-bad">{fixtureError}</pre>}
+          <p className="text-sm text-muted">Match dates, one per line or comma-separated (YYYY-MM-DD). Sessions within three days of a match are tagged MD-2, MD, MD+1 and so on, and the agent is told.</p>
+          <form action={saveFixtureList} className="space-y-3">
+            <label htmlFor="fixtures" className="block text-sm font-medium">Match dates</label>
+            <textarea id="fixtures" name="fixtures" rows={3} defaultValue={fixtures.join("\n")} className={`${input} font-mono text-[13px]`} />
+            <PendingButton className={btn} pending="Saving…">Save fixtures</PendingButton>
+          </form>
+        </Card>
       </section>
 
       <section className="space-y-3">

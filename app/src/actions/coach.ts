@@ -6,10 +6,11 @@ import { requireStaff } from "@/lib/auth";
 import { buildEdits, COACH_LIMITS } from "@/lib/edits";
 import { deregister } from "@/lib/polar";
 import { describeReport, resolveProgram } from "@/lib/library/resolve";
+import { parseFixtures } from "@/lib/fixtures";
 import { parseProgram } from "@/lib/program";
 import { parsePlayers, POSITIONS } from "@/lib/squad";
 import {
-  approvePlayer, CODE_RE, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, resetLink, sessionOn, setNotice, setProtected,
+  approvePlayer, CODE_RE, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, resetLink, sessionOn, setFixtures, setNotice, setProtected,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -84,6 +85,18 @@ export async function importProgram(f: FormData) {
     await setNotice(club, "import", describeReport(resolved.report));
   }
   revalidatePath("/coach");
+  redirect("/coach/program");
+}
+
+export async function saveFixtureList(f: FormData) {
+  const { club } = await requireStaff("coach");
+  const { dates, errors } = parseFixtures(text(f, "fixtures"));
+  if (errors.length) await setNotice(club, "fixtures", errors.join("\n"));
+  else {
+    await setFixtures(club, dates);
+    await setNotice(club, "fixtures", null);
+  }
+  revalidatePath("/coach/program");
   redirect("/coach/program");
 }
 
