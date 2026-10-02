@@ -15,7 +15,7 @@ const edits = [
 
 const steps = [
   ["Players check in", "Sleep, soreness and stress on their phone, plus session RPE after training. A Polar device can supply the sleep."],
-  ["The agent proposes one change", "It reads the last 14 days, applies one of ten rules, and names the rule it used."],
+  ["The agent proposes one change", "It reads the last 14 days, applies written rules, and names every rule it used."],
   ["Your staff decide", "Approve, change the numbers, or keep the plan. The player sees only what you send."],
 ];
 
@@ -24,12 +24,12 @@ const control = [
   "Cuts at most 25% unless your staff cut more",
   "Pain and illness notes are flagged, never edited around",
   "Rules are fixed and each proposal names its rule",
-  "Data stored in London. Players can delete their own data",
+  "Database in London. Players can delete their own data",
 ];
 
 const faqs = [
   ["Does it replace the coach?", "No. Nothing reaches a player until a member of staff approves it."],
-  ["Who sets the rules?", "A fixed set of ten rules, edited by your sports scientist with a citation on each. The agent is scored against their own decisions on 30 test players before you rely on it. That review has not been done yet."],
+  ["Who sets the rules?", "A fixed set of ten rules, edited by your sports scientist with a citation on each. The rules are scored against their own decisions on 30 test players before you rely on them. That review has not been done yet."],
   ["Which devices work?", "Polar sleep and HRV sync is built and in testing. Other devices are not connected. Without a device, players type their sleep."],
   ["What about academy players?", "Players aged 18 and over only, for now."],
 ];

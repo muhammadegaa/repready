@@ -1,4 +1,4 @@
-# RepReady: data flows and DPIA inputs (draft, 2026-10-01)
+# RepReady: data flows and DPIA inputs (draft, updated 2026-10-02)
 
 Not legal advice. This lists what the code does today so a lawyer or the ICO's guidance can be applied to facts. Items marked **open** need a decision before a real athlete is added.
 
@@ -8,7 +8,7 @@ Not legal advice. This lists what the code does today so a lawyer or the ICO's g
 |---|---|---|
 | Athlete first name or label, random link code | Coach enters it | Firestore `athletes` |
 | Consent timestamp | Athlete | Firestore `athletes` |
-| Sleep hours, soreness 0-10, stress 0-10, optional free-text note | Athlete check-in | Firestore `checkins` |
+| Sleep hours, soreness 0-10, stress 0-10, availability (full, limited, out), optional free-text note | Athlete check-in | Firestore `checkins` |
 | Last-session RPE | Athlete | Firestore `session_logs` |
 | Device sleep hours, HRV, resting heart rate, provider | Wearable via Junction webhook (not live yet) | Firestore `readiness` |
 | Agent proposal: decision, edits, reason, flag, rule ids, coach decision and note | Agent, coach | Firestore `proposals` |
@@ -16,6 +16,9 @@ Not legal advice. This lists what the code does today so a lawyer or the ICO's g
 | Device sleep, HRV and lowest night heart rate from Polar | Polar AccessLink, pulled on sync | Firestore `readiness` |
 | Email address and club name from a pilot request | Landing page form | Firestore `leads` (RepReady only, not visible to clubs) |
 | Staff name, email, roles, password hash | Club sign-up or staff invite | Firestore `staff` |
+| Password-reset token hash, expiry | Staff request | Firestore `resets` (the token itself is only in the email) |
+| Match dates | Coach enters them | Firestore club document |
+| Program (sessions, exercises) | Coach imports it | Firestore `sessions` |
 
 Sleep, soreness, stress, HRV and resting heart rate are health data. Under UK GDPR that is special-category data (Article 9), which needs a lawful basis plus an Article 9 condition. The app asks for explicit consent before the first check-in.
 
@@ -30,7 +33,8 @@ Club staff sign in with email and password (scrypt-hashed). Each club has its ow
 | Polar (AccessLink) | The athlete authorises read access to their Polar sleep and Nightly Recharge data; we send their link code as a member id | Polar Electro is Finnish, so likely inside UK/EU adequacy, **open**: confirm. A Polar access token is stored per athlete. |
 | Junction (webhook receiver exists, not live) | The athlete's wearable account link and sleep data | US company, **open**: transfer terms. |
 | Stripe | The coach's payment details, not athletes' | Out of athlete scope. |
-| Hosting provider | Request logs | **open**: not chosen. |
+| Vercel (hosting) | Request logs and the running server code. Function region set to London (`lhr1`) in `app/vercel.json`; the platform's own logging and edge network are not controlled by us | **open**: confirm Vercel's data processing terms and where logs are kept. |
+| Resend (email) | Staff email addresses and names, and the text of password-reset and digest emails. The digest names players who need a decision or have not checked in; it contains no scores, notes or health detail | US company: **open**: transfer terms. A verified sending domain is not set up yet. |
 
 ## Roles (to confirm with a lawyer)
 
@@ -44,6 +48,13 @@ The coach or their organisation decides why and how athlete data is used, so the
 - The athlete can disconnect Polar at any time, which deregisters them and removes the stored token.
 - Adults only for the pilot. Under-18s would need parental consent and safeguarding rules.
 - Firestore rules deny all browser access. Only the server reads and writes.
+
+## Decisions the product already makes
+
+- Rules in code decide who is flagged and what is proposed. No model sees athlete data in the morning loop. A player's own statement of availability and any pain or illness note raise a flag to staff and never cause an automatic edit.
+- Staff see a named rule for every proposal and decide every change.
+- The digest email is minimised on purpose (names and counts only).
+- Players are shown on their consent screen that written rules read their answers and no outside AI service receives them.
 
 ## What does not exist yet
 
