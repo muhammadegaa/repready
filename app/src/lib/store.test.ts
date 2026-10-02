@@ -10,6 +10,7 @@ import {
 
 // Needs the Firestore emulator: npm run test:emulator
 describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator)", () => {
+  const run = Date.now().toString(36);
   const C = "abc123";
   const other = "def456";
   const createAthlete = async (name: string, club = C) => (await createPlayers(club, [{ name, shirt: null, position: "", squad: "First team" }]))[0];
@@ -174,11 +175,12 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
   });
 
   it("keeps one waitlist entry per email, ignoring case", async () => {
-    expect(await saveLead("Coach@Example.com", "landing", "Example FC")).toBe(true);
-    expect(await saveLead("coach@example.com", "landing")).toBe(false);
-    const leads = await listLeads(10);
-    expect(leads.filter((l) => l.email.toLowerCase() === "coach@example.com")).toHaveLength(1);
-    expect(leads.find((l) => l.email.toLowerCase() === "coach@example.com")?.club).toBe("Example FC");
+    const email = `coach-${run}@example.com`; // unique per run, so the test can be repeated against the same emulator
+    expect(await saveLead(email.replace("coach", "Coach"), "landing", "Example FC")).toBe(true);
+    expect(await saveLead(email, "landing")).toBe(false);
+    const leads = await listLeads(500);
+    expect(leads.filter((l) => l.email.toLowerCase() === email)).toHaveLength(1);
+    expect(leads.find((l) => l.email.toLowerCase() === email)?.club).toBe("Example FC");
     expect(await countLeads()).toBeGreaterThanOrEqual(1);
   });
 
@@ -263,20 +265,21 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
   });
 
   it("resets a password once, with a throttle, and never for unknown emails", async () => {
-    const made = await createClubWithOwner("Reset FC", { email: "reset@test.example", name: "R", pw: "old-hash" });
+    const email = `reset-${run}@test.example`;
+    const made = await createClubWithOwner("Reset FC", { email, name: "R", pw: "old-hash" });
     expect(made).not.toBeNull();
-    expect(await createPasswordReset("nobody@test.example")).toBeNull();
-    const r = await createPasswordReset("reset@test.example");
+    expect(await createPasswordReset(`nobody-${run}@test.example`)).toBeNull();
+    const r = await createPasswordReset(email);
     expect(r).toMatchObject({ token: expect.stringMatching(/^[0-9a-f]{48}$/) });
-    expect(await createPasswordReset("reset@test.example")).toBe("throttled");
+    expect(await createPasswordReset(email)).toBe("throttled");
     const token = (r as { token: string }).token;
     expect(await resetTokenUsable(token)).toBe(true);
     expect(await resetTokenUsable("0".repeat(48))).toBe(false);
     const done = await resetPassword(token, "new-hash");
     expect(done).toMatchObject({ pw: "new-hash" });
-    expect((await getStaffByEmail("reset@test.example"))?.pw).toBe("new-hash");
+    expect((await getStaffByEmail(email))?.pw).toBe("new-hash");
     expect(await resetTokenUsable(token)).toBe(false);
     expect(await resetPassword(token, "again")).toBe("invalid");
-    expect((await getStaffByEmail("reset@test.example"))?.pw).toBe("new-hash");
+    expect((await getStaffByEmail(email))?.pw).toBe("new-hash");
   });
 });
