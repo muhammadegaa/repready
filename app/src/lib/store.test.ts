@@ -4,6 +4,7 @@ import {
   giveConsentTo, hasCheckin, listAthletes, listEvalRuns, listEvents, listLabels, listProposals, listProposalsFor, listRuleOverrides, listSessions,
   logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionOn,
   sessionsOnDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads, createPlayers, claimLink, resetLink,
+  createPasswordReset, resetPassword, resetTokenUsable,
   getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
 } from "./store";
 
@@ -259,5 +260,23 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     expect(next).not.toBe(first);
     expect(await getInvite(first)).toBeNull();
     expect(inviteUsable(await getInvite(next))).toBe(true);
+  });
+
+  it("resets a password once, with a throttle, and never for unknown emails", async () => {
+    const made = await createClubWithOwner("Reset FC", { email: "reset@test.example", name: "R", pw: "old-hash" });
+    expect(made).not.toBeNull();
+    expect(await createPasswordReset("nobody@test.example")).toBeNull();
+    const r = await createPasswordReset("reset@test.example");
+    expect(r).toMatchObject({ token: expect.stringMatching(/^[0-9a-f]{48}$/) });
+    expect(await createPasswordReset("reset@test.example")).toBe("throttled");
+    const token = (r as { token: string }).token;
+    expect(await resetTokenUsable(token)).toBe(true);
+    expect(await resetTokenUsable("0".repeat(48))).toBe(false);
+    const done = await resetPassword(token, "new-hash");
+    expect(done).toMatchObject({ pw: "new-hash" });
+    expect((await getStaffByEmail("reset@test.example"))?.pw).toBe("new-hash");
+    expect(await resetTokenUsable(token)).toBe(false);
+    expect(await resetPassword(token, "again")).toBe("invalid");
+    expect((await getStaffByEmail("reset@test.example"))?.pw).toBe("new-hash");
   });
 });

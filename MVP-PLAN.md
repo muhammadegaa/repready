@@ -60,6 +60,7 @@ Calibration mode. Oura adapter (build once the pilot club names its devices). Wh
 | 2 Library, overlay, aliases, match-day tags, fixtures | Done at minimum. Overlay is an unreviewed draft. No rule uses `match_day` yet: that needs the scientist |
 | 3 Adaptive check-in | Availability item and device-sleep confirm done. Quiet-day "I'm good" tap deliberately not built: it would invent soreness and stress values |
 | 4 Signal record | The record already existed (`ReadinessRow`: Polar, Junction webhook and samples write to it). Added `oura.ts` mapper and client. Not verified against the live Oura API (host blocked in the build sandbox). Oura OAuth connect flow and UI not built |
-| 5 to 9 | Not started: email provider (password reset, digest, chase), player session images, privacy documents, browser test suite, pilot pack |
+| 5 Email, reset, digest, chase | Done: Resend behind `mail.ts` (logs when no key), password reset (hashed one-hour single-use token, throttled, same reply for unknown emails), morning digest at `/api/cron/digest` (closed without CRON_SECRET), not-checked-in list with copyable reminders. Not done: email verification at sign-up, rate limits beyond the reset throttle, a verified sending domain. Existing sessions are not revoked on reset |
+| 6 to 9 | Not started: player session images, privacy documents (notice, DPA, DPIA), browser test suite, pilot pack. Open: Vercel deployments were failing; cause not yet found |
 
 Testing so far: unit tests, Firestore emulator tests (74 passing) and manual browser runs against the emulator. No automated browser tests yet (step 8). Polar has not been run against a real device in this branch.

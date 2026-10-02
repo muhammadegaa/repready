@@ -24,6 +24,7 @@ export default async function SignIn(props: PageProps<"/signin">) {
           <input id="password" name="password" type="password" autoComplete="current-password" required className={input} />
           <PendingButton className={`${btn} w-full`} pending="Checking…">Sign in</PendingButton>
         </form>
+        <p className="mt-3 text-sm"><Link href="/forgot" className="text-muted underline underline-offset-4 hover:text-ink">Forgot your password?</Link></p>
       </Card>
       <p className="mt-4 text-sm text-muted">New club? <Link href="/signup" className="font-medium text-ink underline underline-offset-4">Create a club account</Link>. Joining an existing club? Ask your club admin for a staff invite link.</p>
     </div>
