@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { requireStaff } from "@/lib/auth";
-import { propose } from "@/lib/agent/propose";
+import { decide } from "@/lib/agent/engine";
 import { agrees, summarize } from "@/lib/agent/score";
 import { AGENT_LIMITS, buildEdits } from "@/lib/edits";
-import { activeRules, allRules, forModel, rulesHash } from "@/lib/rules";
+import { activeRules, allRules, rulesHash } from "@/lib/rules";
 import { scenarioById, SCENARIOS } from "@/lib/scenarios";
 import { listLabels, saveEvalRun, saveLabel, saveRule, type EvalResult, type RuleRow } from "@/lib/store";
 
@@ -69,9 +69,9 @@ export async function runScenario(id: string): Promise<EvalResult> {
   const label = labels.find((l) => l.id === id) ?? null;
   const base = { id, expected: label?.decision ?? null, holdout: s.holdout };
   try {
-    const { proposal, verdict } = await propose(
+    const { proposal, verdict } = decide(
       { athlete: s.athlete, planned_session: s.planned_session, last_14_days: s.last_14_days },
-      forModel(rules),
+      new Set(activeRules(rules).map((r) => r.id)),
     );
     const agree = label ? agrees({ decision: label.decision, edits: label.edits }, { decision: proposal.decision, edits: verdict.accepted }, s.planned_session.exercises) : null;
     return { ...base, decision: proposal.decision, edits: verdict.accepted, reason: proposal.reason, error: null, agree };
@@ -86,7 +86,7 @@ export async function finishEvalRun(results: EvalResult[]): Promise<void> {
   const summary = summarize(results);
   await saveEvalRun(club, {
     at: new Date().toISOString(),
-    model: process.env.OPENROUTER_MODEL ?? "unknown",
+    model: "rules-engine",
     rules_hash: rulesHash(activeRules(rules)),
     results,
     agreement: summary.agreement,

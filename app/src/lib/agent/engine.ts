@@ -11,8 +11,8 @@ type Day = {
   note?: string | null;
 };
 
-const ILLNESS = /\b(fever|feverish|flu|covid|cough\w*|chest|sick|ill|vomit\w*|nausea|temperature)\b/i;
-const PAIN = /\b(pain\w*|injur\w*|sharp|twinge|pulled|strain\w*|sprain\w*|tweak\w*|swollen|swelling|clicking|locked)\b/i;
+const ILLNESS = /\b(fever|feverish|flu|covid|cough\w*|chest|sick|ill|vomit\w*|nausea|sore throat|felt hot)\b/i;
+const PAIN = /\b(pain\w*|injur\w*|sharp|spasm\w*|twinge|pulled|strain\w*|sprain\w*|tweak\w*|swollen|swelling|clicking|locked)\b/i;
 
 export type Finding = { rule: string; why: string };
 
@@ -23,7 +23,8 @@ export function evaluate(s: Scenario, active: Set<string>): Finding[] {
   const on = (id: string, why: string, out: Finding[]) => active.has(id) && out.push({ rule: id, why });
   const out: Finding[] = [];
 
-  const note = today?.note ?? "";
+  // Notes from the last four days: an injury reported after the weekend match still matters on Tuesday, and a false alarm only costs the coach a glance.
+  const note = days.filter((d) => d.day >= -3).map((d) => d.note ?? "").join(" ");
   if (note && ILLNESS.test(note)) on("R6", "Note mentions illness symptoms.", out);
   if (note && PAIN.test(note)) on("R7", "Note mentions pain or an injury.", out);
   if (out.length) return out; // illness or pain stops everything else: the coach decides.
