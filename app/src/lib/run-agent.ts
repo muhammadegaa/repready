@@ -1,6 +1,7 @@
-import { propose, type Scenario } from "./agent/propose";
+import { decide } from "./agent/engine";
+import type { Scenario } from "./agent/propose";
 import type { Exercise } from "./agent/schema";
-import { allRules, forModel } from "./rules";
+import { activeRules, allRules } from "./rules";
 import {
   clubOf, getAthlete, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionOn, sessionsOnDates,
   type ProposalRow, type SessionRow,
@@ -61,9 +62,9 @@ export async function runAgentFor(code: string, today: string): Promise<void> {
   const base = { athlete_code: code, athlete_name: athlete.name, session_label: session.label, on_date: today, created_at: new Date().toISOString(), decided_at: null };
   let row: Omit<ProposalRow, "id" | "coach_note" | "edited_by_coach">;
   try {
-    const rules = forModel(await allRules(clubOf(code)));
+    const active = new Set(activeRules(await allRules(clubOf(code))).map((r) => r.id));
     const ctx = { injuryFlaggedExercises: athlete.protected, clearedExercises: [] as string[] };
-    const { proposal, verdict } = await propose(await buildScenario(code, today, session), rules, ctx);
+    const { proposal, verdict } = decide(await buildScenario(code, today, session), active, ctx);
     const dropped = verdict.rejected.map((r) => r.why);
     if (!verdict.reasonOk) {
       row = { ...base, decision: proposal.decision, edits: [], reason: null, rules_applied: [], flag: null, status: "error", error: "Agent reason contained medical language and was discarded. Planned session stands." };
