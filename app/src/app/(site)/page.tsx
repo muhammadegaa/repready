@@ -116,7 +116,7 @@ export default function Landing() {
         <div className="mt-6 max-w-xl [&_input]:border-paper/30 [&_input]:bg-paper [&_input]:text-ink [&_button]:bg-marker [&_button]:text-marker-ink">
           <LeadForm id="final" />
         </div>
-        <p className="mt-5 text-sm text-paper/60">Already have an account? <Link href="/signin" className="underline underline-offset-4">Sign in</Link>.</p>
+        <p className="mt-5 text-sm text-paper/60">Ready to start? <Link href="/signup" className="underline underline-offset-4">Create a club account</Link>. Already have one? <Link href="/signin" className="underline underline-offset-4">Sign in</Link>.</p>
       </section>
     </div>
   );

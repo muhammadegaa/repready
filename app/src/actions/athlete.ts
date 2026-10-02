@@ -7,13 +7,35 @@ import { claimThisDevice, requirePlayer } from "@/lib/player-auth";
 import { deregister, disconnectPolar as disconnect, syncPolar } from "@/lib/polar";
 import { runAgentFor, todayStr } from "@/lib/run-agent";
 import { PREVIEW } from "@/lib/wearables";
+import { POSITIONS } from "@/lib/squad";
 import {
-  deleteAthleteData, getAthlete, giveConsentTo, logEvent, saveCheckin, saveReadiness, saveSessionLog, sessionBefore,
+  createPlayers, getInvite, inviteUsable, deleteAthleteData, getAthlete, giveConsentTo, logEvent, saveCheckin, saveReadiness, saveSessionLog, sessionBefore,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const whole = (v: string, min: number, max: number) => /^\d+$/.test(v) && Number(v) >= min && Number(v) <= max;
 const half = (v: string, min: number, max: number) => /^\d+(\.5|\.0)?$/.test(v) && Number(v) >= min && Number(v) <= max;
+
+// A player opens the club's squad link and adds themselves. They wait for staff to confirm before they can check in.
+export async function joinSquad(f: FormData) {
+  const token = text(f, "token");
+  const path = `/join/${token}`;
+  const fail = (msg: string): never => redirect(`${path}?error=${encodeURIComponent(msg)}`);
+  if (text(f, "website") !== "") return;
+  const invite = await getInvite(token);
+  if (!inviteUsable(invite) || invite.kind !== "squad") return fail("This link is no longer active. Ask your club for a new one.");
+  const name = text(f, "name"), shirt = text(f, "shirt"), position = text(f, "position");
+  if (!name || name.length > 80) return fail("Enter your name.");
+  if (shirt !== "" && !/^\d{1,2}$/.test(shirt)) return fail("Shirt number is 1 or 2 digits.");
+  if (f.get("adult") !== "yes") return fail("RepReady is for players aged 18 and over.");
+  const [code] = await createPlayers(
+    invite.club,
+    [{ name, shirt: shirt === "" ? null : Number(shirt), position: (POSITIONS as readonly string[]).includes(position) ? position : "", squad: text(f, "squad").slice(0, 30) || "First team" }],
+    { approved: false, via: "link" },
+  );
+  await claimThisDevice(code);
+  redirect(`/a/${code}`);
+}
 
 export async function giveConsent(f: FormData) {
   const code = text(f, "code");
@@ -40,7 +62,7 @@ export async function submitCheckin(f: FormData) {
   if (!half(sleep, 0, 16) || !whole(soreness, 0, 10) || !whole(stress, 0, 10)) return;
   const today = todayStr();
   await saveCheckin(code, today, { sleep_h: Number(sleep), soreness: Number(soreness), stress: Number(stress), note: note || null });
-  await logEvent({
+  await logEvent(a.club, {
     type: "checkin", athlete_code: code, athlete_name: a.name,
     text: `${a.name} checked in: ${sleep} h sleep, soreness ${soreness}, stress ${stress}${note ? ", with a note" : ""}`,
   });
@@ -56,10 +78,10 @@ export async function logRpe(f: FormData) {
   const a = await requirePlayer(code);
   if (!half(rpe, 1, 10)) return;
   const today = todayStr();
-  const prev = await sessionBefore(today);
+  const prev = await sessionBefore(a.club, today);
   if (date !== today && date !== prev?.on_date) return;
   await saveSessionLog(code, date, Number(rpe));
-  await logEvent({ type: "rpe", athlete_code: code, athlete_name: a.name, text: `${a.name} logged session effort ${rpe} of 10` });
+  await logEvent(a.club, { type: "rpe", athlete_code: code, athlete_name: a.name, text: `${a.name} logged session effort ${rpe} of 10` });
   revalidatePath(`/a/${code}`);
 }
 

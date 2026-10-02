@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { EvalRunner } from "@/components/EvalRunner";
 import { Live } from "@/components/Live";
 import { Card, Chip, Eyebrow, Notice, Stat } from "@/components/ui";
 import { PASS_DO_NOTHING, PASS_OVERALL } from "@/lib/agent/score";
-import { getRole } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { ago } from "@/lib/copy";
 import { activeRules, allRules, rulesHash } from "@/lib/rules";
 import { SCENARIOS } from "@/lib/scenarios";
@@ -17,8 +16,8 @@ export const maxDuration = 60;
 const pct = (v: number | null) => (v === null ? "–" : `${v}%`);
 
 export default async function Evaluation() {
-  if ((await getRole()) !== "scientist") redirect("/signin");
-  const [labels, runs, rules, pulse] = await Promise.all([listLabels(), listEvalRuns(8), allRules(), getPulse("science")]);
+  const { club } = await requirePage("scientist");
+  const [labels, runs, rules, pulse] = await Promise.all([listLabels(club), listEvalRuns(club, 8), allRules(club), getPulse(club, "science")]);
   const labeled = new Map(labels.map((l) => [l.id, l]));
   const last = runs[0] ?? null;
   const results = new Map((last?.results ?? []).map((r) => [r.id, r]));

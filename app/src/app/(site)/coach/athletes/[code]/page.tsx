@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { removeAthlete, toggleProtected } from "@/actions/coach";
 import { CopyButton } from "@/components/CopyButton";
 import { Heat } from "@/components/Heat";
@@ -7,7 +7,7 @@ import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { SessionTable } from "@/components/SessionTable";
 import { btnGhost, Card, Chip, Eyebrow } from "@/components/ui";
-import { getRole } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { ago, dateLabel, decisionCopy } from "@/lib/copy";
 import { todayStr } from "@/lib/run-agent";
 import { getPulse } from "@/lib/store";
@@ -30,11 +30,11 @@ const OUTCOME = {
 } as const;
 
 export default async function AthletePageForCoach(props: PageProps<"/coach/athletes/[code]">) {
-  if ((await getRole()) !== "coach") redirect("/signin");
+  const { club } = await requirePage("coach");
   const { code } = await props.params;
   const today = todayStr();
-  const [d, pulse] = await Promise.all([athleteDetail(code, today), getPulse("coach")]);
-  if (!d) notFound();
+  const [d, pulse] = await Promise.all([athleteDetail(code, today), getPulse(club, "coach")]);
+  if (!d || d.athlete.club !== club) notFound();
   const { athlete, days, proposals, todaySession, exerciseNames, wearable, events } = d;
   const todays = proposals.find((p) => p.on_date === today) ?? null;
   const todayDay = days[days.length - 1];

@@ -29,7 +29,7 @@ export function verifyState(state: string, nonce: string | undefined, now = Date
   const expected = mac(`${code}.${n}.${ts}`);
   const a = Buffer.from(tag), b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-  if (n !== nonce || !/^[0-9a-f]{10}$/.test(code)) return null;
+  if (n !== nonce || !/^[0-9a-f]{16}$/.test(code)) return null;
   if (now - Number(ts) > 15 * 60_000 || now < Number(ts)) return null;
   return code;
 }

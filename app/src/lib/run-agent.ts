@@ -2,7 +2,7 @@ import { propose, type Scenario } from "./agent/propose";
 import type { Exercise } from "./agent/schema";
 import { allRules, forModel } from "./rules";
 import {
-  getAthlete, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionOn, sessionsOnDates,
+  clubOf, getAthlete, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionOn, sessionsOnDates,
   type ProposalRow, type SessionRow,
 } from "./store";
 
@@ -24,7 +24,7 @@ async function buildScenario(code: string, today: string, session: SessionRow): 
   const [checkins, logs, sessions, readiness] = await Promise.all([
     getCheckins(code, dates),
     getSessionLogs(code, dates),
-    sessionsOnDates(dates),
+    sessionsOnDates(clubOf(code), dates),
     getReadinessOn(code, dates),
   ]);
   const target = new Map(sessions.map((s) => [s.on_date, meanTarget(s.exercises)]));
@@ -54,14 +54,14 @@ async function buildScenario(code: string, today: string, session: SessionRow): 
 }
 
 export async function runAgentFor(code: string, today: string): Promise<void> {
-  const [athlete, session, existing] = await Promise.all([getAthlete(code), sessionOn(today), getProposal(code, today)]);
+  const [athlete, session, existing] = await Promise.all([getAthlete(code), sessionOn(clubOf(code), today), getProposal(code, today)]);
   if (!athlete || !session) return;
   if (existing && (existing.status === "approved" || existing.status === "rejected")) return;
 
   const base = { athlete_code: code, athlete_name: athlete.name, session_label: session.label, on_date: today, created_at: new Date().toISOString(), decided_at: null };
   let row: Omit<ProposalRow, "id" | "coach_note" | "edited_by_coach">;
   try {
-    const rules = forModel(await allRules());
+    const rules = forModel(await allRules(clubOf(code)));
     const ctx = { injuryFlaggedExercises: athlete.protected, clearedExercises: [] as string[] };
     const { proposal, verdict } = await propose(await buildScenario(code, today, session), rules, ctx);
     const dropped = verdict.rejected.map((r) => r.why);

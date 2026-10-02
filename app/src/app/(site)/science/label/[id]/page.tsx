@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { LabelForm } from "@/components/LabelForm";
 import { Live } from "@/components/Live";
 import { SessionTable } from "@/components/SessionTable";
 import { Card, Chip, Eyebrow } from "@/components/ui";
-import { getRole } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { activeRules, allRules } from "@/lib/rules";
 import { SCENARIOS, scenarioById } from "@/lib/scenarios";
 import { getPulse, listLabels } from "@/lib/store";
@@ -17,11 +17,11 @@ export async function generateMetadata(props: PageProps<"/science/label/[id]">) 
 }
 
 export default async function Label(props: PageProps<"/science/label/[id]">) {
-  if ((await getRole()) !== "scientist") redirect("/signin");
+  const { club } = await requirePage("scientist");
   const { id } = await props.params;
   const s = scenarioById(id);
   if (!s) notFound();
-  const [labels, rules, pulse] = await Promise.all([listLabels(), allRules(), getPulse("science")]);
+  const [labels, rules, pulse] = await Promise.all([listLabels(club), allRules(club), getPulse(club, "science")]);
   const label = labels.find((l) => l.id === id) ?? null;
   const i = SCENARIOS.findIndex((x) => x.id === id);
   const prev = SCENARIOS[i - 1], next = SCENARIOS[i + 1];

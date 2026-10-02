@@ -28,3 +28,7 @@ export const firstName = (name: string) => name.trim().split(/\s+/)[0];
 export function inviteMessage(name: string, url: string): string {
   return `Hi ${firstName(name)}, this is your RepReady link: ${url}\nOpen it on your phone, agree to the terms, then check in each morning. The link works on one phone, so do not forward it.`;
 }
+
+export function squadMessage(club: string, url: string): string {
+  return `${club} is using RepReady for daily player check-ins. Add yourself here: ${url}\nOpen it on your phone. Staff confirm you, then you check in each morning. Players aged 18 and over.`;
+}

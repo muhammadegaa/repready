@@ -30,9 +30,9 @@ export async function claimThisDevice(code: string): Promise<boolean> {
   return true;
 }
 
-// Guard for player actions: the player must exist, have agreed, and be on the phone that claimed the link.
+// Guard for player actions: the player must exist, be confirmed by the club, have agreed, and be on the phone that claimed the link.
 export async function requirePlayer(code: string): Promise<AthleteRow> {
   const a = await getAthlete(code);
-  if (!a || !a.consented_at || !(await isLinkOwner(a))) throw new Error("This link is not active on this device.");
+  if (!a || !a.approved || !a.consented_at || !(await isLinkOwner(a))) throw new Error("This link is not active on this device.");
   return a;
 }

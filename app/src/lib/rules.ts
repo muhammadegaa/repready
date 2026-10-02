@@ -25,8 +25,8 @@ const base: Rule[] = bundled.rules.map((r) => ({
 }));
 
 // Every rule, with the scientist's saved edits replacing the bundled text.
-export async function allRules(): Promise<Rule[]> {
-  const saved = new Map((await listRuleOverrides()).map((r) => [r.id, r]));
+export async function allRules(club: string): Promise<Rule[]> {
+  const saved = new Map((await listRuleOverrides(club)).map((r) => [r.id, r]));
   return base.map((r) => saved.get(r.id) ?? r);
 }
 

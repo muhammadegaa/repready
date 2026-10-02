@@ -14,11 +14,12 @@ Not legal advice. This lists what the code does today so a lawyer or the ICO's g
 | Agent proposal: decision, edits, reason, flag, rule ids, coach decision and note | Agent, coach | Firestore `proposals` |
 | Polar access token, Polar user id, last sync time | Athlete connects Polar (OAuth) | Firestore `polar_links` |
 | Device sleep, HRV and lowest night heart rate from Polar | Polar AccessLink, pulled on sync | Firestore `readiness` |
-| Email address of a coach who joins the waitlist | Landing page form | Firestore `leads` |
+| Email address and club name from a pilot request | Landing page form | Firestore `leads` (RepReady only, not visible to clubs) |
+| Staff name, email, roles, password hash | Club sign-up or staff invite | Firestore `staff` |
 
 Sleep, soreness, stress, HRV and resting heart rate are health data. Under UK GDPR that is special-category data (Article 9), which needs a lawful basis plus an Article 9 condition. The app asks for explicit consent before the first check-in.
 
-The coach signs in with one shared passcode. No coach personal data is stored.
+Club staff sign in with email and password (scrypt-hashed). Each club has its own data under `clubs/{club}/` and staff can only reach their own club. Stored per staff member: name, email, roles. Players join by a personal link or a club squad link; the first phone to agree to the terms keeps the link, and staff confirm self-joined players before they can check in.
 
 ## Who receives data
 

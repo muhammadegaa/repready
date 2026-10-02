@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { saveRuleAction } from "@/actions/science";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { btn, Card, Chip, Eyebrow, input, Notice } from "@/components/ui";
-import { getRole, roleEnabled } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { ago } from "@/lib/copy";
 import { activeRules, allRules, rulesHash } from "@/lib/rules";
 import { getPulse, listEvalRuns } from "@/lib/store";
@@ -15,8 +14,8 @@ export const dynamic = "force-dynamic";
 const VERDICTS: [string, string][] = [["", "Not reviewed"], ["keep", "Keep"], ["change", "Changed"], ["delete", "Delete"]];
 
 export default async function Rules() {
-  if ((await getRole()) !== "scientist") redirect("/signin");
-  const [rules, runs, pulse] = await Promise.all([allRules(), listEvalRuns(1), getPulse("science")]);
+  const { club } = await requirePage("scientist");
+  const [rules, runs, pulse] = await Promise.all([allRules(club), listEvalRuns(club, 1), getPulse(club, "science")]);
   const hash = rulesHash(activeRules(rules));
   const last = runs[0] ?? null;
   const stale = last && last.rules_hash !== hash;
@@ -83,7 +82,6 @@ export default async function Rules() {
             </form>
           </Card>
         ))}
-        {!roleEnabled("scientist") && <Notice tone="bad">SCIENTIST_PASSCODE is not set.</Notice>}
       </section>
     </div>
   );

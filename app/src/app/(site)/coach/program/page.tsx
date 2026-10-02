@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { importProgram } from "@/actions/coach";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { SessionTable } from "@/components/SessionTable";
 import { btn, Card, Chip, Eyebrow, input } from "@/components/ui";
-import { getRole } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { dateLabel } from "@/lib/copy";
 import { todayStr } from "@/lib/run-agent";
 import { getNotice, getPulse, listSessions } from "@/lib/store";
@@ -14,9 +13,9 @@ export const metadata = { title: "Program" };
 export const dynamic = "force-dynamic";
 
 export default async function Program() {
-  if ((await getRole()) !== "coach") redirect("/signin");
+  const { club } = await requirePage("coach");
   const today = todayStr();
-  const [sessions, importError, pulse] = await Promise.all([listSessions(today, 60), getNotice("import"), getPulse("coach")]);
+  const [sessions, importError, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "import"), getPulse(club, "coach")]);
   const example = `date,label,week_type,exercise,sets,reps,load,target_rpe
 ${today},Lower strength,normal,Back squat,4,5,85% 1RM,8
 ${today},Lower strength,normal,Romanian deadlift,3,8,70% 1RM,7

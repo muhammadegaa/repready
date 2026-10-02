@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { propose } from "@/lib/agent/propose";
 import { agrees, summarize } from "@/lib/agent/score";
 import { AGENT_LIMITS, buildEdits } from "@/lib/edits";
@@ -13,13 +13,14 @@ const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const DECISIONS = ["none", "reduce", "swap", "rest", "flag_only", "increase"];
 
 export async function saveRuleAction(f: FormData) {
-  await requireRole("scientist");
+  const { club, name } = await requireStaff("scientist");
   const id = text(f, "id");
-  const rules = await allRules();
+  const rules = await allRules(club);
   const current = rules.find((r) => r.id === id);
   if (!current) return;
   const keep = text(f, "keep");
   await saveRule(
+    club,
     {
       id,
       name: current.name,
@@ -28,13 +29,13 @@ export async function saveRuleAction(f: FormData) {
       evidence: text(f, "evidence").slice(0, 1000),
       keep: (["keep", "change", "delete"].includes(keep) ? keep : null) as RuleRow["keep"],
     },
-    "scientist",
+    name,
   );
   revalidatePath("/science");
 }
 
 export async function saveLabelAction(_prev: { error: string | null; saved?: boolean } | null, f: FormData): Promise<{ error: string | null; saved?: boolean }> {
-  await requireRole("scientist");
+  const { club } = await requireStaff("scientist");
   const id = text(f, "id");
   const s = scenarioById(id);
   const decision = text(f, "decision");
@@ -50,21 +51,21 @@ export async function saveLabelAction(_prev: { error: string | null; saved?: boo
     if (decision === "swap" && !edits.some((e) => e.kind === "swap")) return { error: "Swap needs at least one exercise to swap to." };
   }
   const rules = f.getAll("rule").map(String);
-  await saveLabel({ id, decision, edits, reason, rules_applied: rules, labeled_at: new Date().toISOString() });
+  await saveLabel(club, { id, decision, edits, reason, rules_applied: rules, labeled_at: new Date().toISOString() });
   revalidatePath("/science");
   return { error: null, saved: true };
 }
 
 export async function scenarioIds(): Promise<string[]> {
-  await requireRole("scientist");
+  await requireStaff("scientist");
   return SCENARIOS.map((s) => s.id);
 }
 
 export async function runScenario(id: string): Promise<EvalResult> {
-  await requireRole("scientist");
+  const { club } = await requireStaff("scientist");
   const s = scenarioById(id);
   if (!s) throw new Error("Unknown scenario");
-  const [rules, labels] = await Promise.all([allRules(), listLabels()]);
+  const [rules, labels] = await Promise.all([allRules(club), listLabels(club)]);
   const label = labels.find((l) => l.id === id) ?? null;
   const base = { id, expected: label?.decision ?? null, holdout: s.holdout };
   try {
@@ -80,10 +81,10 @@ export async function runScenario(id: string): Promise<EvalResult> {
 }
 
 export async function finishEvalRun(results: EvalResult[]): Promise<void> {
-  await requireRole("scientist");
-  const rules = await allRules();
+  const { club } = await requireStaff("scientist");
+  const rules = await allRules(club);
   const summary = summarize(results);
-  await saveEvalRun({
+  await saveEvalRun(club, {
     at: new Date().toISOString(),
     model: process.env.OPENROUTER_MODEL ?? "unknown",
     rules_hash: rulesHash(activeRules(rules)),

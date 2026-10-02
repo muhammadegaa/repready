@@ -1,25 +1,24 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Live } from "@/components/Live";
 import { ProposalCard } from "@/components/ProposalCard";
 import { Spark } from "@/components/Spark";
 import { btnGhost, Card, Chip, Eyebrow, Notice, Stat } from "@/components/ui";
-import { getRole } from "@/lib/auth";
+import { requirePage } from "@/lib/auth";
 import { ago, dateLabel } from "@/lib/copy";
 import { allRules } from "@/lib/rules";
 import { todayStr } from "@/lib/run-agent";
-import { countLeads, getPulse, listLeads } from "@/lib/store";
+import { getPulse } from "@/lib/store";
 import { coachToday, STATUS } from "@/lib/views";
 
 export const metadata = { title: "Today" };
 export const dynamic = "force-dynamic";
 
 export default async function Today(props: PageProps<"/coach">) {
-  if ((await getRole()) !== "coach") redirect("/signin");
+  const { club } = await requirePage("coach");
   const today = todayStr();
   const { notice } = await props.searchParams;
-  const [data, rules, pulse, leads, leadCount] = await Promise.all([coachToday(today), allRules(), getPulse("coach"), listLeads(6), countLeads()]);
-  const { session, roster, pending, events, counts } = data;
+  const [data, rules, pulse] = await Promise.all([coachToday(club, today), allRules(club), getPulse(club, "coach")]);
+  const { session, roster, pending, events, counts, waiting } = data;
 
   return (
     <div className="space-y-8">
@@ -39,6 +38,9 @@ export default async function Today(props: PageProps<"/coach">) {
       </header>
 
       {notice && <Notice>{notice}</Notice>}
+      {waiting > 0 && (
+        <Notice>{waiting} player{waiting === 1 ? " has" : "s have"} asked to join the squad. <Link href="/coach/squad" className="font-medium underline underline-offset-4">Confirm in Squad</Link>.</Notice>
+      )}
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Summary">
         <Stat label="Players" value={counts.athletes} />
@@ -69,7 +71,7 @@ export default async function Today(props: PageProps<"/coach">) {
                 <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-muted">
                   <li>Add your players in <Link href="/coach/squad" className="underline underline-offset-4">Squad</Link>, one by one or pasted from a spreadsheet.</li>
                   <li>Import your program in <Link href="/coach/program" className="underline underline-offset-4">Program</Link>.</li>
-                  <li>Send each player their link. They agree to the terms once on their own phone, then check in daily.</li>
+                  <li>Send each player their link, or share the squad link so players add themselves. They agree to the terms once on their own phone, then check in daily.</li>
                 </ol>
               </Card>
             ) : (
@@ -103,20 +105,6 @@ export default async function Today(props: PageProps<"/coach">) {
               <Link href="/coach/squad" className={btnGhost}>Manage squad and links</Link>
             </Card>
           </section>
-
-          {leadCount > 0 && (
-            <section className="space-y-3">
-              <Eyebrow>Pilot requests · {leadCount}</Eyebrow>
-              <Card className="divide-y divide-line">
-                {leads.map((l) => (
-                  <div key={l.id} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                    <a href={`mailto:${l.email}`} className="min-w-0 truncate underline-offset-4 hover:underline">{l.club ? `${l.club} · ` : ""}{l.email}</a>
-                    <span className="shrink-0 font-mono text-[11px] text-muted">{ago(l.created_at)}</span>
-                  </div>
-                ))}
-              </Card>
-            </section>
-          )}
 
           <section className="space-y-3">
             <Eyebrow>Activity</Eyebrow>

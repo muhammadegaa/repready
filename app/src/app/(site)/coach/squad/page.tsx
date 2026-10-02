@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import QRCode from "qrcode";
-import { addPlayer, addPlayers, removeAthlete, resetPlayerLink } from "@/actions/coach";
+import { addPlayer, addPlayers, confirmPlayer, removeAthlete, resetPlayerLink } from "@/actions/coach";
+import { rotateSquadLink } from "@/actions/club";
 import { CopyButton } from "@/components/CopyButton";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { btn, btnGhost, Card, Chip, Eyebrow, input } from "@/components/ui";
-import { getRole } from "@/lib/auth";
-import { inviteMessage, POSITIONS } from "@/lib/squad";
-import { getNotice, getPulse, listAthletes, type AthleteRow } from "@/lib/store";
+import { requirePage } from "@/lib/auth";
+import { inviteMessage, POSITIONS, squadMessage } from "@/lib/squad";
+import { getNotice, getPulse, listAthletes, squadInvite, type AthleteRow } from "@/lib/store";
 
 export const metadata = { title: "Squad" };
 export const dynamic = "force-dynamic";
@@ -21,10 +21,14 @@ function status(a: AthleteRow): { label: string; tone: "neutral" | "warn" | "ok"
 }
 
 export default async function Squad() {
-  if ((await getRole()) !== "coach") redirect("/signin");
+  const { club, clubName, admin } = await requirePage("coach");
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
-  const [players, notice, pulse] = await Promise.all([listAthletes(), getNotice("squad"), getPulse("coach")]);
+  const [all, notice, pulse, joinToken] = await Promise.all([listAthletes(club), getNotice(club, "squad"), getPulse(club, "coach"), squadInvite(club)]);
+  const waiting = all.filter((p) => !p.approved);
+  const players = all.filter((p) => p.approved);
+  const joinPath = `/join/${joinToken}`;
+  const joinQr = await QRCode.toString(`${origin}${joinPath}`, { type: "svg", margin: 1, width: 168 });
   const sorted = [...players].sort((a, b) => a.squad.localeCompare(b.squad) || (a.shirt ?? 999) - (b.shirt ?? 999) || a.name.localeCompare(b.name));
   const qr = new Map(await Promise.all(sorted.map(async (p) => [p.code, await QRCode.toString(`${origin}/a/${p.code}`, { type: "svg", margin: 1, width: 168 })] as const)));
   const joined = players.filter((p) => p.device_token).length;
@@ -35,8 +39,45 @@ export default async function Squad() {
       <header>
         <Link href="/coach" className="text-sm text-muted hover:text-ink">← Today</Link>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Squad</h1>
-        <p className="mt-1 text-muted">{players.length} player{players.length === 1 ? "" : "s"}, {joined} on their own phone. Each link works on one phone: the first phone to agree to the terms keeps it.</p>
+        <p className="mt-1 text-muted">{players.length} player{players.length === 1 ? "" : "s"}, {joined} on their own phone. Each personal link works on one phone: the first phone to agree to the terms keeps it.</p>
       </header>
+
+      <Card className="space-y-3 p-5">
+        <Eyebrow>Squad link</Eyebrow>
+        <p className="max-w-2xl text-sm text-muted">One link for the whole squad. Post it in the team group chat. Each player adds their own name, shirt number and position on their phone, then you confirm them below before they can check in.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <CopyButton path={joinPath} label="Copy squad link" className={btn} />
+          <a href={`https://wa.me/?text=${encodeURIComponent(squadMessage(clubName, `${origin}${joinPath}`))}`} target="_blank" rel="noreferrer" className={btnGhost}>Send on WhatsApp</a>
+          <details className="rounded-md border border-line-strong bg-surface">
+            <summary className="disclosure cursor-pointer px-3 py-2 text-sm font-medium">QR code</summary>
+            <div className="border-t border-line p-3" dangerouslySetInnerHTML={{ __html: joinQr }} />
+          </details>
+          {admin && (
+            <form action={rotateSquadLink}><PendingButton className="px-2 text-sm font-medium text-muted underline-offset-4 hover:underline" pending="Replacing…">Replace link</PendingButton></form>
+          )}
+        </div>
+        {admin && <p className="text-xs text-muted">Replacing the link stops the old one working. Players already added are not affected.</p>}
+      </Card>
+
+      {waiting.length > 0 && (
+        <section className="space-y-3">
+          <Eyebrow>Waiting for you · {waiting.length}</Eyebrow>
+          <Card className="divide-y divide-line">
+            {waiting.map((p) => (
+              <div key={p.code} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+                <div className="font-medium">
+                  {p.shirt ? <span className="mr-2 font-mono text-muted">{p.shirt}</span> : null}{p.name}
+                  <span className="ml-2 text-xs font-normal text-muted">{[p.position, p.squad].filter(Boolean).join(" · ")}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <form action={confirmPlayer}><input type="hidden" name="code" value={p.code} /><PendingButton className={btn} pending="Confirming…">Confirm player</PendingButton></form>
+                  <form action={removeAthlete}><input type="hidden" name="code" value={p.code} /><input type="hidden" name="confirm" value="yes" /><PendingButton className={btnGhost} pending="Removing…">Not in the squad</PendingButton></form>
+                </div>
+              </div>
+            ))}
+          </Card>
+        </section>
+      )}
 
       <section className="grid gap-4 lg:grid-cols-2">
         <Card className="space-y-3 p-5">

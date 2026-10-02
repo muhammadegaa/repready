@@ -10,7 +10,7 @@ import { ago, dateLabel, decisionCopy } from "@/lib/copy";
 import { isLinkOwner } from "@/lib/player-auth";
 import { polarEnabled } from "@/lib/polar";
 import { todayStr } from "@/lib/run-agent";
-import { getPolarLink, getPulse } from "@/lib/store";
+import { getClub, getPolarLink, getPulse } from "@/lib/store";
 import { athleteToday } from "@/lib/views";
 import { PREVIEW, providerName } from "@/lib/wearables";
 
@@ -25,8 +25,9 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
   const { code } = await props.params;
   const today = todayStr();
   const { polar: polarResult } = await props.searchParams;
-  const [v, pulse, polarLink] = await Promise.all([athleteToday(code, today), getPulse(`a_${code}`), polarEnabled() ? getPolarLink(code) : Promise.resolve(null)]);
+  const v = await athleteToday(code, today);
   if (!v) notFound();
+  const [pulse, polarLink, club] = await Promise.all([getPulse(v.athlete.club, `a_${code}`), polarEnabled() ? getPolarLink(code) : Promise.resolve(null), getClub(v.athlete.club)]);
   const { athlete, session, checkin, readiness, proposal, status, week, rpeToday, prev } = v;
   const first = athlete.name.split(" ")[0];
   const preview = !process.env.JUNCTION_API_KEY && process.env.NODE_ENV !== "production";
@@ -35,7 +36,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
     return (
       <div className="space-y-5 pt-4">
         <h1 className="text-3xl font-semibold tracking-tight">Hi {first}</h1>
-        <p className="text-[15px] leading-relaxed">Your coach uses RepReady to adjust your sessions using your daily check-in. Before your first check-in, this is what happens with your answers.</p>
+        <p className="text-[15px] leading-relaxed">{club?.name ?? "Your club"} uses RepReady to adjust your sessions using your daily check-in. Before your first check-in, this is what happens with your answers.</p>
         <Card className="space-y-2 p-4 text-sm leading-relaxed">
           <p>Your coach sees what you enter: sleep, soreness, stress, any notes, and how hard sessions felt. If you connect a Polar device, we also read your sleep and heart-rate variability from Polar Flow, and you can disconnect any time.</p>
           <p>An AI model, reached through OpenRouter, reads those numbers to suggest a change to your session. Your coach approves or rejects it. You only see what your coach sends.</p>
@@ -67,6 +68,16 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
       <div className="space-y-3 pt-4">
         <h1 className="text-2xl font-semibold tracking-tight">This link is in use on another phone</h1>
         <p className="text-[15px] leading-relaxed text-muted">Each link works on one phone so nobody can check in for someone else. If you changed phone, ask your coach to reset your link, then open it again.</p>
+      </div>
+    );
+  }
+
+  if (!athlete.approved) {
+    return (
+      <div className="space-y-3 pt-4">
+        <Live scope={`a_${code}`} initial={pulse} />
+        <h1 className="text-2xl font-semibold tracking-tight">Waiting for {club?.name ?? "your club"}</h1>
+        <p className="text-[15px] leading-relaxed text-muted">Staff need to confirm you are in the squad. This page updates by itself once they do. You do not need to do anything else.</p>
       </div>
     );
   }

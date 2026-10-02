@@ -2,13 +2,16 @@
 // Refuses to run unless FIRESTORE_EMULATOR_HOST is set. Usage:
 //   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npx tsx --env-file=.env.local scripts/seed-demo.mts [--no-agent]
 import { dayStr, runAgentFor, todayStr } from "../src/lib/run-agent";
+import { hashPassword } from "../src/lib/auth";
 import {
-  createPlayers, giveConsentTo, logEvent, replaceSessions, saveCheckin, saveReadiness, saveSessionLog, touch,
+  createClubWithOwner, getStaffByEmail, createPlayers, giveConsentTo, logEvent, replaceSessions, saveCheckin, saveReadiness, saveSessionLog, touch,
 } from "../src/lib/store";
 
 const host = process.env.FIRESTORE_EMULATOR_HOST;
 if (!host) throw new Error("Refusing to seed: FIRESTORE_EMULATOR_HOST is not set, so this would write to the real database.");
 const project = process.env.FIREBASE_PROJECT_ID ?? "repready-7dacd";
+const DEMO_EMAIL = "demo@repready.test";
+const DEMO_PASSWORD = "demo-password-123"; // local emulator only
 const useAgent = !process.argv.includes("--no-agent");
 
 const wipe = await fetch(`http://${host}/emulator/v1/projects/${project}/databases/(default)/documents`, { method: "DELETE" });
@@ -37,7 +40,9 @@ const plan: [number, string, typeof LOWER][] = [
   [-4, "Upper strength", UPPER], [-2, "Power day", POWER], [0, "Lower strength", LOWER], [1, "Upper strength", UPPER],
   [3, "Lower strength", LOWER], [4, "Upper strength", UPPER], [6, "Power day", POWER],
 ];
-await replaceSessions(plan.map(([off, label, ex]) => ({ on_date: dayStr(today, -off), label, week_type: "normal", exercises: ex })));
+const existing = await getStaffByEmail(DEMO_EMAIL);
+const club = existing?.club ?? (await createClubWithOwner("Demo FC", { email: DEMO_EMAIL, name: "Demo Admin", pw: hashPassword(DEMO_PASSWORD) }))!.club.id;
+await replaceSessions(club, plan.map(([off, label, ex]) => ({ on_date: dayStr(today, -off), label, week_type: "normal", exercises: ex })));
 const pastSessions = plan.filter(([off]) => off < 0).map(([off]) => dayStr(today, -off));
 
 type Profile = { name: string; shirt: number; position: string; joined: boolean; sleep: (i: number) => number; soreness: (i: number) => number; stress: (i: number) => number; rpe: (i: number) => number; todayIn?: { sleep: number; soreness: number; stress: number; note?: string } };
@@ -51,7 +56,7 @@ const profiles: Profile[] = [
 ];
 
 const codes: { code: string; p: Profile }[] = [];
-for (const p of profiles) codes.push({ code: (await createPlayers([{ name: p.name, shirt: p.shirt, position: p.position, squad: "First team" }]))[0], p });
+for (const p of profiles) codes.push({ code: (await createPlayers(club, [{ name: p.name, shirt: p.shirt, position: p.position, squad: "First team" }]))[0], p });
 
 for (const { code, p } of codes) {
   if (!p.joined) continue;
@@ -74,9 +79,10 @@ for (const { code, p } of codes) {
   if (!p.todayIn) continue;
   const t = p.todayIn;
   await saveCheckin(code, today, { sleep_h: t.sleep, soreness: t.soreness, stress: t.stress, note: t.note ?? null });
-  await logEvent({ type: "checkin", athlete_code: code, athlete_name: p.name, text: `${p.name} checked in: ${t.sleep} h sleep, soreness ${t.soreness}, stress ${t.stress}${t.note ? ", with a note" : ""}` });
+  await logEvent(club, { type: "checkin", athlete_code: code, athlete_name: p.name, text: `${p.name} checked in: ${t.sleep} h sleep, soreness ${t.soreness}, stress ${t.stress}${t.note ? ", with a note" : ""}` });
   if (useAgent) await runAgentFor(code, today);
 }
-await touch("coach", "science");
+await touch(club, "coach", "science");
 console.log(`Seeded ${codes.length} athletes. ${useAgent ? "Agent ran for" : "Agent skipped for"} ${profiles.filter((p) => p.todayIn).length} check-ins.`);
+console.log(`Sign in at /signin with ${DEMO_EMAIL} / ${DEMO_PASSWORD} (club ${club}).`);
 for (const { code, p } of codes) console.log(`${p.name.padEnd(6)} /a/${code}`);

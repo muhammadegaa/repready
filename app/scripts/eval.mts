@@ -7,7 +7,7 @@ import { allRules } from "../src/lib/rules";
 import { SCENARIOS } from "../src/lib/scenarios";
 
 const only = new Set(process.argv.slice(2));
-const rules = forModel(await allRules());
+const rules = forModel(await allRules(process.env.EVAL_CLUB ?? "000000"));
 
 for (const s of SCENARIOS) {
   if (only.size && !only.has(s.id)) continue;

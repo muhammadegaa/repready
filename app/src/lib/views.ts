@@ -44,9 +44,10 @@ export type RosterEntry = {
   sleep7: (number | null)[];
 };
 
-export async function coachToday(today: string) {
+export async function coachToday(club: string, today: string) {
   const dates7 = Array.from({ length: 7 }, (_, i) => dayStr(today, 6 - i));
-  const [athletes, session, events, recent] = await Promise.all([listAthletes(), sessionOn(today), listEvents(14), listProposals(30)]);
+  const [everyone, session, events, recent] = await Promise.all([listAthletes(club), sessionOn(club, today), listEvents(club, 14), listProposals(club, 30)]);
+  const athletes = everyone.filter((a) => a.approved);
   const roster: RosterEntry[] = await Promise.all(
     athletes.map(async (athlete) => {
       const [checkin, readiness, proposal, week] = await Promise.all([
@@ -62,7 +63,7 @@ export async function coachToday(today: string) {
   const pending = roster.filter((r) => r.status === "needs_decision");
   const decided = recent.filter((p) => p.status === "approved" || p.status === "rejected");
   return {
-    session, roster, pending, events, decided,
+    session, roster, pending, events, decided, waiting: everyone.length - athletes.length,
     counts: {
       athletes: athletes.length,
       checkedIn: roster.filter((r) => r.checkin).length,
@@ -77,10 +78,11 @@ export type DayPoint = { date: string; sleep: number | null; device: number | nu
 export async function athleteDetail(code: string, today: string) {
   const athlete = await getAthlete(code);
   if (!athlete) return null;
+  const club = athlete.club;
   const dates = Array.from({ length: 14 }, (_, i) => dayStr(today, 13 - i));
   const [checkins, readiness, logs, sessions, proposals, todaySession, upcoming, events] = await Promise.all([
-    getCheckins(code, dates), getReadinessOn(code, dates), getSessionLogs(code, dates), sessionsOnDates(dates),
-    listProposalsFor(code, 20), sessionOn(today), listSessions(today, 40), listEvents(40),
+    getCheckins(code, dates), getReadinessOn(code, dates), getSessionLogs(code, dates), sessionsOnDates(club, dates),
+    listProposalsFor(code, 20), sessionOn(club, today), listSessions(club, today, 40), listEvents(club, 40),
   ]);
   const target = new Map(sessions.map((s) => {
     const t = s.exercises.map((e) => e.target_rpe).filter((x): x is number => typeof x === "number");
@@ -109,10 +111,11 @@ export async function athleteDetail(code: string, today: string) {
 export async function athleteToday(code: string, today: string) {
   const athlete = await getAthlete(code);
   if (!athlete) return null;
+  const club = athlete.club;
   const dates7 = Array.from({ length: 7 }, (_, i) => dayStr(today, 6 - i));
   const [session, checkin, readiness, proposal, week, prev, logsWeek] = await Promise.all([
-    sessionOn(today), getCheckin(code, today), getReadiness(code, today), getProposal(code, today), getCheckins(code, dates7),
-    sessionBefore(today), getSessionLogs(code, [today]),
+    sessionOn(club, today), getCheckin(code, today), getReadiness(code, today), getProposal(code, today), getCheckins(code, dates7),
+    sessionBefore(club, today), getSessionLogs(code, [today]),
   ]);
   const prevLogged = prev ? (await getSessionLogs(code, [prev.on_date])).has(prev.on_date) : true;
   return {

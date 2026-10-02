@@ -6,7 +6,7 @@ beforeAll(() => {
   process.env.POLAR_CLIENT_SECRET = "secret-1";
 });
 
-const CODE = "0123456789";
+const CODE = "abc1230123456789";
 
 describe("OAuth state", () => {
   it("round-trips for the same browser and rejects anything else", () => {
