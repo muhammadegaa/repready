@@ -1,29 +1,40 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
+import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import type { NextConfig } from "next";
 
-// Temporary build diagnostics for Vercel, where `qrcode` was reported as not found although it is declared and locked.
-// next.config.ts is the one file every build loads, even when package.json scripts and vercel.json are not honoured.
-// On Vercel only: print what the build can see. It does not change anything: a repair here would run with NODE_ENV=production and skip dev dependencies.
-function vercelCheck() {
-  if (!process.env.VERCEL) return;
+// Temporary build diagnostics. `qrcode` is reported "not found" on Vercel although it is declared and locked, and package.json
+// scripts and vercel.json are not being honoured there. next.config.ts is the one file every build loads, so it reports what
+// the build environment actually contains. It changes nothing. Prints once per build.
+function buildCheck() {
+  if (process.env.BUILD_CHECK_DONE) return;
+  process.env.BUILD_CHECK_DONE = "1";
   const cwd = process.cwd();
-  const req = createRequire(join(cwd, "package.json"));
-  const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8")) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string>; scripts?: Record<string, string> };
-  const declared = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
-  const resolves = (n: string) => { try { req.resolve(`${n}/package.json`); return true; } catch (e) { return (e as { code?: string }).code === "ERR_PACKAGE_PATH_NOT_EXPORTED" || existsSync(join(cwd, "node_modules", n)); } };
-  console.log(`[build-check] cwd=${cwd} node=${process.version} npm_config_user_agent=${process.env.npm_config_user_agent ?? "?"}`);
-  console.log(`[build-check] this package.json has qrcode=${pkg.dependencies?.qrcode ?? "NO"} build="${pkg.scripts?.build}" vercel-build="${pkg.scripts?.["vercel-build"] ?? "(none)"}"`);
-  console.log(`[build-check] entries in cwd: ${readdirSync(cwd).join(", ")}`);
-  console.log(`[build-check] node_modules/qrcode exists=${existsSync(join(cwd, "node_modules", "qrcode"))}; parent node_modules exists=${existsSync(join(cwd, "..", "node_modules"))}`);
-  const missing = declared.filter((n) => !resolves(n));
-  console.log(missing.length ? `[build-check] NOT resolvable from here: ${missing.join(", ")}` : `[build-check] all ${declared.length} declared dependencies resolve`);
+  const say = (m: string) => console.log(`[build-check] ${m}`);
+  try {
+    const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8")) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string>; scripts?: Record<string, string> };
+    const req = createRequire(join(cwd, "package.json"));
+    const declared = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies });
+    const missing = declared.filter((n) => { try { req.resolve(`${n}/package.json`); return false; } catch (e) { return (e as { code?: string }).code !== "ERR_PACKAGE_PATH_NOT_EXPORTED" && !existsSync(join(cwd, "node_modules", n)); } });
+    const hidden = join(cwd, "node_modules", ".package-lock.json");
+    const hiddenHasQr = existsSync(hidden) && readFileSync(hidden, "utf8").includes('"node_modules/qrcode"');
+    say(`cwd=${cwd} node=${process.version} NODE_ENV=${process.env.NODE_ENV} VERCEL=${process.env.VERCEL ?? "unset"} agent="${process.env.npm_config_user_agent ?? "?"}"`);
+    say(`package.json here: qrcode=${pkg.dependencies?.qrcode ?? "ABSENT"} scripts.build="${pkg.scripts?.build}" scripts.vercel-build="${pkg.scripts?.["vercel-build"] ?? "(none)"}"`);
+    say(`files here: ${readdirSync(cwd).join(", ")}`);
+    say(`node_modules: exists=${existsSync(join(cwd, "node_modules"))} modified=${existsSync(join(cwd, "node_modules")) ? statSync(join(cwd, "node_modules")).mtime.toISOString() : "-"} qrcode_dir=${existsSync(join(cwd, "node_modules", "qrcode"))} hidden_lockfile_lists_qrcode=${hiddenHasQr}`);
+    say(`one level up: ${readdirSync(join(cwd, "..")).slice(0, 25).join(", ")}; node_modules there=${existsSync(join(cwd, "..", "node_modules"))}`);
+    say(missing.length ? `NOT resolvable from here: ${missing.join(", ")}` : `all ${declared.length} declared dependencies resolve`);
+  } catch (e) {
+    say(`probe failed: ${(e as Error).message}`);
+  }
 }
-vercelCheck();
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const config = (phase: string): NextConfig => {
+  if (phase === PHASE_PRODUCTION_BUILD) buildCheck();
+  return {
+    /* config options here */
+  };
 };
 
-export default nextConfig;
+export default config;
