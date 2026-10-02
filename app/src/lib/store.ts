@@ -12,7 +12,18 @@ const app =
   initializeApp(account ? { credential: cert(JSON.parse(account)) } : { projectId: process.env.FIREBASE_PROJECT_ID ?? "repready-7dacd" });
 const fs = getFirestore(app);
 
-export type AthleteRow = { code: string; name: string; consented_at: string | null; protected: string[]; created_at: string };
+export type AthleteRow = {
+  code: string;
+  name: string;
+  shirt: number | null;
+  position: string;
+  squad: string;
+  consented_at: string | null;
+  device_token: string | null;
+  claimed_at: string | null;
+  protected: string[];
+  created_at: string;
+};
 export type SessionRow = { id: string; on_date: string; label: string; week_type: string; exercises: Exercise[] };
 export type CheckinRow = { sleep_h: number; soreness: number; stress: number; note: string | null };
 export type ReadinessRow = { sleep_h: number | null; hrv_ms: number | null; resting_hr: number | null; provider: string };
@@ -55,7 +66,12 @@ const session = (id: string, d: DocumentData): SessionRow => ({ id, on_date: d.o
 const athlete = (code: string, d: DocumentData): AthleteRow => ({
   code,
   name: d.name,
+  shirt: d.shirt ?? null,
+  position: d.position ?? "",
+  squad: d.squad ?? "First team",
   consented_at: d.consented_at ?? null,
+  device_token: d.device_token ?? null,
+  claimed_at: d.claimed_at ?? null,
   protected: d.protected ?? [],
   created_at: d.created_at ?? "",
 });
@@ -85,12 +101,52 @@ export async function listEvents(limit: number): Promise<EventRow[]> {
 }
 
 // ---- athletes
-export async function createAthlete(name: string): Promise<string> {
-  const code = randomBytes(5).toString("hex");
-  await fs.collection("athletes").doc(code).set({ name, consented_at: null, protected: [], created_at: new Date().toISOString() });
-  await logEvent({ type: "athlete_added", athlete_code: code, athlete_name: name, text: `${name} added` });
+export type NewPlayerInput = { name: string; shirt: number | null; position: string; squad: string };
+
+export async function createPlayers(players: NewPlayerInput[]): Promise<string[]> {
+  const codes: string[] = [];
+  const batch = fs.batch();
+  const now = new Date().toISOString();
+  players.forEach((p, i) => {
+    const code = randomBytes(5).toString("hex");
+    codes.push(code);
+    batch.set(fs.collection("athletes").doc(code), {
+      name: p.name, shirt: p.shirt, position: p.position, squad: p.squad,
+      consented_at: null, device_token: null, claimed_at: null, protected: [],
+      created_at: new Date(Date.parse(now) + i).toISOString(),
+    });
+  });
+  await batch.commit();
+  await logEvent({ type: "athlete_added", athlete_code: null, athlete_name: null, text: players.length === 1 ? `${players[0].name} added to the squad` : `${players.length} players added to the squad` });
   await touch("coach");
-  return code;
+  return codes;
+}
+
+export async function createAthlete(name: string): Promise<string> {
+  return (await createPlayers([{ name, shirt: null, position: "", squad: "First team" }]))[0];
+}
+
+// The first phone to agree to the terms owns the link. Only an unclaimed link can be claimed.
+export async function claimLink(code: string, token: string): Promise<boolean> {
+  const ref = fs.collection("athletes").doc(code);
+  let claimed = false;
+  await fs.runTransaction(async (t) => {
+    const s = await t.get(ref);
+    if (s.exists && !s.get("device_token")) {
+      t.update(ref, { device_token: token, claimed_at: new Date().toISOString() });
+      claimed = true;
+    }
+  });
+  if (claimed) await touch("coach", `a_${code}`);
+  return claimed;
+}
+
+// Coach reset: the old phone loses access and the next person to open the link can claim it.
+export async function resetLink(code: string): Promise<void> {
+  await fs.collection("athletes").doc(code).update({ device_token: null, claimed_at: null });
+  const a = await getAthlete(code);
+  if (a) await logEvent({ type: "link_reset", athlete_code: code, athlete_name: a.name, text: `Link reset for ${a.name}` });
+  await touch("coach", `a_${code}`);
 }
 
 export async function getAthlete(code: string): Promise<AthleteRow | null> {

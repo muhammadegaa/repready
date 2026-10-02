@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export function CopyButton({ path, className }: { path: string; className?: string }) {
+export function CopyButton({ path, className, label = "Copy link" }: { path: string; className?: string; label?: string }) {
   const [done, setDone] = useState(false);
   return (
     <button
@@ -19,7 +19,7 @@ export function CopyButton({ path, className }: { path: string; className?: stri
         }
       }}
     >
-      {done ? "Copied" : "Copy athlete link"}
+      {done ? "Copied" : label}
     </button>
   );
 }

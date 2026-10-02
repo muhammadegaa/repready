@@ -14,7 +14,7 @@ export default async function SignIn(props: PageProps<"/signin">) {
   return (
     <div className="mx-auto max-w-sm pt-10">
       <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
-      <p className="mt-1 text-sm text-muted">Choose your view and enter its passcode. Athletes use the link their coach sent.</p>
+      <p className="mt-1 text-sm text-muted">Choose your view and enter its passcode. Players use the link their club sent.</p>
       <Card className="mt-6 p-5">
         {!enabled && <Notice>No passcode is configured. Set COACH_PASSCODE (and SCIENTIST_PASSCODE) and restart.</Notice>}
         {error && <div className="mb-4"><Notice tone="bad">That passcode did not match.</Notice></div>}

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { deleteMyData, disconnectPolar, giveConsent, logRpe, previewWearable, submitCheckin, syncPolarNow } from "@/actions/athlete";
+import { claimDevice, deleteMyData, disconnectPolar, giveConsent, logRpe, previewWearable, submitCheckin, syncPolarNow } from "@/actions/athlete";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { Pills } from "@/components/Pills";
@@ -7,6 +7,7 @@ import { SessionTable } from "@/components/SessionTable";
 import { Steps } from "@/components/Steps";
 import { btn, btnGhost, Card, Chip, Eyebrow, input, Notice } from "@/components/ui";
 import { ago, dateLabel, decisionCopy } from "@/lib/copy";
+import { isLinkOwner } from "@/lib/player-auth";
 import { polarEnabled } from "@/lib/polar";
 import { todayStr } from "@/lib/run-agent";
 import { getPolarLink, getPulse } from "@/lib/store";
@@ -45,6 +46,27 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
           <label className="flex items-start gap-3 text-[15px]"><input type="checkbox" name="agree" value="yes" required className="mt-1 h-4 w-4" />I understand and agree.</label>
           <PendingButton className={`${btn} w-full py-3`} pending="One moment…">Continue</PendingButton>
         </form>
+      </div>
+    );
+  }
+
+  if (!(await isLinkOwner(athlete))) {
+    if (!athlete.device_token) {
+      return (
+        <div className="space-y-5 pt-4">
+          <h1 className="text-3xl font-semibold tracking-tight">Hi {first}</h1>
+          <p className="text-[15px] leading-relaxed">Use this phone for RepReady? Your link works on one phone. Press Continue to make this the phone your check-ins come from.</p>
+          <form action={claimDevice}>
+            <input type="hidden" name="code" value={code} />
+            <PendingButton className={`${btn} w-full py-3`} pending="One moment…">Continue</PendingButton>
+          </form>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-3 pt-4">
+        <h1 className="text-2xl font-semibold tracking-tight">This link is in use on another phone</h1>
+        <p className="text-[15px] leading-relaxed text-muted">Each link works on one phone so nobody can check in for someone else. If you changed phone, ask your coach to reset your link, then open it again.</p>
       </div>
     );
   }

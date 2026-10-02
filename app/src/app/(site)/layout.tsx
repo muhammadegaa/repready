@@ -4,7 +4,7 @@ import { Nav } from "@/components/Nav";
 import { getRole, sharedPasscode } from "@/lib/auth";
 
 const LINKS = {
-  coach: [{ href: "/coach", label: "Today" }, { href: "/coach/program", label: "Program" }],
+  coach: [{ href: "/coach", label: "Today" }, { href: "/coach/squad", label: "Squad" }, { href: "/coach/program", label: "Program" }],
   scientist: [{ href: "/science", label: "Rules" }, { href: "/science/evaluation", label: "Evaluation" }],
 };
 

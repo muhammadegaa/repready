@@ -28,7 +28,7 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
       <header>
         <Link href="/coach" className="text-sm text-muted hover:text-ink">← Today</Link>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Program</h1>
-        <p className="mt-1 text-muted">One program applies to every athlete. Pasting a new one replaces all sessions.</p>
+        <p className="mt-1 text-muted">One program applies to every player. Pasting a new one replaces all sessions.</p>
       </header>
 
       <section className="space-y-3">

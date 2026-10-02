@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
+import { claimThisDevice, requirePlayer } from "@/lib/player-auth";
 import { deregister, disconnectPolar as disconnect, syncPolar } from "@/lib/polar";
 import { runAgentFor, todayStr } from "@/lib/run-agent";
 import { PREVIEW } from "@/lib/wearables";
@@ -18,13 +19,22 @@ export async function giveConsent(f: FormData) {
   const code = text(f, "code");
   if (f.get("agree") !== "yes" || !(await getAthlete(code))) return;
   await giveConsentTo(code);
+  await claimThisDevice(code); // the phone that agrees to the terms owns the link
+  revalidatePath(`/a/${code}`);
+}
+
+// For a link that has agreed already but belongs to no phone yet, such as one the coach reset.
+export async function claimDevice(f: FormData) {
+  const code = text(f, "code");
+  const a = await getAthlete(code);
+  if (!a?.consented_at) return;
+  await claimThisDevice(code);
   revalidatePath(`/a/${code}`);
 }
 
 export async function submitCheckin(f: FormData) {
   const code = text(f, "code");
-  const a = await getAthlete(code);
-  if (!a || !a.consented_at) return;
+  const a = await requirePlayer(code);
   const sleep = text(f, "sleep_h"), soreness = text(f, "soreness"), stress = text(f, "stress");
   const note = text(f, "note").slice(0, 500);
   if (!half(sleep, 0, 16) || !whole(soreness, 0, 10) || !whole(stress, 0, 10)) return;
@@ -43,8 +53,8 @@ export async function submitCheckin(f: FormData) {
 
 export async function logRpe(f: FormData) {
   const code = text(f, "code"), date = text(f, "date"), rpe = text(f, "rpe");
-  const a = await getAthlete(code);
-  if (!a || !half(rpe, 1, 10)) return;
+  const a = await requirePlayer(code);
+  if (!half(rpe, 1, 10)) return;
   const today = todayStr();
   const prev = await sessionBefore(today);
   if (date !== today && date !== prev?.on_date) return;
@@ -55,7 +65,8 @@ export async function logRpe(f: FormData) {
 
 export async function deleteMyData(f: FormData) {
   const code = text(f, "code");
-  if (f.get("confirm") !== "yes" || !(await getAthlete(code))) return;
+  await requirePlayer(code);
+  if (f.get("confirm") !== "yes") return;
   await deregister(code);
   await deleteAthleteData(code);
   redirect("/removed");
@@ -65,21 +76,22 @@ export async function previewWearable(f: FormData) {
   if (process.env.JUNCTION_API_KEY || process.env.NODE_ENV === "production") return;
   const code = text(f, "code");
   const sample = PREVIEW[text(f, "provider")];
-  if (!sample || !(await getAthlete(code))) return;
+  if (!sample) return;
+  await requirePlayer(code);
   await saveReadiness(code, todayStr(), sample);
   revalidatePath(`/a/${code}`);
 }
 
 export async function syncPolarNow(f: FormData) {
   const code = text(f, "code");
-  if (!(await getAthlete(code))) return;
+  await requirePlayer(code);
   await syncPolar(code);
   revalidatePath(`/a/${code}`);
 }
 
 export async function disconnectPolar(f: FormData) {
   const code = text(f, "code");
-  if (!(await getAthlete(code))) return;
+  await requirePlayer(code);
   await disconnect(code);
   revalidatePath(`/a/${code}`);
 }

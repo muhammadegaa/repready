@@ -6,8 +6,9 @@ import { requireRole } from "@/lib/auth";
 import { buildEdits, COACH_LIMITS } from "@/lib/edits";
 import { deregister } from "@/lib/polar";
 import { parseProgram } from "@/lib/program";
+import { parsePlayers, POSITIONS } from "@/lib/squad";
 import {
-  createAthlete, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, sessionOn, setNotice, setProtected,
+  createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, resetLink, sessionOn, setNotice, setProtected,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -15,12 +16,37 @@ const CODE = /^[0-9a-f]{10}$/;
 const PROPOSAL_ID = /^[0-9a-f]{10}_\d{4}-\d{2}-\d{2}$/;
 const back = (msg: string) => redirect(`/coach?notice=${encodeURIComponent(msg)}`);
 
-export async function addAthlete(f: FormData) {
+export async function addPlayer(f: FormData) {
   await requireRole("coach");
   const name = text(f, "name");
-  if (!name || name.length > 80) return;
-  await createAthlete(name);
+  const shirt = text(f, "shirt");
+  const position = text(f, "position");
+  const squad = text(f, "squad") || "First team";
+  if (!name || name.length > 80 || (shirt !== "" && !/^\d{1,2}$/.test(shirt)) || squad.length > 30) return;
+  await createPlayers([{ name, shirt: shirt === "" ? null : Number(shirt), position: (POSITIONS as readonly string[]).includes(position) ? position : "", squad }]);
   revalidatePath("/coach");
+  revalidatePath("/coach/squad");
+}
+
+export async function addPlayers(f: FormData) {
+  await requireRole("coach");
+  const { players, errors } = parsePlayers(text(f, "list"));
+  if (errors.length) {
+    await setNotice("squad", errors.join("\n"));
+  } else if (players.length) {
+    await createPlayers(players);
+    await setNotice("squad", null);
+  }
+  revalidatePath("/coach");
+  revalidatePath("/coach/squad");
+}
+
+export async function resetPlayerLink(f: FormData) {
+  await requireRole("coach");
+  const code = text(f, "code");
+  if (!CODE.test(code) || !(await getAthlete(code))) return;
+  await resetLink(code);
+  revalidatePath("/coach/squad");
 }
 
 export async function removeAthlete(f: FormData) {
@@ -29,7 +55,7 @@ export async function removeAthlete(f: FormData) {
   if (f.get("confirm") !== "yes" || !CODE.test(code)) return;
   await deregister(code);
   await deleteAthleteData(code);
-  redirect("/coach?notice=" + encodeURIComponent("Athlete and their data removed."));
+  redirect("/coach/squad");
 }
 
 export async function importProgram(f: FormData) {

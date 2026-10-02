@@ -44,13 +44,13 @@ export default async function Label(props: PageProps<"/science/label/[id]">) {
             {next && <Link href={`/science/label/${next.id}`} className="rounded-md border border-line-strong bg-surface px-3 py-1.5 font-medium hover:bg-paper">{next.id} →</Link>}
           </div>
         </div>
-        <p className="text-muted">Fictional athlete, plausible numbers, not measured. Decide what you would do as the coach, and save before you open the rule tags.</p>
+        <p className="text-muted">Fictional player, plausible numbers, not measured. Decide what you would do as the coach, and save before you open the rule tags.</p>
       </header>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-6">
           <section className="space-y-3">
-            <Eyebrow>Athlete</Eyebrow>
+            <Eyebrow>Player</Eyebrow>
             <Card className="px-5 py-4 text-sm">{a.sport} · {a.level} · {a.training_age_years} years training · adult</Card>
           </section>
           <section className="space-y-3">

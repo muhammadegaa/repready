@@ -50,10 +50,10 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
             <h1 className="text-3xl font-semibold tracking-tight">{athlete.name}</h1>
             <Chip tone={status.tone}>{status.label}</Chip>
           </div>
-          <div className="flex items-center gap-2"><CopyButton path={`/a/${athlete.code}`} className={btnGhost} /></div>
+          <div className="flex items-center gap-2"><CopyButton path={`/a/${athlete.code}`} label="Copy player link" className={btnGhost} /></div>
         </div>
         <p className="mt-1 text-sm text-muted">
-          {athlete.consented_at ? `Joined ${ago(athlete.consented_at)}` : "Has not opened their link yet"}
+          {athlete.consented_at ? `Joined ${ago(athlete.consented_at)}` : "Has not agreed to the terms yet"}
           {wearable ? ` · ${providerName(wearable.provider)} connected` : ""}
         </p>
       </div>
@@ -84,7 +84,7 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
       <section className="space-y-3">
         <Eyebrow>Protected exercises</Eyebrow>
         <Card className="space-y-3 p-5">
-          <p className="text-sm text-muted">The agent never edits a protected exercise. Use this for an athlete who is managing something, then lift it when you clear them.</p>
+          <p className="text-sm text-muted">The agent never edits a protected exercise. Use this for a player who is managing something, then lift it when you clear them.</p>
           {exerciseNames.length === 0 ? (
             <p className="text-sm text-muted">Import a program to choose from its exercises.</p>
           ) : (
@@ -140,7 +140,7 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
 
       <section>
         <details className="rounded-xl border border-line bg-surface">
-          <summary className="disclosure cursor-pointer px-5 py-3.5 text-sm font-medium text-muted hover:text-ink">Remove this athlete</summary>
+          <summary className="disclosure cursor-pointer px-5 py-3.5 text-sm font-medium text-muted hover:text-ink">Remove this player</summary>
           <form action={removeAthlete} className="flex flex-wrap items-center gap-4 border-t border-line px-5 py-4">
             <input type="hidden" name="code" value={athlete.code} />
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="confirm" value="yes" required />Delete {athlete.name} and every check-in, proposal and device reading. This cannot be undone.</label>

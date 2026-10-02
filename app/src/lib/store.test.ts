@@ -3,7 +3,7 @@ import {
   countSessions, createAthlete, decideProposal, deleteAthleteData, getAthlete, getCheckin, getCheckins, getNotice, getProposal, getPulse, getSessionLogs,
   giveConsentTo, hasCheckin, listAthletes, listEvalRuns, listEvents, listLabels, listProposals, listProposalsFor, listRuleOverrides, listSessions,
   logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionOn,
-  sessionsOnDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads,
+  sessionsOnDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads, createPlayers, claimLink, resetLink,
 } from "./store";
 
 // Needs the Firestore emulator: npm run test:emulator
@@ -172,5 +172,21 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     expect(leads.filter((l) => l.email.toLowerCase() === "coach@example.com")).toHaveLength(1);
     expect(leads.find((l) => l.email.toLowerCase() === "coach@example.com")?.club).toBe("Example FC");
     expect(await countLeads()).toBeGreaterThanOrEqual(1);
+  });
+
+  it("creates players with shirt, position and squad, and lets one phone claim a link until the coach resets it", async () => {
+    const [a, b] = await createPlayers([
+      { name: "J. Mensah", shirt: 5, position: "Centre-back", squad: "First team" },
+      { name: "L. Ortiz", shirt: null, position: "", squad: "U21" },
+    ]);
+    const p = await getAthlete(a);
+    expect([p?.shirt, p?.position, p?.squad, p?.device_token]).toEqual([5, "Centre-back", "First team", null]);
+    expect((await getAthlete(b))?.squad).toBe("U21");
+    expect(await claimLink(a, "token-one")).toBe(true);
+    expect(await claimLink(a, "token-two")).toBe(false); // already owned
+    expect((await getAthlete(a))?.device_token).toBe("token-one");
+    await resetLink(a);
+    expect((await getAthlete(a))?.device_token).toBeNull();
+    expect(await claimLink(a, "token-two")).toBe(true);
   });
 });

@@ -34,7 +34,7 @@ export default async function Evaluation() {
       <Live scope="science" initial={pulse} />
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold tracking-tight">Evaluation</h1>
-        <p className="max-w-2xl text-muted">The agent is scored against your decisions on {SCENARIOS.length} fictional athletes. It passes at {PASS_OVERALL}% agreement overall and {PASS_DO_NOTHING}% on the “no change” cases. Scenarios marked held out are for the final check only: do not tune the rules or prompt against them.</p>
+        <p className="max-w-2xl text-muted">The agent is scored against your decisions on {SCENARIOS.length} fictional players. It passes at {PASS_OVERALL}% agreement overall and {PASS_DO_NOTHING}% on the “no change” cases. Scenarios marked held out are for the final check only: do not tune the rules or prompt against them.</p>
       </header>
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">

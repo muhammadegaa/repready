@@ -3,7 +3,7 @@
 //   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npx tsx --env-file=.env.local scripts/seed-demo.mts [--no-agent]
 import { dayStr, runAgentFor, todayStr } from "../src/lib/run-agent";
 import {
-  createAthlete, giveConsentTo, logEvent, replaceSessions, saveCheckin, saveReadiness, saveSessionLog, touch,
+  createPlayers, giveConsentTo, logEvent, replaceSessions, saveCheckin, saveReadiness, saveSessionLog, touch,
 } from "../src/lib/store";
 
 const host = process.env.FIRESTORE_EMULATOR_HOST;
@@ -40,18 +40,18 @@ const plan: [number, string, typeof LOWER][] = [
 await replaceSessions(plan.map(([off, label, ex]) => ({ on_date: dayStr(today, -off), label, week_type: "normal", exercises: ex })));
 const pastSessions = plan.filter(([off]) => off < 0).map(([off]) => dayStr(today, -off));
 
-type Profile = { name: string; joined: boolean; sleep: (i: number) => number; soreness: (i: number) => number; stress: (i: number) => number; rpe: (i: number) => number; todayIn?: { sleep: number; soreness: number; stress: number; note?: string } };
+type Profile = { name: string; shirt: number; position: string; joined: boolean; sleep: (i: number) => number; soreness: (i: number) => number; stress: (i: number) => number; rpe: (i: number) => number; todayIn?: { sleep: number; soreness: number; stress: number; note?: string } };
 const profiles: Profile[] = [
-  { name: "Maya", joined: true, sleep: (i) => (i >= 11 ? 5.5 : 7.4), soreness: () => 4, stress: () => 4, rpe: () => 0, todayIn: { sleep: 5.4, soreness: 5, stress: 5 } },
-  { name: "Tomás", joined: true, sleep: () => 7.8, soreness: () => 3, stress: () => 3, rpe: () => 0, todayIn: { sleep: 7.9, soreness: 3, stress: 2 } },
-  { name: "Priya", joined: true, sleep: () => 7.1, soreness: () => 4, stress: () => 5, rpe: () => 2, todayIn: { sleep: 7.0, soreness: 5, stress: 5 } },
-  { name: "Aisha", joined: true, sleep: () => 7.3, soreness: () => 3, stress: () => 3, rpe: () => 0, todayIn: { sleep: 7.5, soreness: 4, stress: 3, note: "Sharp pain in my right knee on the last set of lunges yesterday." } },
-  { name: "Dan", joined: true, sleep: (i) => (i % 3 === 0 ? 6.2 : 7.0), soreness: () => 4, stress: (i) => 4 + (i % 4), rpe: (i) => (i % 2) },
-  { name: "Leo", joined: false, sleep: () => 7, soreness: () => 3, stress: () => 3, rpe: () => 0 },
+  { name: "Mensah", shirt: 5, position: "Centre-back", joined: true, sleep: (i) => (i >= 11 ? 5.5 : 7.4), soreness: () => 4, stress: () => 4, rpe: () => 0, todayIn: { sleep: 5.4, soreness: 5, stress: 5 } },
+  { name: "Ortiz", shirt: 9, position: "Forward", joined: true, sleep: () => 7.8, soreness: () => 3, stress: () => 3, rpe: () => 0, todayIn: { sleep: 7.9, soreness: 3, stress: 2 } },
+  { name: "Silva", shirt: 8, position: "Midfielder", joined: true, sleep: () => 7.1, soreness: () => 4, stress: () => 5, rpe: () => 2, todayIn: { sleep: 7.0, soreness: 5, stress: 5 } },
+  { name: "Okafor", shirt: 3, position: "Full-back", joined: true, sleep: () => 7.3, soreness: () => 3, stress: () => 3, rpe: () => 0, todayIn: { sleep: 7.5, soreness: 4, stress: 3, note: "Sharp pain in my right knee on the last set of lunges yesterday." } },
+  { name: "Reid", shirt: 1, position: "Goalkeeper", joined: true, sleep: (i) => (i % 3 === 0 ? 6.2 : 7.0), soreness: () => 4, stress: (i) => 4 + (i % 4), rpe: (i) => (i % 2) },
+  { name: "Novak", shirt: 11, position: "Winger", joined: false, sleep: () => 7, soreness: () => 3, stress: () => 3, rpe: () => 0 },
 ];
 
 const codes: { code: string; p: Profile }[] = [];
-for (const p of profiles) codes.push({ code: await createAthlete(p.name), p });
+for (const p of profiles) codes.push({ code: (await createPlayers([{ name: p.name, shirt: p.shirt, position: p.position, squad: "First team" }]))[0], p });
 
 for (const { code, p } of codes) {
   if (!p.joined) continue;
@@ -67,7 +67,7 @@ for (const { code, p } of codes) {
 }
 
 // Maya's night comes from a wearable.
-const maya = codes.find((c) => c.p.name === "Maya")!;
+const maya = codes.find((c) => c.p.name === "Mensah")!;
 await saveReadiness(maya.code, today, { sleep_h: 5.4, hrv_ms: 41, resting_hr: 58, provider: "whoop" });
 
 for (const { code, p } of codes) {
