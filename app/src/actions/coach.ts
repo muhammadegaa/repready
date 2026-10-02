@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { buildEdits, COACH_LIMITS } from "@/lib/edits";
 import { deregister } from "@/lib/polar";
+import { describeReport, resolveProgram } from "@/lib/library/resolve";
 import { parseProgram } from "@/lib/program";
 import { parsePlayers, POSITIONS } from "@/lib/squad";
 import {
@@ -78,8 +79,9 @@ export async function importProgram(f: FormData) {
   if (errors.length) {
     await setNotice(club, "import", errors.join("\n"));
   } else {
-    await replaceSessions(club, sessions);
-    await setNotice(club, "import", null);
+    const resolved = resolveProgram(sessions);
+    await replaceSessions(club, resolved.sessions);
+    await setNotice(club, "import", describeReport(resolved.report));
   }
   revalidatePath("/coach");
   redirect("/coach/program");

@@ -1,0 +1,772 @@
+[
+ {
+  "id": "nordic-hamstring-curl",
+  "name": "Nordic hamstring curl",
+  "aliases": [
+   "nordic",
+   "nordics",
+   "nordic ham curl"
+  ],
+  "pattern": "knee flexion (eccentric)",
+  "muscles": [
+   "hamstrings"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "hamstring-slider-curl",
+   "single-leg-romanian-deadlift"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "copenhagen-adduction",
+  "name": "Copenhagen adduction",
+  "aliases": [
+   "copenhagen",
+   "copenhagen plank"
+  ],
+  "pattern": "lateral core and adductor",
+  "muscles": [
+   "adductors"
+  ],
+  "equipment": "bench",
+  "safe_swaps": [
+   "adductor-ball-squeeze",
+   "side-plank"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "adductor-ball-squeeze",
+  "name": "Adductor ball squeeze",
+  "aliases": [
+   "adductor squeeze",
+   "ball squeeze"
+  ],
+  "pattern": "adductor",
+  "muscles": [
+   "adductors"
+  ],
+  "equipment": "ball",
+  "safe_swaps": [
+   "copenhagen-adduction",
+   "side-plank"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "back-squat",
+  "name": "Back squat",
+  "aliases": [
+   "barbell back squat",
+   "barbell full squat",
+   "bb squat"
+  ],
+  "pattern": "squat",
+  "muscles": [
+   "quadriceps",
+   "glutes"
+  ],
+  "equipment": "barbell",
+  "safe_swaps": [
+   "front-squat",
+   "goblet-squat",
+   "trap-bar-deadlift"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "front-squat",
+  "name": "Front squat",
+  "aliases": [
+   "barbell front squat"
+  ],
+  "pattern": "squat",
+  "muscles": [
+   "quadriceps",
+   "glutes"
+  ],
+  "equipment": "barbell",
+  "safe_swaps": [
+   "goblet-squat",
+   "back-squat"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "goblet-squat",
+  "name": "Goblet squat",
+  "aliases": [
+   "kb goblet squat",
+   "dumbbell goblet squat"
+  ],
+  "pattern": "squat",
+  "muscles": [
+   "quadriceps",
+   "glutes"
+  ],
+  "equipment": "dumbbell or kettlebell",
+  "safe_swaps": [
+   "front-squat",
+   "split-squat"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "trap-bar-deadlift",
+  "name": "Trap bar deadlift",
+  "aliases": [
+   "hex bar deadlift",
+   "trap bar dl"
+  ],
+  "pattern": "hinge",
+  "muscles": [
+   "glutes",
+   "hamstrings",
+   "quadriceps"
+  ],
+  "equipment": "trap bar",
+  "safe_swaps": [
+   "romanian-deadlift",
+   "kettlebell-swing"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "romanian-deadlift",
+  "name": "Romanian deadlift",
+  "aliases": [
+   "rdl",
+   "barbell rdl"
+  ],
+  "pattern": "hinge",
+  "muscles": [
+   "hamstrings",
+   "glutes"
+  ],
+  "equipment": "barbell",
+  "safe_swaps": [
+   "single-leg-romanian-deadlift",
+   "hip-thrust"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "single-leg-romanian-deadlift",
+  "name": "Single-leg Romanian deadlift",
+  "aliases": [
+   "sl rdl",
+   "single leg rdl"
+  ],
+  "pattern": "hinge (unilateral)",
+  "muscles": [
+   "hamstrings",
+   "glutes"
+  ],
+  "equipment": "dumbbell",
+  "safe_swaps": [
+   "romanian-deadlift",
+   "glute-bridge"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "rear-foot-elevated-split-squat",
+  "name": "Rear-foot-elevated split squat",
+  "aliases": [
+   "bulgarian split squat",
+   "rfess",
+   "bulgarian"
+  ],
+  "pattern": "squat (unilateral)",
+  "muscles": [
+   "quadriceps",
+   "glutes"
+  ],
+  "equipment": "dumbbell",
+  "safe_swaps": [
+   "split-squat",
+   "step-up"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "split-squat",
+  "name": "Split squat",
+  "aliases": [
+   "static lunge",
+   "split squat dumbbell"
+  ],
+  "pattern": "squat (unilateral)",
+  "muscles": [
+   "quadriceps",
+   "glutes"
+  ],
+  "equipment": "dumbbell",
+  "safe_swaps": [
+   "reverse-lunge",
+   "step-up"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "reverse-lunge",
+  "name": "Reverse lunge",
+  "aliases": [
+   "backward lunge"
+  ],
+  "pattern": "squat (unilateral)",
+  "muscles": [
+   "quadriceps",
+   "glutes"
+  ],
+  "equipment": "dumbbell",
+  "safe_swaps": [
+   "split-squat",
+   "step-up"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "step-up",
+  "name": "Step-up",
+  "aliases": [
+   "box step-up",
+   "dumbbell step-up"
+  ],
+  "pattern": "squat (unilateral)",
+  "muscles": [
+   "quadriceps",
+   "glutes"
+  ],
+  "equipment": "box and dumbbell",
+  "safe_swaps": [
+   "split-squat",
+   "reverse-lunge"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "lateral-lunge",
+  "name": "Lateral lunge",
+  "aliases": [
+   "side lunge"
+  ],
+  "pattern": "squat (frontal plane)",
+  "muscles": [
+   "adductors",
+   "glutes"
+  ],
+  "equipment": "dumbbell",
+  "safe_swaps": [
+   "cossack-squat"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "cossack-squat",
+  "name": "Cossack squat",
+  "aliases": [
+   "cossack"
+  ],
+  "pattern": "squat (frontal plane)",
+  "muscles": [
+   "adductors",
+   "glutes"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "lateral-lunge"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "hip-thrust",
+  "name": "Hip thrust",
+  "aliases": [
+   "barbell hip thrust",
+   "bb hip thrust"
+  ],
+  "pattern": "hip extension",
+  "muscles": [
+   "glutes"
+  ],
+  "equipment": "barbell",
+  "safe_swaps": [
+   "glute-bridge"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "glute-bridge",
+  "name": "Glute bridge",
+  "aliases": [
+   "bodyweight glute bridge"
+  ],
+  "pattern": "hip extension",
+  "muscles": [
+   "glutes"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "hip-thrust"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "hamstring-slider-curl",
+  "name": "Hamstring slider curl",
+  "aliases": [
+   "slider leg curl",
+   "swiss ball hamstring curl"
+  ],
+  "pattern": "knee flexion",
+  "muscles": [
+   "hamstrings"
+  ],
+  "equipment": "sliders",
+  "safe_swaps": [
+   "nordic-hamstring-curl",
+   "glute-bridge"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "calf-raise-straight-knee",
+  "name": "Calf raise (straight knee)",
+  "aliases": [
+   "standing calf raise",
+   "calf raise"
+  ],
+  "pattern": "plantarflexion",
+  "muscles": [
+   "gastrocnemius"
+  ],
+  "equipment": "dumbbell or machine",
+  "safe_swaps": [
+   "soleus-raise-bent-knee"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "soleus-raise-bent-knee",
+  "name": "Soleus raise (bent knee)",
+  "aliases": [
+   "seated calf raise",
+   "soleus raise"
+  ],
+  "pattern": "plantarflexion",
+  "muscles": [
+   "soleus"
+  ],
+  "equipment": "machine or dumbbell",
+  "safe_swaps": [
+   "calf-raise-straight-knee"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "pallof-press",
+  "name": "Pallof press",
+  "aliases": [
+   "anti-rotation press"
+  ],
+  "pattern": "core (anti-rotation)",
+  "muscles": [
+   "obliques"
+  ],
+  "equipment": "cable or band",
+  "safe_swaps": [
+   "dead-bug",
+   "side-plank"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "dead-bug",
+  "name": "Dead bug",
+  "aliases": [],
+  "pattern": "core (anti-extension)",
+  "muscles": [
+   "rectus abdominis"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "pallof-press",
+   "side-plank"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "side-plank",
+  "name": "Side plank",
+  "aliases": [],
+  "pattern": "core (lateral)",
+  "muscles": [
+   "obliques",
+   "glutes"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "pallof-press",
+   "copenhagen-adduction"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "box-jump",
+  "name": "Box jump",
+  "aliases": [],
+  "pattern": "jump (vertical)",
+  "muscles": [
+   "quadriceps",
+   "glutes"
+  ],
+  "equipment": "box",
+  "safe_swaps": [
+   "countermovement-jump",
+   "trap-bar-jump"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "countermovement-jump",
+  "name": "Countermovement jump",
+  "aliases": [
+   "cmj",
+   "vertical jump"
+  ],
+  "pattern": "jump (vertical)",
+  "muscles": [
+   "quadriceps",
+   "glutes"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "box-jump"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "broad-jump",
+  "name": "Broad jump",
+  "aliases": [
+   "standing long jump"
+  ],
+  "pattern": "jump (horizontal)",
+  "muscles": [
+   "glutes",
+   "hamstrings"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "box-jump"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "pogo-hops",
+  "name": "Pogo hops",
+  "aliases": [
+   "ankle hops",
+   "pogos"
+  ],
+  "pattern": "reactive jump",
+  "muscles": [
+   "calves"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "skipping-drills"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "trap-bar-jump",
+  "name": "Trap bar jump",
+  "aliases": [
+   "hex bar jump"
+  ],
+  "pattern": "jump (loaded)",
+  "muscles": [
+   "glutes",
+   "quadriceps"
+  ],
+  "equipment": "trap bar",
+  "safe_swaps": [
+   "box-jump"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "hang-power-clean",
+  "name": "Hang power clean",
+  "aliases": [
+   "hang clean",
+   "power clean from hang"
+  ],
+  "pattern": "triple extension",
+  "muscles": [
+   "glutes",
+   "hamstrings",
+   "quadriceps"
+  ],
+  "equipment": "barbell",
+  "safe_swaps": [
+   "trap-bar-jump",
+   "kettlebell-swing"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "kettlebell-swing",
+  "name": "Kettlebell swing",
+  "aliases": [
+   "kb swing",
+   "russian swing"
+  ],
+  "pattern": "hinge (power)",
+  "muscles": [
+   "glutes",
+   "hamstrings"
+  ],
+  "equipment": "kettlebell",
+  "safe_swaps": [
+   "hip-thrust",
+   "romanian-deadlift"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "sled-push",
+  "name": "Sled push",
+  "aliases": [
+   "prowler push"
+  ],
+  "pattern": "push (acceleration)",
+  "muscles": [
+   "quadriceps",
+   "glutes"
+  ],
+  "equipment": "sled",
+  "safe_swaps": [
+   "sled-drag-backward"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "sled-drag-backward",
+  "name": "Sled drag (backward)",
+  "aliases": [
+   "backward sled drag",
+   "reverse sled drag"
+  ],
+  "pattern": "drag (knee dominant)",
+  "muscles": [
+   "quadriceps"
+  ],
+  "equipment": "sled",
+  "safe_swaps": [
+   "sled-push"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "medicine-ball-slam",
+  "name": "Medicine ball slam",
+  "aliases": [
+   "med ball slam"
+  ],
+  "pattern": "power (full body)",
+  "muscles": [
+   "full body"
+  ],
+  "equipment": "medicine ball",
+  "safe_swaps": [
+   "medicine-ball-rotational-throw"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "medicine-ball-rotational-throw",
+  "name": "Medicine ball rotational throw",
+  "aliases": [
+   "med ball rotational throw",
+   "rotational throw"
+  ],
+  "pattern": "power (rotation)",
+  "muscles": [
+   "obliques"
+  ],
+  "equipment": "medicine ball",
+  "safe_swaps": [
+   "medicine-ball-slam"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "bench-press",
+  "name": "Bench press",
+  "aliases": [
+   "barbell bench press",
+   "bb bench"
+  ],
+  "pattern": "press (horizontal)",
+  "muscles": [
+   "pectorals",
+   "triceps"
+  ],
+  "equipment": "barbell",
+  "safe_swaps": [
+   "dumbbell-bench-press",
+   "push-up"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "dumbbell-bench-press",
+  "name": "Dumbbell bench press",
+  "aliases": [
+   "db bench"
+  ],
+  "pattern": "press (horizontal)",
+  "muscles": [
+   "pectorals",
+   "triceps"
+  ],
+  "equipment": "dumbbell",
+  "safe_swaps": [
+   "push-up",
+   "bench-press"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "push-up",
+  "name": "Push-up",
+  "aliases": [
+   "press-up",
+   "pushup"
+  ],
+  "pattern": "press (horizontal)",
+  "muscles": [
+   "pectorals",
+   "triceps"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "dumbbell-bench-press"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "chin-up",
+  "name": "Chin-up",
+  "aliases": [
+   "pull-up",
+   "pullup",
+   "chinup"
+  ],
+  "pattern": "pull (vertical)",
+  "muscles": [
+   "latissimus dorsi",
+   "biceps"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "lat-pulldown"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "lat-pulldown",
+  "name": "Lat pulldown",
+  "aliases": [],
+  "pattern": "pull (vertical)",
+  "muscles": [
+   "latissimus dorsi"
+  ],
+  "equipment": "cable",
+  "safe_swaps": [
+   "chin-up"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "single-arm-dumbbell-row",
+  "name": "Single-arm dumbbell row",
+  "aliases": [
+   "one-arm row",
+   "db row"
+  ],
+  "pattern": "pull (horizontal)",
+  "muscles": [
+   "latissimus dorsi",
+   "rhomboids"
+  ],
+  "equipment": "dumbbell",
+  "safe_swaps": [
+   "inverted-row"
+  ],
+  "cautions": [],
+  "reviewed": false
+ },
+ {
+  "id": "inverted-row",
+  "name": "Inverted row",
+  "aliases": [
+   "body row",
+   "australian pull-up"
+  ],
+  "pattern": "pull (horizontal)",
+  "muscles": [
+   "latissimus dorsi",
+   "rhomboids"
+  ],
+  "equipment": "bodyweight",
+  "safe_swaps": [
+   "single-arm-dumbbell-row"
+  ],
+  "cautions": [],
+  "reviewed": false
+ }
+]

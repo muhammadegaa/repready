@@ -1,0 +1,61 @@
+import free from "./free-exercise-db.json";
+import overlay from "./football-overlay.json";
+
+// football-overlay.json is a DRAFT from docs/football-exercise-overlay-DRAFT.csv. Nothing in it is reviewed until `reviewed` is true.
+export type LibraryExercise = {
+  id: string;
+  name: string;
+  source: "football" | "free-exercise-db";
+  muscles: string[];
+  equipment: string | null;
+  pattern: string | null;
+  image: string | null;
+  safe_swaps: string[];
+};
+
+export type Match =
+  | { status: "matched"; how: "name" | "alias"; exercise: LibraryExercise }
+  | { status: "suggested"; exercise: LibraryExercise }
+  | { status: "none" };
+
+const norm = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+const tokens = (s: string) => new Set(norm(s).split(" ").filter(Boolean));
+
+const football: LibraryExercise[] = overlay.map((o) => ({
+  id: o.id, name: o.name, source: "football", muscles: o.muscles, equipment: o.equipment || null, pattern: o.pattern || null, image: null, safe_swaps: o.safe_swaps,
+}));
+const general: LibraryExercise[] = free.map((e) => ({
+  id: e.id, name: e.name, source: "free-exercise-db", muscles: e.muscles, equipment: e.equipment, pattern: null,
+  image: e.image ? `https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/${e.image}` : null, safe_swaps: [],
+}));
+
+const byName = new Map<string, LibraryExercise>();
+const byAlias = new Map<string, LibraryExercise>();
+for (const e of general) byName.set(norm(e.name), e);
+for (const e of football) byName.set(norm(e.name), e); // the football entry wins over a general one with the same name
+for (const o of overlay) for (const a of o.aliases) byAlias.set(norm(a), football.find((f) => f.id === o.id)!);
+
+export const exerciseById = (id: string) => [...football, ...general].find((e) => e.id === id) ?? null;
+
+// Exact name or alias is a match. A near miss is only a suggestion: staff confirm it, we never rewrite their program silently.
+export function matchExercise(raw: string): Match {
+  const q = norm(raw);
+  if (!q) return { status: "none" };
+  // An overlay alias beats a general-library name: "barbell full squat" is our back squat.
+  const alias = byAlias.get(q);
+  if (alias) return { status: "matched", how: "alias", exercise: alias };
+  const exact = byName.get(q);
+  if (exact) return { status: "matched", how: "name", exercise: exact };
+
+  const qt = tokens(raw);
+  let best: { e: LibraryExercise; score: number } | null = null;
+  for (const e of [...football, ...general]) {
+    const et = tokens(e.name);
+    const shared = [...qt].filter((t) => et.has(t)).length;
+    if (!shared) continue;
+    const score = shared / Math.max(qt.size, et.size);
+    if (!best || score > best.score) best = { e, score };
+  }
+  return best && best.score >= 0.6 ? { status: "suggested", exercise: best.e } : { status: "none" };
+}

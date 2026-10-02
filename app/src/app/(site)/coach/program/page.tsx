@@ -58,7 +58,7 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
       <section className="space-y-3">
         <Eyebrow>Import</Eyebrow>
         <Card className="space-y-3 p-5">
-          {importError && <pre className="whitespace-pre-wrap rounded-md border border-bad/30 bg-bad-bg p-3 text-sm text-bad">{importError}</pre>}
+          {importError && <pre className="whitespace-pre-wrap rounded-md border border-line bg-paper p-3 text-sm text-ink">{importError}</pre>}
           <p className="text-sm text-muted">One row per exercise. Columns: date (YYYY-MM-DD), label, week_type (normal or deload), exercise, sets, reps, load, target_rpe (optional).</p>
           <form action={importProgram} className="space-y-3">
             <label htmlFor="csv" className="block text-sm font-medium">Program CSV</label>
