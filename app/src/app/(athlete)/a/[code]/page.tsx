@@ -39,7 +39,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
         <p className="text-[15px] leading-relaxed">{club?.name ?? "Your club"} uses RepReady to adjust your sessions using your daily check-in. Before your first check-in, this is what happens with your answers.</p>
         <Card className="space-y-2 p-4 text-sm leading-relaxed">
           <p>Your coach sees what you enter: sleep, soreness, stress, any notes, and how hard sessions felt. If you connect a Polar device, we also read your sleep and heart-rate variability from Polar Flow, and you can disconnect any time.</p>
-          <p>An AI model, reached through OpenRouter, reads those numbers to suggest a change to your session. Your coach approves or rejects it. You only see what your coach sends.</p>
+          <p>A fixed set of written rules reads those numbers to suggest a change to your session. No outside AI service receives your answers. Your coach approves or rejects the suggestion. You only see what your coach sends.</p>
           <p className="text-muted">Sleep and soreness are health information. This is a pilot. You can delete everything yourself from this page at any time.</p>
         </Card>
         <form action={giveConsent} className="space-y-4">

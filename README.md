@@ -14,7 +14,7 @@ Three views share one record and update live:
 
 ```bash
 cd app
-cp .env.example .env.local        # fill OPENROUTER_API_KEY; passcodes are placeholders
+cp .env.example .env.local        # OPENROUTER_API_KEY is not needed: rules decide
 npm install
 # terminal 1: Firestore emulator (needs Java)
 npx firebase emulators:start --only firestore --project repready-7dacd --config ../firebase.json
@@ -28,7 +28,8 @@ Tests: `npm test` runs the unit tests; `npm run test:emulator` also runs the Fir
 
 ## How it fits together
 
-- `app/src/lib/agent/` the model call (`propose.ts`), hard limits in code (`limits.ts`), scoring (`score.ts`), bundled rules and scenarios.
+- `app/src/lib/agent/` the rules engine (`engine.ts`) that decides, hard limits in code (`limits.ts`), scoring (`score.ts`), bundled rules and scenarios. `propose.ts` is the older model call, no longer used in the loop.
+- `app/src/lib/library/` bundled exercise library, the draft football overlay, and name matching on program import. `app/src/lib/fixtures.ts` match-day tags.
 - `app/src/lib/store.ts` all Firestore access. Every write also bumps a pulse document; open views poll it (`components/Live.tsx`) and refresh when it moves.
 - `app/src/lib/polar.ts` Polar AccessLink: OAuth with a signed state, registration, sleep and Nightly Recharge sync.
 - `app/src/actions/` server actions by role. Coach and scientist actions check the role cookie; athlete actions check the link code.

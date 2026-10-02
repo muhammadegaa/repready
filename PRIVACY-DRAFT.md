@@ -26,7 +26,7 @@ Club staff sign in with email and password (scrypt-hashed). Each club has its ow
 | Recipient | What they get | Notes |
 |---|---|---|
 | Google Firebase (Firestore) | Everything above | Database is in europe-west2 (London), created 2026-10-01. |
-| OpenRouter | Per check-in: planned session, 14 days of sleep, soreness, stress, RPE deltas, notes, device figures. Not the athlete's name. | Free-text notes can contain names or health detail. OpenRouter routes to an upstream model provider; one error message during testing showed Amazon Bedrock. Upstream region, retention and training use **open**. |
+| OpenRouter (not used in the morning loop since the rules-first change; kept only if a model note-classifier or wording step is added) | Per check-in: planned session, 14 days of sleep, soreness, stress, RPE deltas, notes, device figures. Not the athlete's name. | Free-text notes can contain names or health detail. OpenRouter routes to an upstream model provider; one error message during testing showed Amazon Bedrock. Upstream region, retention and training use **open**. |
 | Polar (AccessLink) | The athlete authorises read access to their Polar sleep and Nightly Recharge data; we send their link code as a member id | Polar Electro is Finnish, so likely inside UK/EU adequacy, **open**: confirm. A Polar access token is stored per athlete. |
 | Junction (webhook receiver exists, not live) | The athlete's wearable account link and sleep data | US company, **open**: transfer terms. |
 | Stripe | The coach's payment details, not athletes' | Out of athlete scope. |
@@ -38,7 +38,7 @@ The coach or their organisation decides why and how athlete data is used, so the
 
 ## What exists in the product
 
-- Consent screen before the first check-in, naming the AI model and OpenRouter.
+- Consent screen before the first check-in. It now says written rules decide and no outside AI service receives answers. If a model step is added, this must change before it ships.
 - The coach can delete an athlete and all their check-ins, session logs, device data and proposals (`Remove athlete`, coach page).
 - The athlete can delete their own data from their page. Both paths deregister the athlete from Polar before deleting.
 - The athlete can disconnect Polar at any time, which deregisters them and removes the stored token.
