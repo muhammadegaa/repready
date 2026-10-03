@@ -7,17 +7,15 @@ import { requireStaff } from "@/lib/auth";
 import { buildEdits, COACH_LIMITS } from "@/lib/edits";
 import { deregister } from "@/lib/polar";
 import { cleanGroup, GROUP_MAX, groupLabel } from "@/lib/groups";
-import { describeReport, resolveProgram } from "@/lib/library/resolve";
 import { loadSampleSquad, removeSampleSquad } from "@/lib/sample";
 import { readFixtureDates } from "@/lib/fixtures";
 import { planFor, playerExerciseNames } from "@/lib/plan";
 import { validateOverride } from "@/lib/overrides";
 import { runAgentFor, todayStr } from "@/lib/run-agent";
-import { parseProgram } from "@/lib/program";
 import { fileToText } from "@/lib/read/files";
 import { POSITIONS, readSquad, storedPlayers } from "@/lib/squad";
 import {
-  approvePlayer, CODE_RE, getNotice, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
+  approvePlayer, CODE_RE, getNotice, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -163,20 +161,6 @@ export async function removeAthlete(f: FormData) {
   await deregister(a.code);
   await deleteAthleteData(a.code);
   redirect("/coach/squad");
-}
-
-export async function importProgram(f: FormData) {
-  const { club } = await requireStaff("coach");
-  const { sessions, errors } = parseProgram(text(f, "csv"));
-  if (errors.length) {
-    await setNotice(club, "import", errors.join("\n"));
-  } else {
-    const resolved = resolveProgram(sessions);
-    await replaceSessions(club, resolved.sessions);
-    await setNotice(club, "import", describeReport(resolved.report));
-  }
-  revalidatePath("/coach");
-  redirect("/coach/program");
 }
 
 export async function saveFixtureList(f: FormData) {

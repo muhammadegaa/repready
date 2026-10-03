@@ -116,17 +116,13 @@ test("a coach splits the squad: the group gets its own version of the session an
     `${today()},Lower,normal,Back squat,4,5,85%,8`,
     `${today()},Lower,normal,Romanian deadlift,3,8,70%,7`,
   ]);
-  // The group column is a ninth, optional column: import again with a Reserves version alongside the base.
-  await page.goto("/coach/program");
-  await page.locator("#advanced summary").click();
-  await page.locator("#csv").fill([
-    "date,label,week_type,exercise,sets,reps,load,target_rpe,group",
+  // A Reserves version alongside the base.
+  await importProgram(page, [
     `${today()},Lower,normal,Back squat,4,5,85%,8,`,
     `${today()},Lower,normal,Romanian deadlift,3,8,70%,7,`,
     `${today()},Lower,normal,Back squat,5,5,85%,8,Reserves`,
     `${today()},Lower,normal,Nordics,3,5,BW,8,Reserves`,
-  ].join("\n"));
-  await page.getByRole("button", { name: /replace program/i }).click();
+  ]);
   await expect(page.getByText("Group: Reserves")).toBeVisible();
   await expect(page.getByText("Everyone", { exact: true }).first()).toBeVisible();
 

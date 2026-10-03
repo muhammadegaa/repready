@@ -16,7 +16,7 @@ export function setupSteps(s: SetupState): Step[] {
     },
     {
       title: "Import your program",
-      how: "Paste your sessions as a CSV: one row per exercise. Exercise names are matched to the library, and unknown ones are listed for you.",
+      how: "Paste your week as you wrote it, or upload your spreadsheet. I read it, you check it, and nothing reaches players until you say so.",
       href: "/coach/program", cta: "Open Program", done: s.sessions > 0,
     },
     {

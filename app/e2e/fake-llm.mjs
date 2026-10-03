@@ -15,6 +15,12 @@ http.createServer((req, res) => {
   req.on("end", () => {
     let user = "";
     try { user = JSON.parse(raw).messages.find((m) => m.role === "user").content; } catch {}
+    // Tests that need an exact program put it in the pasted text after FAKE_PROGRAM:, and the fake "reads" it back.
+    const exact = user.match(/^FAKE_PROGRAM:(.+)$/m);
+    if (exact) {
+      res.setHeader("Content-Type", "application/json");
+      return res.end(JSON.stringify({ choices: [{ message: { tool_calls: [{ function: { arguments: JSON.stringify({ sessions: JSON.parse(exact[1]), notes: [] }) } }] } }] }));
+    }
     const sessions = /tuesday/i.test(user.split("\n").slice(-6).join("\n")) && /reserves/i.test(user)
       ? [...base, { day: "Tuesday", date: null, label: "Conditioning legs", week_type: "normal", group: "Reserves", exercises: [ex("Nordic curl", 3, 5, "BW")] }]
       : base;

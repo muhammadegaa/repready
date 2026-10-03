@@ -14,7 +14,7 @@ const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && new Date(`${s}T00:00:00Z`).toISOString().startsWith(s);
 const MAX_TEXT = 30_000;
 
-const MANUAL = " You can still bring a program in with a CSV under Advanced.";
+const MANUAL = " Nothing was changed. Try again in a minute.";
 const back = (path: string, key: string, msg: string): never => redirect(`${path}?${key}=${encodeURIComponent(msg)}`);
 
 // The coach gives whatever they have: pasted text, a spreadsheet, or both. The assistant reads it into a draft to review.

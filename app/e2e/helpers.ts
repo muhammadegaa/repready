@@ -16,14 +16,22 @@ export async function signUp(page: Page, club = `E2E FC ${uniq()}`) {
   return { email, club };
 }
 
+// Gives the coach's program the way a coach does: pasted into Program, read, checked, then used. Rows are
+// "date,label,week_type,exercise,sets,reps,load,target_rpe[,group]"; the fake model server reads them back exactly.
 export async function importProgram(page: Page, rows: string[]) {
+  const sessions = new Map<string, { day: null; date: string; label: string; week_type: string; group: string | null; exercises: object[] }>();
+  for (const row of rows.filter((r) => !r.startsWith("date,"))) {
+    const [date, label, week_type, name, sets, reps, load, rpe, group] = row.split(",");
+    const key = `${date}|${label}|${group ?? ""}`;
+    const s = sessions.get(key) ?? { day: null, date, label, week_type, group: group || null, exercises: [] };
+    s.exercises.push({ name, sets: Number(sets), reps: Number(reps), load, target_rpe: rpe ? Number(rpe) : null });
+    sessions.set(key, s);
+  }
   await page.goto("/coach/program");
-  await page.locator("#advanced summary").click();
-  await page.locator("#csv").fill(["date,label,week_type,exercise,sets,reps,load,target_rpe", ...rows].join("\n"));
-  await page.getByRole("button", { name: /import program|replace program/i }).click();
-  // The heading is on the page before and after the import, so wait for the first imported session itself.
-  const label = rows[0].split(",")[1];
-  await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+  await page.locator("#program_text").fill(`FAKE_PROGRAM:${JSON.stringify([...sessions.values()])}`);
+  await page.getByRole("button", { name: "Read my program" }).click();
+  await page.getByRole("button", { name: "Use this program" }).click();
+  await expect(page.getByText(/^Saved \d+ sessions?/)).toBeVisible();
 }
 
 export async function addPlayer(page: Page, name: string) {

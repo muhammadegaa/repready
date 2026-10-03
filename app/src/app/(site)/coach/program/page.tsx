@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { importProgram, saveFixtureList } from "@/actions/coach";
+import { saveFixtureList } from "@/actions/coach";
 import { readProgramAction } from "@/actions/program";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
@@ -24,12 +24,7 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
   const applied = one("applied");
   const { club } = await requirePage("coach");
   const today = todayStr();
-  const [sessions, importError, fixtureError, fixtures, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "import"), getNotice(club, "fixtures"), getFixtures(club), getPulse(club, "coach")]);
-  const example = `date,label,week_type,exercise,sets,reps,load,target_rpe
-${today},Lower strength,normal,Back squat,4,5,85% 1RM,8
-${today},Lower strength,normal,Romanian deadlift,3,8,70% 1RM,7
-${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
-
+  const [sessions, fixtureError, fixtures, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "fixtures"), getFixtures(club), getPulse(club, "coach")]);
   return (
     <div className="space-y-8">
       <Live scope="coach" initial={pulse} />
@@ -104,19 +99,6 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
           </form>
         </Card>
       </section>
-
-      <details id="advanced" className="group">
-        <summary className="cursor-pointer text-sm font-medium text-muted hover:text-ink"><Eyebrow>Advanced: import a CSV</Eyebrow></summary>
-        <Card className="mt-3 space-y-3 p-5">
-          {importError && <pre className="whitespace-pre-wrap rounded-md border border-line bg-paper p-3 text-sm text-ink">{importError}</pre>}
-          <p className="text-sm text-muted">One row per exercise. Columns: date (YYYY-MM-DD), label, week_type (normal or deload), exercise, sets, reps, load, target_rpe (optional). Add a ninth column, <span className="font-mono">group</span>, to give a group its own version, for example <span className="font-mono">Reserves</span>. Assign players to groups in <Link href="/coach/squad" className="underline underline-offset-4">Squad</Link>.</p>
-          <form action={importProgram} className="space-y-3">
-            <label htmlFor="csv" className="block text-sm font-medium">Program CSV</label>
-            <textarea id="csv" name="csv" rows={9} defaultValue={example} className={`${input} font-mono text-[13px]`} />
-            <PendingButton className={btn} pending="Importing…">{sessions.length ? "Replace program" : "Import program"}</PendingButton>
-          </form>
-        </Card>
-      </details>
     </div>
   );
 }
