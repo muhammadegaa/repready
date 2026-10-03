@@ -5,7 +5,7 @@ import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from
 import { clubHasAccess } from "./billing";
 import { getClub, getStaff, type StaffRole, type StaffRow } from "./store";
 
-export type Session = { id: string; name: string; email: string; club: string; clubName: string; roles: StaffRole[]; admin: boolean; access: boolean };
+export type Session = { id: string; name: string; email: string; club: string; clubName: string; roles: StaffRole[]; admin: boolean; access: boolean; verified: boolean };
 
 const COOKIE = "rr_s";
 const DAYS = 30;
@@ -55,7 +55,7 @@ export const getSession = cache(async (): Promise<Session | null> => {
   if (!staff) return null;
   const club = await getClub(staff.club);
   if (!club) return null;
-  return { id, name: staff.name, email: staff.email, club: staff.club, clubName: club.name, roles: staff.roles, admin: staff.admin, access: clubHasAccess(club) };
+  return { id, name: staff.name, email: staff.email, club: staff.club, clubName: club.name, roles: staff.roles, admin: staff.admin, access: clubHasAccess(club), verified: Boolean(staff.verified_at) };
 });
 
 // For pages: send people without the role to sign in.

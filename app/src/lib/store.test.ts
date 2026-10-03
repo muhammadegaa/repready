@@ -5,7 +5,7 @@ import {
   logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionFor, sessionsOn, setGroup,
   sessionsForDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads, createPlayers, claimLink, resetLink,
   createPasswordReset, resetPassword, resetTokenUsable, createOverride, liftOverride, listOverrides, listActiveOverrides, listClubOverrides,
-  getClub, markClubPaid, getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
+  getClub, markClubPaid, createEmailVerification, verifyEmail, getStaff, getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
 } from "./store";
 
 // Needs the Firestore emulator: npm run test:emulator
@@ -15,6 +15,20 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
   const other = "def456";
   const createAthlete = async (name: string, club = C) => (await createPlayers(club, [{ name, shirt: null, position: "", squad: "First team" }]))[0];
   const ex = [{ name: "Back squat", sets: 4, reps: 5, load: "85% 1RM", target_rpe: 8 }];
+
+  it("an email address is confirmed only by its own single-use link, and a changed address voids the link", async () => {
+    const made = await createClubWithOwner(`Verify FC ${run}`, { email: `verify-${run}@example.com`, name: "Val", pw: "x" });
+    const id = made!.staff.id;
+    expect(made!.staff.verified_at).toBeNull();
+    const v = await createEmailVerification(id);
+    expect(v).toMatchObject({ email: `verify-${run}@example.com` });
+    expect(await createEmailVerification(id)).toBe("throttled");
+    expect(await verifyEmail("0".repeat(48))).toBe("invalid");
+    expect(await verifyEmail((v as { token: string }).token)).toBe("ok");
+    expect((await getStaff(id))?.verified_at).toMatch(/^\d{4}-/);
+    expect(await verifyEmail((v as { token: string }).token)).toBe("invalid"); // spent
+    expect(await createEmailVerification(id)).toBe("done");
+  });
 
   it("a new club is unpaid until a payment marks it, and an unknown club cannot be marked", async () => {
     const made = await createClubWithOwner(`Pay FC ${run}`, { email: `pay-${run}@example.com`, name: "Pat", pw: "x" });

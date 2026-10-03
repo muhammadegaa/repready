@@ -123,11 +123,11 @@ export async function listEvents(club: string, limit: number): Promise<EventRow[
 // ---- clubs and staff
 export type StaffRole = "coach" | "scientist";
 export type ClubRow = { id: string; name: string; created_at: string; paid_at: string | null };
-export type StaffRow = { id: string; email: string; name: string; club: string; roles: StaffRole[]; admin: boolean; pw: string; created_at: string };
+export type StaffRow = { id: string; email: string; name: string; club: string; roles: StaffRole[]; admin: boolean; pw: string; created_at: string; verified_at: string | null };
 export type InviteRow = { token: string; kind: "staff" | "squad"; club: string; roles: StaffRole[]; expires_at: string | null; used_at: string | null; created_at: string };
 
 const staffId = (email: string) => createHash("sha256").update(email.trim().toLowerCase()).digest("hex").slice(0, 20);
-const staffRow = (id: string, d: DocumentData): StaffRow => ({ id, email: d.email, name: d.name, club: d.club, roles: d.roles, admin: Boolean(d.admin), pw: d.pw, created_at: d.created_at });
+const staffRow = (id: string, d: DocumentData): StaffRow => ({ id, email: d.email, name: d.name, club: d.club, roles: d.roles, admin: Boolean(d.admin), pw: d.pw, created_at: d.created_at, verified_at: d.verified_at ?? null });
 const inviteRow = (token: string, d: DocumentData): InviteRow => ({ token, kind: d.kind, club: d.club, roles: d.roles ?? [], expires_at: d.expires_at ?? null, used_at: d.used_at ?? null, created_at: d.created_at });
 
 export const STAFF_INVITE_DAYS = 7;
@@ -199,6 +199,35 @@ export async function createPasswordReset(email: string): Promise<{ token: strin
   return { token, staff };
 }
 
+// ---- confirming an email address: a link sent to it, good for a day, worth nothing to anyone but its owner
+const VERIFY_HOURS = 24;
+export async function createEmailVerification(staffId: string): Promise<{ token: string; email: string } | "throttled" | "done" | null> {
+  const ref = fs.collection("staff").doc(staffId);
+  const st = await ref.get();
+  if (!st.exists) return null;
+  if (st.get("verified_at")) return "done";
+  const last = st.get("verify_requested_at") as string | undefined;
+  if (last && Date.now() - Date.parse(last) < RESET_THROTTLE_MS) return "throttled";
+  const token = randomBytes(24).toString("hex");
+  await fs.collection("verifications").doc(resetId(token)).set({ staff_id: staffId, email: st.get("email"), created_at: new Date().toISOString(), expires_at: new Date(Date.now() + VERIFY_HOURS * 3_600_000).toISOString() });
+  await ref.update({ verify_requested_at: new Date().toISOString() });
+  return { token, email: st.get("email") };
+}
+
+// Marks the address confirmed. Only if the account still has the address the link was sent to.
+export async function verifyEmail(token: string): Promise<"ok" | "invalid"> {
+  if (!/^[0-9a-f]{48}$/.test(token)) return "invalid";
+  const ref = fs.collection("verifications").doc(resetId(token));
+  const v = await ref.get();
+  if (!v.exists || v.get("expires_at") <= new Date().toISOString()) return "invalid";
+  const sRef = fs.collection("staff").doc(v.get("staff_id"));
+  const st = await sRef.get();
+  if (!st.exists || st.get("email") !== v.get("email")) return "invalid";
+  if (!st.get("verified_at")) await sRef.update({ verified_at: new Date().toISOString() });
+  await ref.delete();
+  return "ok";
+}
+
 export async function resetTokenUsable(token: string): Promise<boolean> {
   if (!/^[0-9a-f]{48}$/.test(token)) return false;
   const s = await fs.collection("resets").doc(resetId(token)).get();
@@ -217,7 +246,7 @@ export async function resetPassword(token: string, pw: string): Promise<StaffRow
     const sRef = fs.collection("staff").doc(r.get("staff_id"));
     const st = await t.get(sRef);
     if (!st.exists) return;
-    t.update(sRef, { pw });
+    t.update(sRef, st.get("verified_at") ? { pw } : { pw, verified_at: new Date().toISOString() });
     t.update(ref, { used_at: new Date().toISOString() });
     staffId_ = sRef.id;
     result = staffRow(sRef.id, { ...st.data()!, pw });

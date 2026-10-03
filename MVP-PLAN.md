@@ -104,3 +104,6 @@ Principle: give it whatever you have; it reads it; you confirm. No coach or play
 
 ## Payment gate (2026-10-03)
 Set `NEXT_PUBLIC_PAYMENT_LINK` (Stripe Payment Link) and the product is gated: a new club signs up, lands on `/subscribe`, pays through the link (the club id travels as `client_reference_id`), and Stripe's `checkout.session.completed` webhook (`/api/stripe/webhook`, verified with `STRIPE_WEBHOOK_SECRET`) marks the club paid. `COMPED_CLUBS` (comma separated club ids) lets a club in without paying. No link set means no gate. Build diagnostics removed after the Vercel build was confirmed working.
+
+## Email confirmation (2026-10-03)
+Sign-up and staff-invite acceptance send a confirmation link (24 hours, single use, voided if the address changes). Until confirmed the coach sees a banner with a resend button, and the morning digest is not sent to that address. A completed password reset also confirms the address. Existing accounts show as unconfirmed until they use the banner or a reset.

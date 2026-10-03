@@ -23,12 +23,13 @@ export async function GET(req: Request) {
   const summary: { club: string; sent: number; failed: number }[] = [];
   for (const club of await listClubs()) {
     const [data, staff] = await Promise.all([coachToday(club.id, today), listStaff(club.id)]);
+    // Only confirmed addresses get mail: nobody receives a club\'s squad status just because someone typed their address.
     // Fictional sample players are never named in an email.
     const roster = data.roster.filter((r) => !r.athlete.sample);
     if (roster.length === 0) continue;
     const { subject, text } = buildDigest({ clubName: club.name, date: today, sessionLabel: data.session?.label ?? null, roster, appUrl });
     let sent = 0, failed = 0;
-    for (const s of staff.filter((x) => x.roles.includes("coach"))) {
+    for (const s of staff.filter((x) => x.roles.includes("coach") && x.verified_at)) {
       const r = await sendMail({ to: s.email, subject, text });
       if (r.sent) sent++;
       else failed++;

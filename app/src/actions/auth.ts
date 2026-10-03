@@ -2,9 +2,9 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { checkPassword, hashPassword, homeFor, PASSWORD_MIN, signOut, startSession } from "@/lib/auth";
+import { checkPassword, getSession, hashPassword, homeFor, PASSWORD_MIN, signOut, startSession } from "@/lib/auth";
 import { sendMail } from "@/lib/mail";
-import { acceptStaffInvite, createClubWithOwner, createPasswordReset, getStaffByEmail, resetPassword } from "@/lib/store";
+import { acceptStaffInvite, createClubWithOwner, createEmailVerification, createPasswordReset, getStaffByEmail, resetPassword } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
@@ -35,7 +35,27 @@ export async function signUp(f: FormData) {
   const made = await createClubWithOwner(club, owner);
   if (!made) fail("/signup", "That email already has an account. Sign in instead.");
   await startSession(made!.staff);
+  await sendVerification(made!.staff.id);
   redirect("/coach");
+}
+
+async function sendVerification(staffId: string): Promise<"sent" | "throttled" | "done" | "failed"> {
+  const v = await createEmailVerification(staffId);
+  if (v === "throttled" || v === "done") return v;
+  if (!v) return "failed";
+  const r = await sendMail({
+    to: v.email,
+    subject: "Confirm your email for RepReady",
+    text: `Confirm this email address for your RepReady account (the link works for 24 hours):\n${await origin()}/verify/${v.token}\n\nIf you did not create an account, ignore this email.`,
+  });
+  return r.sent ? "sent" : "failed";
+}
+
+export async function resendVerification() {
+  const s = await getSession();
+  if (!s) redirect("/signin");
+  const r = await sendVerification(s.id);
+  redirect(`/verify/sent?r=${r}`);
 }
 
 export async function joinStaff(f: FormData) {
@@ -45,8 +65,10 @@ export async function joinStaff(f: FormData) {
   const res = await acceptStaffInvite(token, who);
   if (res === "taken") fail(path, "That email already has an account. Sign in instead.");
   if (res === "invalid") fail(path, "This invite has expired or was already used. Ask your club admin for a new one.");
-  await startSession(res as Exclude<typeof res, string>);
-  redirect(homeFor(res as Exclude<typeof res, string>));
+  const joined = res as Exclude<typeof res, string>;
+  await startSession(joined);
+  await sendVerification(joined.id);
+  redirect(homeFor(joined));
 }
 
 export async function signOutAction() {

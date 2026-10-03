@@ -320,3 +320,12 @@ test("results show an empty state for a new club", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Results" })).toBeVisible();
   await expect(page.getByText("Sample players are not counted.")).toBeVisible();
 });
+
+test("a new account is asked to confirm its email, and the link confirms it", async ({ page }) => {
+  await signUp(page);
+  await expect(page.getByText(/Confirm your email address/)).toBeVisible();
+  await page.getByRole("button", { name: "Send me the link" }).click();
+  await expect(page.getByText(/A link was sent a moment ago/)).toBeVisible(); // sign-up already sent one
+  await page.goto("/verify/" + "0".repeat(48));
+  await expect(page.getByText("That link did not work")).toBeVisible();
+});
