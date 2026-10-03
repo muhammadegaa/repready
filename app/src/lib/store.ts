@@ -4,6 +4,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type { Edit, Exercise } from "./agent/schema";
 import { cleanGroup, pickSession } from "./groups";
 import { isActive, type Override } from "./overrides";
+import type { ProgramDraft } from "./read/program";
 import { decisionCopy } from "./copy";
 
 // Hosted (Vercel): FIREBASE_SERVICE_ACCOUNT holds the service-account JSON on one line.
@@ -541,6 +542,49 @@ export async function deleteSampleSessions(club: string): Promise<number> {
   q.docs.forEach((d) => batch.delete(d.ref));
   await batch.commit();
   return q.size;
+}
+
+// ---- drafts: what the assistant read from the coach's own words, held until the coach confirms
+export type DraftRow = { id: string; status: "open" | "applied" | "discarded"; created_at: string; created_by: string; revisions: number; program: ProgramDraft };
+const DRAFT_ID = /^[A-Za-z0-9]{10,40}$/;
+
+export async function createDraft(club: string, by: string, program: ProgramDraft): Promise<string> {
+  const ref = col(club, "drafts").doc();
+  await ref.set({ kind: "program", status: "open", created_at: new Date().toISOString(), created_by: by, revisions: 0, program });
+  return ref.id;
+}
+
+export async function getDraft(club: string, id: string): Promise<DraftRow | null> {
+  if (!DRAFT_ID.test(id)) return null;
+  const s = await col(club, "drafts").doc(id).get();
+  if (!s.exists) return null;
+  const d = s.data()!;
+  return { id, status: d.status, created_at: d.created_at, created_by: d.created_by ?? "", revisions: d.revisions ?? 0, program: d.program as ProgramDraft };
+}
+
+export async function saveDraft(club: string, id: string, program: ProgramDraft, revisions: number): Promise<void> {
+  await col(club, "drafts").doc(id).update({ program, revisions });
+}
+
+export async function closeDraft(club: string, id: string, status: "applied" | "discarded"): Promise<void> {
+  await col(club, "drafts").doc(id).update({ status, closed_at: new Date().toISOString() });
+}
+
+// Puts the confirmed sessions in place of whatever the club had on those dates, and leaves every other date alone.
+// Any sample sessions go too: a real program replaces them.
+export async function replaceSessionsInRange(club: string, sessions: (Omit<SessionRow, "id" | "group"> & { group?: string | null })[], from: string, to: string): Promise<void> {
+  const [inRange, sample] = await Promise.all([
+    col(club, "sessions").where("on_date", ">=", from).where("on_date", "<=", to).get(),
+    col(club, "sessions").where("sample", "==", true).get(),
+  ]);
+  const batch = fs.batch();
+  new Map([...inRange.docs, ...sample.docs].map((d) => [d.id, d])).forEach((d) => batch.delete(d.ref));
+  sessions.forEach((x) => batch.set(col(club, "sessions").doc(), { ...x, group: cleanGroup(x.group) }));
+  await batch.commit();
+  const own = sessions.filter((x) => cleanGroup(x.group)).length;
+  await logEvent(club, { type: "program", athlete_code: null, athlete_name: null, text: `Program updated for ${from} to ${to}: ${sessions.length} session${sessions.length === 1 ? "" : "s"}${own ? `, ${own} for a group` : ""}` });
+  const athletes = await col(club, "athletes").select().get();
+  await touch(club, "coach", ...athletes.docs.map((d) => `a_${d.id}` as PulseScope));
 }
 
 // ---- athlete inputs

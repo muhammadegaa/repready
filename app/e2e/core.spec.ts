@@ -119,6 +119,7 @@ test("a coach splits the squad: the group gets its own version of the session an
   ]);
   // The group column is a ninth, optional column: import again with a Reserves version alongside the base.
   await page.goto("/coach/program");
+  await page.locator("#advanced summary").click();
   await page.locator("#csv").fill([
     "date,label,week_type,exercise,sets,reps,load,target_rpe,group",
     `${today()},Lower,normal,Back squat,4,5,85%,8,`,
@@ -283,4 +284,37 @@ test("a new coach loads a sample squad, tries a player's phone, and removes it a
   await expect(page.getByText("No players yet.")).toBeVisible();
   await page.goto("/coach");
   await expect(page.getByRole("button", { name: "Load a sample squad" })).toBeVisible(); // can be loaded again
+});
+
+
+test("a coach pastes a program, checks what was read, changes it in words, and only then do players get it", async ({ page }) => {
+  await signUp(page);
+  await page.goto("/coach/program");
+  await page.locator("#program_text").fill("Mon lower: squat 4x5, RDL 3x8\nWed upper: bench 4x6\nFri Reserves: split squat 3x8");
+  await page.getByRole("button", { name: "Read my program" }).click();
+  await page.waitForURL(/\/coach\/program\/review\//);
+  await expect(page.getByText("Nothing has reached your players yet")).toBeVisible();
+  await expect(page.getByText("Back squat")).toBeVisible();
+
+  // The revision is done in words and adds a session.
+  await page.locator("#instruction").fill("Reserves also train on Tuesday");
+  await page.getByRole("button", { name: "Change it" }).click();
+  await expect(page.getByText("Conditioning legs")).toBeVisible();
+
+  // Nothing is live until the coach says so.
+  await page.goto("/coach/program");
+  await expect(page.getByText("Conditioning legs")).toHaveCount(0);
+  await page.goBack();
+  await page.getByRole("button", { name: "Use this program" }).click();
+  await expect(page.getByText(/Saved 4 sessions/)).toBeVisible();
+  await expect(page.getByText("Conditioning legs")).toBeVisible();
+});
+
+test("fixtures are read as a coach writes them", async ({ page }) => {
+  await signUp(page);
+  await page.goto("/coach/program");
+  await page.locator("#fixtures").fill("Sat 11 Oct 2026 v Reading (H)\n18/10/2026\nnothing here");
+  await page.getByRole("button", { name: "Save fixtures" }).click();
+  await expect(page.getByText(/Saved 2 match dates/)).toBeVisible();
+  await expect(page.locator("#fixtures")).toHaveValue("2026-10-11\n2026-10-18");
 });

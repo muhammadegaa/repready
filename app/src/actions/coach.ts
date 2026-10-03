@@ -9,7 +9,7 @@ import { deregister } from "@/lib/polar";
 import { cleanGroup, GROUP_MAX, groupLabel } from "@/lib/groups";
 import { describeReport, resolveProgram } from "@/lib/library/resolve";
 import { loadSampleSquad, removeSampleSquad } from "@/lib/sample";
-import { parseFixtures } from "@/lib/fixtures";
+import { readFixtureDates } from "@/lib/fixtures";
 import { planFor, playerExerciseNames } from "@/lib/plan";
 import { validateOverride } from "@/lib/overrides";
 import { runAgentFor, todayStr } from "@/lib/run-agent";
@@ -153,12 +153,9 @@ export async function importProgram(f: FormData) {
 
 export async function saveFixtureList(f: FormData) {
   const { club } = await requireStaff("coach");
-  const { dates, errors } = parseFixtures(text(f, "fixtures"));
-  if (errors.length) await setNotice(club, "fixtures", errors.join("\n"));
-  else {
-    await setFixtures(club, dates);
-    await setNotice(club, "fixtures", null);
-  }
+  const { dates, unreadable } = readFixtureDates(text(f, "fixtures"), todayStr());
+  await setFixtures(club, dates);
+  await setNotice(club, "fixtures", unreadable.length ? `Saved ${dates.length} match date${dates.length === 1 ? "" : "s"}. I could not find a date in: ${unreadable.map((l) => `"${l}"`).join(", ")}` : null);
   revalidatePath("/coach/program");
   redirect("/coach/program");
 }

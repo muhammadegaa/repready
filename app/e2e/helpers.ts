@@ -18,6 +18,7 @@ export async function signUp(page: Page, club = `E2E FC ${uniq()}`) {
 
 export async function importProgram(page: Page, rows: string[]) {
   await page.goto("/coach/program");
+  await page.locator("#advanced summary").click();
   await page.locator("#csv").fill(["date,label,week_type,exercise,sets,reps,load,target_rpe", ...rows].join("\n"));
   await page.getByRole("button", { name: /import program|replace program/i }).click();
   // The heading is on the page before and after the import, so wait for the first imported session itself.

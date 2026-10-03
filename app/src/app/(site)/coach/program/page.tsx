@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { importProgram, saveFixtureList } from "@/actions/coach";
+import { readProgramAction } from "@/actions/program";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { SessionTable } from "@/components/SessionTable";
 import { btn, Card, Chip, Eyebrow, input } from "@/components/ui";
+import { defaultWeekStart } from "@/lib/read/program";
 import { requirePage } from "@/lib/auth";
 import { dateLabel } from "@/lib/copy";
 import { matchDayTag } from "@/lib/fixtures";
@@ -13,8 +15,13 @@ import { getFixtures, getNotice, getPulse, listSessions } from "@/lib/store";
 
 export const metadata = { title: "Program" };
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
-export default async function Program() {
+export default async function Program({ searchParams }: PageProps<"/coach/program">) {
+  const q = await searchParams;
+  const one = (k: string) => (typeof q[k] === "string" ? (q[k] as string).slice(0, 400) : null);
+  const readerr = one("readerr");
+  const applied = one("applied");
   const { club } = await requirePage("coach");
   const today = todayStr();
   const [sessions, importError, fixtureError, fixtures, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "import"), getNotice(club, "fixtures"), getFixtures(club), getPulse(club, "coach")]);
@@ -29,13 +36,39 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
       <header>
         <Link href="/coach" className="text-sm text-muted hover:text-ink">← Today</Link>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Program</h1>
-        <p className="mt-1 max-w-2xl text-muted">Rows with no group are the session for everyone. A row with a group name is that group’s own version of the session, and its players get it instead. Pasting a new program replaces all sessions.</p>
+        <p className="mt-1 max-w-2xl text-muted">Give me your program the way you already have it. I read it, you check it, and only then does it reach your players.</p>
       </header>
+
+      {applied && <div className="rounded-lg border border-line bg-paper px-4 py-3 text-sm">{applied}</div>}
+
+      <section className="space-y-3">
+        <Eyebrow>Tell me your program</Eyebrow>
+        <Card className="space-y-3 p-5">
+          {readerr && <div className="rounded-md border border-warn/30 bg-warn-bg p-3 text-sm text-warn">{readerr}</div>}
+          <p className="text-sm text-muted">Paste a week from a message, a document or a spreadsheet, or choose the file. Name a group (Starters, Reserves) and it gets its own version. Nothing changes for players until you press Use this program.</p>
+          <form action={readProgramAction} className="space-y-3">
+            <div>
+              <label htmlFor="week_start" className="block text-sm font-medium">Week starting (Monday)</label>
+              <input id="week_start" name="week_start" type="date" defaultValue={defaultWeekStart(today)} className={`${input} mt-1 max-w-48`} />
+            </div>
+            <div>
+              <label htmlFor="program_text" className="block text-sm font-medium">Your program</label>
+              <textarea id="program_text" name="text" rows={8} placeholder={"Mon - Lower: back squat 4x5 @85%, RDL 3x8\nWed - Upper: bench 4x6, row 4x8\nFri - Reserves: split squat 3x8, hip thrust 3x10"} className={input} />
+            </div>
+            <div>
+              <label htmlFor="program_file" className="block text-sm font-medium">Or a file (.xlsx, .csv, .txt)</label>
+              <input id="program_file" name="file" type="file" accept=".xlsx,.csv,.txt" className="mt-1 block text-sm" />
+            </div>
+            <p className="text-xs text-muted">An outside assistant reads only the program you give it here. Leave out players’ names and any health information.</p>
+            <PendingButton className={btn} pending="Reading…">Read my program</PendingButton>
+          </form>
+        </Card>
+      </section>
 
       <section className="space-y-3">
         <Eyebrow>Upcoming sessions</Eyebrow>
         {sessions.length === 0 ? (
-          <Card className="px-5 py-6 text-sm text-muted">No sessions from today onward. Paste your program below.</Card>
+          <Card className="px-5 py-6 text-sm text-muted">No sessions from today onward. Tell me your program above.</Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {sessions.map((s) => (
@@ -62,8 +95,8 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
       <section className="space-y-3">
         <Eyebrow>Fixtures</Eyebrow>
         <Card className="space-y-3 p-5">
-          {fixtureError && <pre className="whitespace-pre-wrap rounded-md border border-bad/30 bg-bad-bg p-3 text-sm text-bad">{fixtureError}</pre>}
-          <p className="text-sm text-muted">Match dates, one per line or comma-separated (YYYY-MM-DD). Sessions within three days of a match are tagged MD-2, MD, MD+1 and so on, and the agent is told.</p>
+          {fixtureError && <div className="rounded-md border border-warn/30 bg-warn-bg p-3 text-sm text-warn">{fixtureError}</div>}
+          <p className="text-sm text-muted">Paste your fixture list as it is: “Sat 11 Oct v Reading (H)”, “18/10/2026” or “2026-10-25”, one per line. Sessions within three days of a match are tagged MD-2, MD, MD+1 and so on, and the agent is told.</p>
           <form action={saveFixtureList} className="space-y-3">
             <label htmlFor="fixtures" className="block text-sm font-medium">Match dates</label>
             <textarea id="fixtures" name="fixtures" rows={3} defaultValue={fixtures.join("\n")} className={`${input} font-mono text-[13px]`} />
@@ -72,9 +105,9 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
         </Card>
       </section>
 
-      <section className="space-y-3">
-        <Eyebrow>Import</Eyebrow>
-        <Card className="space-y-3 p-5">
+      <details id="advanced" className="group">
+        <summary className="cursor-pointer text-sm font-medium text-muted hover:text-ink"><Eyebrow>Advanced: import a CSV</Eyebrow></summary>
+        <Card className="mt-3 space-y-3 p-5">
           {importError && <pre className="whitespace-pre-wrap rounded-md border border-line bg-paper p-3 text-sm text-ink">{importError}</pre>}
           <p className="text-sm text-muted">One row per exercise. Columns: date (YYYY-MM-DD), label, week_type (normal or deload), exercise, sets, reps, load, target_rpe (optional). Add a ninth column, <span className="font-mono">group</span>, to give a group its own version, for example <span className="font-mono">Reserves</span>. Assign players to groups in <Link href="/coach/squad" className="underline underline-offset-4">Squad</Link>.</p>
           <form action={importProgram} className="space-y-3">
@@ -83,7 +116,7 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
             <PendingButton className={btn} pending="Importing…">{sessions.length ? "Replace program" : "Import program"}</PendingButton>
           </form>
         </Card>
-      </section>
+      </details>
     </div>
   );
 }

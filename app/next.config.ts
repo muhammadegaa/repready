@@ -33,7 +33,8 @@ function buildCheck() {
 const config = (phase: string): NextConfig => {
   if (phase === PHASE_PRODUCTION_BUILD) buildCheck();
   return {
-    /* config options here */
+    // A coach can upload a spreadsheet to be read; the default limit is 1 MB. Vercel itself allows 4.5 MB.
+    experimental: { serverActions: { bodySizeLimit: "3mb" } },
   };
 };
 
