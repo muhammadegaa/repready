@@ -45,6 +45,11 @@ jobs:
         run: npx --yes firebase-tools@latest emulators:exec --only firestore --project repready-7dacd --config ../firebase.json "npx vitest run"
       - name: Browser tests
         run: npx --yes firebase-tools@latest emulators:exec --only firestore --project repready-7dacd --config ../firebase.json "npx playwright test"
+      - name: Payment gate test
+        env:
+          NEXT_PUBLIC_PAYMENT_LINK: https://buy.stripe.test/e2e
+          E2E_PORT: "3120"
+        run: npx --yes firebase-tools@latest emulators:exec --only firestore --project repready-7dacd --config ../firebase.json "npx playwright test e2e/gate.spec.ts"
       - name: Keep failure screenshots and traces
         if: failure()
         uses: actions/upload-artifact@v4

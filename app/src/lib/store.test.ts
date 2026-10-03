@@ -5,7 +5,7 @@ import {
   logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionFor, sessionsOn, setGroup,
   sessionsForDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads, createPlayers, claimLink, resetLink,
   createPasswordReset, resetPassword, resetTokenUsable, createOverride, liftOverride, listOverrides, listActiveOverrides, listClubOverrides,
-  getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
+  getClub, markClubPaid, getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
 } from "./store";
 
 // Needs the Firestore emulator: npm run test:emulator
@@ -15,6 +15,17 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
   const other = "def456";
   const createAthlete = async (name: string, club = C) => (await createPlayers(club, [{ name, shirt: null, position: "", squad: "First team" }]))[0];
   const ex = [{ name: "Back squat", sets: 4, reps: 5, load: "85% 1RM", target_rpe: 8 }];
+
+  it("a new club is unpaid until a payment marks it, and an unknown club cannot be marked", async () => {
+    const made = await createClubWithOwner(`Pay FC ${run}`, { email: `pay-${run}@example.com`, name: "Pat", pw: "x" });
+    expect(made).not.toBeNull();
+    const id = made!.club.id;
+    expect((await getClub(id))?.paid_at).toBeNull();
+    expect(await markClubPaid(id)).toBe(true);
+    expect((await getClub(id))?.paid_at).toMatch(/^\d{4}-/);
+    expect(await markClubPaid("ffffff")).toBe(false);
+    expect(await markClubPaid("not-a-club")).toBe(false);
+  });
 
   it("creates an athlete, rejects odd codes, records consent once", async () => {
     const code = await createAthlete("Test Athlete");

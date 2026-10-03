@@ -2,9 +2,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { clubHasAccess } from "./billing";
 import { getClub, getStaff, type StaffRole, type StaffRow } from "./store";
 
-export type Session = { id: string; name: string; email: string; club: string; clubName: string; roles: StaffRole[]; admin: boolean };
+export type Session = { id: string; name: string; email: string; club: string; clubName: string; roles: StaffRole[]; admin: boolean; access: boolean };
 
 const COOKIE = "rr_s";
 const DAYS = 30;
@@ -54,13 +55,14 @@ export const getSession = cache(async (): Promise<Session | null> => {
   if (!staff) return null;
   const club = await getClub(staff.club);
   if (!club) return null;
-  return { id, name: staff.name, email: staff.email, club: staff.club, clubName: club.name, roles: staff.roles, admin: staff.admin };
+  return { id, name: staff.name, email: staff.email, club: staff.club, clubName: club.name, roles: staff.roles, admin: staff.admin, access: clubHasAccess(club) };
 });
 
 // For pages: send people without the role to sign in.
 export async function requirePage(role: StaffRole): Promise<Session> {
   const s = await getSession();
   if (!s || !s.roles.includes(role)) redirect("/signin");
+  if (!s.access) redirect("/subscribe");
   return s;
 }
 
@@ -68,6 +70,7 @@ export async function requirePage(role: StaffRole): Promise<Session> {
 export async function requireStaff(role: StaffRole): Promise<Session> {
   const s = await getSession();
   if (!s || !s.roles.includes(role)) throw new Error(`Not signed in as ${role}`);
+  if (!s.access) throw new Error("This club has not subscribed yet");
   return s;
 }
 

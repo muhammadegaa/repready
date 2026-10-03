@@ -122,7 +122,7 @@ export async function listEvents(club: string, limit: number): Promise<EventRow[
 
 // ---- clubs and staff
 export type StaffRole = "coach" | "scientist";
-export type ClubRow = { id: string; name: string; created_at: string };
+export type ClubRow = { id: string; name: string; created_at: string; paid_at: string | null };
 export type StaffRow = { id: string; email: string; name: string; club: string; roles: StaffRole[]; admin: boolean; pw: string; created_at: string };
 export type InviteRow = { token: string; kind: "staff" | "squad"; club: string; roles: StaffRole[]; expires_at: string | null; used_at: string | null; created_at: string };
 
@@ -140,7 +140,15 @@ export async function listClubs(): Promise<ClubRow[]> {
 export async function getClub(id: string): Promise<ClubRow | null> {
   if (!/^[0-9a-f]{6}$/.test(id)) return null;
   const s = await fs.collection("clubs").doc(id).get();
-  return s.exists ? { id, name: s.get("name"), created_at: s.get("created_at") } : null;
+  return s.exists ? { id, name: s.get("name"), created_at: s.get("created_at"), paid_at: s.get("paid_at") ?? null } : null;
+}
+
+export async function markClubPaid(id: string): Promise<boolean> {
+  if (!/^[0-9a-f]{6}$/.test(id)) return false;
+  const ref = fs.collection("clubs").doc(id);
+  if (!(await ref.get()).exists) return false;
+  await ref.update({ paid_at: new Date().toISOString() });
+  return true;
 }
 
 // Creates the club and its first staff member, who becomes the club admin with both views. Returns null when the email already has an account.
@@ -160,7 +168,7 @@ export async function createClubWithOwner(clubName: string, owner: { email: stri
   });
   if (!ok) return null;
   await logEvent(id, { type: "club", athlete_code: null, athlete_name: null, text: `${clubName} created by ${owner.name}` });
-  return { club: { id, name: clubName, created_at: now }, staff: staffRow(sid, data) };
+  return { club: { id, name: clubName, created_at: now, paid_at: null }, staff: staffRow(sid, data) };
 }
 
 export async function getStaff(id: string): Promise<StaffRow | null> {

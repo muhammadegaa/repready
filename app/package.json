@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:emulator": "firebase emulators:exec --only firestore --project repready-7dacd --config ../firebase.json \"vitest run\"",
     "test:e2e": "firebase emulators:exec --only firestore --project repready-7dacd --config ../firebase.json \"playwright test\"",
-    "vercel-build": "node scripts/ensure-deps.mjs && next build"
+    "test:e2e:gate": "NEXT_PUBLIC_PAYMENT_LINK=https://buy.stripe.test/e2e E2E_PORT=3120 firebase emulators:exec --only firestore --project repready-7dacd --config ../firebase.json \"playwright test e2e/gate.spec.ts\""
   },
   "dependencies": {
     "firebase-admin": "^14.5.0",

@@ -101,3 +101,6 @@ Principle: give it whatever you have; it reads it; you confirm. No coach or play
 - **Fixtures**: read in our own code from the formats coaches write; unreadable lines are listed, good ones kept.
 - **Tests**: unit tests per reader; the browser suite runs against a fake model server (`app/e2e/fake-llm.mjs`), 12 tests. CI green on 729ea48.
 - **Open**: the program reader has not run against a real model (no route to OpenRouter from the build sandbox): check with a real week before the pilot. Upstream provider region/retention/training use for OpenRouter is still to confirm (see PRIVACY-DRAFT.md).
+
+## Payment gate (2026-10-03)
+Set `NEXT_PUBLIC_PAYMENT_LINK` (Stripe Payment Link) and the product is gated: a new club signs up, lands on `/subscribe`, pays through the link (the club id travels as `client_reference_id`), and Stripe's `checkout.session.completed` webhook (`/api/stripe/webhook`, verified with `STRIPE_WEBHOOK_SECRET`) marks the club paid. `COMPED_CLUBS` (comma separated club ids) lets a club in without paying. No link set means no gate. Build diagnostics removed after the Vercel build was confirmed working.
