@@ -667,6 +667,12 @@ export async function saveProposal(p: Omit<ProposalRow, "id" | "coach_note" | "e
   await touch(club, "coach", `a_${p.athlete_code}`);
 }
 
+// Check-ins from a date on, as the codes that answered, so the caller can leave out sample players.
+export async function checkinCodesSince(club: string, from: string): Promise<string[]> {
+  const q = await col(club, "checkins").where("on_date", ">=", from).limit(5000).get();
+  return q.docs.map((d) => String(d.data().athlete_code));
+}
+
 export async function listProposals(club: string, limit: number): Promise<ProposalRow[]> {
   const q = await col(club, "proposals").orderBy("created_at", "desc").limit(limit).get();
   return q.docs.map((d) => proposal(d.id, d.data()));

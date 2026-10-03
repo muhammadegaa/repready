@@ -317,3 +317,10 @@ test("fixtures are read as a coach writes them", async ({ page }) => {
   await expect(page.getByText(/Saved 2 match dates/)).toBeVisible();
   await expect(page.locator("#fixtures")).toHaveValue("2026-10-11\n2026-10-18");
 });
+
+test("results show an empty state for a new club", async ({ page }) => {
+  await signUp(page);
+  await page.getByRole("link", { name: "Results" }).first().click();
+  await expect(page.getByRole("heading", { name: "Results" })).toBeVisible();
+  await expect(page.getByText("Sample players are not counted.")).toBeVisible();
+});
