@@ -2,6 +2,7 @@ import { resendVerification, signOutAction } from "@/actions/auth";
 import { Brand } from "@/components/Brand";
 import { Nav } from "@/components/Nav";
 import { getSession, homeFor } from "@/lib/auth";
+import { requireEmailConfirmation } from "@/lib/mail";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const s = await getSession();
@@ -30,7 +31,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           <a href="/signin" className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-paper">Sign in</a>
         )}
       </header>
-      {s && !s.verified && (
+      {s && requireEmailConfirmation() && !s.verified && (
         <form action={resendVerification} className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-warn/30 bg-warn-bg px-4 py-2 text-sm text-warn">
           <span>Confirm your email address ({s.email}) to receive the morning digest.</span>
           <button className="font-medium underline underline-offset-4">Send me the link</button>

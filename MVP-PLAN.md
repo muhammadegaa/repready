@@ -113,3 +113,5 @@ Program page, "Match minutes": the coach jots who played ("Ola Adeyemi 90", "Ort
 
 ## Returning from Stripe (2026-10-03)
 In the Stripe payment link set "After payment: redirect to your website" to `https://<domain>/subscribe?session_id={CHECKOUT_SESSION_ID}`. The Subscribe page then asks Stripe whether that checkout was paid for this club (needs `STRIPE_SECRET_KEY`, a restricted key with read access to Checkout Sessions) and opens the club straight away; the webhook (`STRIPE_WEBHOOK_SECRET`) remains the backstop. While neither has confirmed, the page says "Payment received" and checks again every few seconds.
+
+Email confirmation is off by default (no banner, digest to every coach address) until `REQUIRE_EMAIL_CONFIRMATION=1` is set, which should wait for a verified sending domain in Resend and `MAIL_FROM`. Paid clubs now open from Stripe's own record (`STRIPE_SECRET_KEY`) even if the redirect and webhook did not fire.

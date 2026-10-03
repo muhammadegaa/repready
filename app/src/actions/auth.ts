@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { checkPassword, getSession, hashPassword, homeFor, PASSWORD_MIN, signOut, startSession } from "@/lib/auth";
-import { sendMail } from "@/lib/mail";
+import { requireEmailConfirmation, sendMail } from "@/lib/mail";
 import { acceptStaffInvite, createClubWithOwner, createEmailVerification, createPasswordReset, getStaffByEmail, resetPassword } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -40,6 +40,7 @@ export async function signUp(f: FormData) {
 }
 
 async function sendVerification(staffId: string): Promise<"sent" | "throttled" | "done" | "failed"> {
+  if (!requireEmailConfirmation()) return "done";
   const v = await createEmailVerification(staffId);
   if (v === "throttled" || v === "done") return v;
   if (!v) return "failed";

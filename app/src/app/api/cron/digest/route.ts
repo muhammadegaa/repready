@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { buildDigest } from "@/lib/digest";
-import { sendMail } from "@/lib/mail";
+import { requireEmailConfirmation, sendMail } from "@/lib/mail";
 import { todayStr } from "@/lib/run-agent";
 import { listClubs, listStaff } from "@/lib/store";
 import { coachToday } from "@/lib/views";
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
     if (roster.length === 0) continue;
     const { subject, text } = buildDigest({ clubName: club.name, date: today, sessionLabel: data.session?.label ?? null, roster, appUrl });
     let sent = 0, failed = 0;
-    for (const s of staff.filter((x) => x.roles.includes("coach") && x.verified_at)) {
+    for (const s of staff.filter((x) => x.roles.includes("coach") && (!requireEmailConfirmation() || x.verified_at))) {
       const r = await sendMail({ to: s.email, subject, text });
       if (r.sent) sent++;
       else failed++;

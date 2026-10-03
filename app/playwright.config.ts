@@ -28,6 +28,7 @@ export default defineConfig({
         SESSION_SECRET: "e2e-only-secret",
         FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST ?? "127.0.0.1:8080",
         ...(process.env.NEXT_PUBLIC_PAYMENT_LINK ? { NEXT_PUBLIC_PAYMENT_LINK: process.env.NEXT_PUBLIC_PAYMENT_LINK, STRIPE_WEBHOOK_SECRET: "whsec_e2e" } : {}),
+        REQUIRE_EMAIL_CONFIRMATION: "1",
         OPENROUTER_API_KEY: "fake", OPENROUTER_MODEL: "fake", OPENROUTER_BASE_URL: `http://127.0.0.1:${llmPort}`,
       },
     },
