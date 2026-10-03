@@ -47,3 +47,18 @@ export function paidClubFrom(event: unknown): string | null {
   if (!o || o.payment_status !== "paid" && o.payment_status !== "no_payment_required") return null;
   return /^[0-9a-f]{6}$/.test(o.client_reference_id ?? "") ? o.client_reference_id! : null;
 }
+
+// When Stripe sends the buyer back with ?session_id=..., ask Stripe directly whether that checkout was paid and was for this club.
+// This works even if the webhook is late or not set up yet. Needs STRIPE_SECRET_KEY; without it only the webhook unlocks a club.
+export async function checkoutPaidFor(sessionId: string, clubId: string, f: typeof fetch = fetch): Promise<boolean> {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key || !/^cs_(test|live)_[A-Za-z0-9]{10,200}$/.test(sessionId)) return false;
+  try {
+    const res = await f(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return false;
+    const o = (await res.json()) as { client_reference_id?: string; payment_status?: string };
+    return o.client_reference_id === clubId && (o.payment_status === "paid" || o.payment_status === "no_payment_required");
+  } catch {
+    return false;
+  }
+}

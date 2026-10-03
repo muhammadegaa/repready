@@ -110,3 +110,6 @@ Sign-up and staff-invite acceptance send a confirmation link (24 hours, single u
 
 ## Match minutes (2026-10-03)
 Program page, "Match minutes": the coach jots who played ("Ola Adeyemi 90", "Ortiz 65", "Sam DNP"); names are matched in our own code (never guessed between two players), shown for a check, then saved per player and date. Shown on each player's page for the last 14 days with a total. **It does not change any session and no rule uses it yet**: the thresholds that should (for example a heavy match week) are a sports scientist's call, so they wait for the pilot club's input. Training load beyond minutes is still not started.
+
+## Returning from Stripe (2026-10-03)
+In the Stripe payment link set "After payment: redirect to your website" to `https://<domain>/subscribe?session_id={CHECKOUT_SESSION_ID}`. The Subscribe page then asks Stripe whether that checkout was paid for this club (needs `STRIPE_SECRET_KEY`, a restricted key with read access to Checkout Sessions) and opens the club straight away; the webhook (`STRIPE_WEBHOOK_SECRET`) remains the backstop. While neither has confirmed, the page says "Payment received" and checks again every few seconds.

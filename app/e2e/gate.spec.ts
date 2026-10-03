@@ -14,6 +14,10 @@ test("an unpaid club is held at Subscribe until Stripe's signed webhook says it 
   await page.locator("form button").click();
   await page.waitForURL(/\/subscribe$/);
   await expect(page).toHaveURL(/\/subscribe$/);
+  // Coming back from Stripe before payment is confirmed shows a waiting page, not an error or a dead end.
+  await page.goto("/subscribe?session_id=cs_test_" + "a".repeat(30));
+  await expect(page.getByText("Payment received")).toBeVisible();
+  await page.goto("/subscribe");
   const href = await page.getByRole("link", { name: "Subscribe" }).getAttribute("href");
   expect(href).toContain("client_reference_id=");
   const id = new URL(href!).searchParams.get("client_reference_id")!;

@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { hasAccess, paidClubFrom, verifyStripe } from "./billing";
+import { checkoutPaidFor, hasAccess, paidClubFrom, verifyStripe } from "./billing";
 
 const club = { id: "abc123", paid_at: null };
 describe("hasAccess", () => {
@@ -29,5 +29,23 @@ describe("paidClubFrom", () => {
     expect(paidClubFrom(ev({ client_reference_id: "abc123", payment_status: "unpaid" }))).toBeNull();
     expect(paidClubFrom(ev({ client_reference_id: "abc123", payment_status: "paid" }, "charge.refunded"))).toBeNull();
     expect(paidClubFrom(ev({ client_reference_id: "nope", payment_status: "paid" }))).toBeNull();
+  });
+});
+
+describe("checkoutPaidFor", () => {
+  const reply = (body: object, ok = true) => (async () => ({ ok, json: async () => body })) as unknown as typeof fetch;
+  const id = "cs_test_" + "a".repeat(30);
+  it("needs a Stripe key", async () => {
+    delete process.env.STRIPE_SECRET_KEY;
+    expect(await checkoutPaidFor(id, "abc123", reply({ client_reference_id: "abc123", payment_status: "paid" }))).toBe(false);
+  });
+  it("accepts a paid session for this club only", async () => {
+    process.env.STRIPE_SECRET_KEY = "sk_test_x";
+    expect(await checkoutPaidFor(id, "abc123", reply({ client_reference_id: "abc123", payment_status: "paid" }))).toBe(true);
+    expect(await checkoutPaidFor(id, "abc123", reply({ client_reference_id: "ffffff", payment_status: "paid" }))).toBe(false);
+    expect(await checkoutPaidFor(id, "abc123", reply({ client_reference_id: "abc123", payment_status: "unpaid" }))).toBe(false);
+    expect(await checkoutPaidFor(id, "abc123", reply({}, false))).toBe(false);
+    expect(await checkoutPaidFor("not-a-session", "abc123", reply({ client_reference_id: "abc123", payment_status: "paid" }))).toBe(false);
+    delete process.env.STRIPE_SECRET_KEY;
   });
 });
