@@ -13,7 +13,8 @@ import { UsualToday } from "@/components/UsualToday";
 import { requirePage } from "@/lib/auth";
 import { ago, dateLabel, decisionCopy } from "@/lib/copy";
 import { todayStr } from "@/lib/run-agent";
-import { getPulse } from "@/lib/store";
+import { addDays } from "@/lib/read/program";
+import { getPulse, listMinutesFor } from "@/lib/store";
 import { athleteDetail, STATUS, statusOf } from "@/lib/views";
 import { providerName } from "@/lib/wearables";
 
@@ -37,7 +38,7 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
   const { code } = await props.params;
   const { overrideerr, overrideok } = await props.searchParams;
   const today = todayStr();
-  const [d, pulse] = await Promise.all([athleteDetail(code, today), getPulse(club, "coach")]);
+  const [d, pulse, minutes] = await Promise.all([athleteDetail(code, today), getPulse(club, "coach"), listMinutesFor(code, addDays(today, -13))]);
   if (!d || d.athlete.club !== club) notFound();
   const { athlete, days, proposals, todaySession, changed, overrides, exerciseNames, wearable, events } = d;
   const activeOverrides = overrides.filter((o) => isActive(o, today));
@@ -93,6 +94,16 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
         <Eyebrow>Today against their own usual</Eyebrow>
         <UsualToday days={days} first={athlete.name.split(" ")[0]} />
       </section>
+
+      {minutes.length > 0 && (
+        <section className="space-y-3">
+          <Eyebrow>Match minutes, last 14 days</Eyebrow>
+          <Card className="flex flex-wrap items-baseline gap-x-6 gap-y-1 px-5 py-4 text-sm">
+            {minutes.map((m) => <span key={m.on_date}><b className="tabular-nums">{m.minutes}</b> min <span className="text-muted">{dateLabel(m.on_date)}</span></span>)}
+            <span className="text-muted">Total {minutes.reduce((t, m) => t + m.minutes, 0)} min</span>
+          </Card>
+        </section>
+      )}
 
       <section className="space-y-3">
         <Eyebrow>Last 14 days</Eyebrow>

@@ -107,3 +107,6 @@ Set `NEXT_PUBLIC_PAYMENT_LINK` (Stripe Payment Link) and the product is gated: a
 
 ## Email confirmation (2026-10-03)
 Sign-up and staff-invite acceptance send a confirmation link (24 hours, single use, voided if the address changes). Until confirmed the coach sees a banner with a resend button, and the morning digest is not sent to that address. A completed password reset also confirms the address. Existing accounts show as unconfirmed until they use the banner or a reset.
+
+## Match minutes (2026-10-03)
+Program page, "Match minutes": the coach jots who played ("Ola Adeyemi 90", "Ortiz 65", "Sam DNP"); names are matched in our own code (never guessed between two players), shown for a check, then saved per player and date. Shown on each player's page for the last 14 days with a total. **It does not change any session and no rule uses it yet**: the thresholds that should (for example a heavy match week) are a sports scientist's call, so they wait for the pilot club's input. Training load beyond minutes is still not started.

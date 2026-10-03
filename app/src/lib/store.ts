@@ -762,11 +762,25 @@ export async function setNotice(club: string, k: string, v: string | null): Prom
   else await ref.set({ v });
 }
 
+// ---- match minutes: what the coach tells us each player played, one record per player per date
+export type MinutesEntry = { athlete_code: string; on_date: string; minutes: number };
+export async function saveMinutes(club: string, onDate: string, rows: { code: string; name: string; minutes: number }[]): Promise<void> {
+  const batch = fs.batch();
+  for (const r of rows) batch.set(col(club, "minutes").doc(`${r.code}_${onDate}`), { athlete_code: r.code, on_date: onDate, minutes: r.minutes, created_at: new Date().toISOString() });
+  await batch.commit();
+  await logEvent(club, { type: "minutes", athlete_code: null, athlete_name: null, text: `Match minutes saved for ${rows.length} player${rows.length === 1 ? "" : "s"} (${onDate})` });
+  await touch(club, "coach");
+}
+export async function listMinutesFor(code: string, from: string): Promise<MinutesEntry[]> {
+  const q = await col(clubOf(code), "minutes").where("athlete_code", "==", code).get();
+  return q.docs.map((d) => d.data() as MinutesEntry).filter((m) => m.on_date >= from).sort((a, b) => b.on_date.localeCompare(a.on_date));
+}
+
 // ---- deletion
 export async function deleteAthleteData(code: string, opts: { quiet?: boolean } = {}): Promise<void> {
   const club = clubOf(code);
   const a = await getAthlete(code);
-  for (const c of ["checkins", "readiness", "session_logs", "proposals", "events", "overrides"]) {
+  for (const c of ["checkins", "readiness", "session_logs", "proposals", "events", "overrides", "minutes"]) {
     const q = await col(club, c).where("athlete_code", "==", code).get();
     for (let i = 0; i < q.docs.length; i += 400) {
       const batch = fs.batch();

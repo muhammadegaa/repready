@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { saveFixtureList } from "@/actions/coach";
+import { confirmMinutes, discardMinutes, readMinutesAction, saveFixtureList } from "@/actions/coach";
 import { readProgramAction } from "@/actions/program";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { SessionTable } from "@/components/SessionTable";
 import { btn, Card, Chip, Eyebrow, input } from "@/components/ui";
-import { defaultWeekStart } from "@/lib/read/program";
+import { addDays, defaultWeekStart } from "@/lib/read/program";
 import { requirePage } from "@/lib/auth";
 import { dateLabel } from "@/lib/copy";
 import { matchDayTag } from "@/lib/fixtures";
@@ -24,7 +24,10 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
   const applied = one("applied");
   const { club } = await requirePage("coach");
   const today = todayStr();
-  const [sessions, fixtureError, fixtures, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "fixtures"), getFixtures(club), getPulse(club, "coach")]);
+  const [sessions, fixtureError, minutesError, minutesPreview, fixtures, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "fixtures"), getNotice(club, "minutes"), getNotice(club, "minutes_preview"), getFixtures(club), getPulse(club, "coach")]);
+  const lastMatch = [...fixtures].filter((d) => d <= today).pop() ?? addDays(today, -1);
+  const preview = (() => { try { return JSON.parse(minutesPreview ?? "") as { date: string; rows: { code: string; name: string; minutes: number }[]; unmatched: string[] }; } catch { return null; } })();
+
   return (
     <div className="space-y-8">
       <Live scope="coach" initial={pulse} />
@@ -97,6 +100,36 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
             <textarea id="fixtures" name="fixtures" rows={3} defaultValue={fixtures.join("\n")} className={`${input} font-mono text-[13px]`} />
             <PendingButton className={btn} pending="Saving…">Save fixtures</PendingButton>
           </form>
+        </Card>
+      </section>
+      <section id="minutes" className="space-y-3">
+        <Eyebrow>Match minutes</Eyebrow>
+        <Card className="space-y-3 p-5">
+          {minutesError && <div className="rounded-md border border-warn/30 bg-warn-bg p-3 text-sm text-warn">{minutesError}</div>}
+          {preview ? (
+            <div className="space-y-3">
+              <p className="text-sm">I matched {preview.rows.length} player{preview.rows.length === 1 ? "" : "s"} for {dateLabel(preview.date)}. Check them, then save.</p>
+              <ul className="max-h-64 divide-y divide-line overflow-auto rounded-md border border-line text-sm">
+                {preview.rows.map((r) => <li key={r.code} className="flex justify-between gap-3 px-3 py-1.5"><span className="font-medium">{r.name}</span><span className="tabular-nums text-muted">{r.minutes} min</span></li>)}
+              </ul>
+              {preview.unmatched.length > 0 && <p className="text-sm text-muted">Not matched to a single player, so left out: {preview.unmatched.map((l) => `“${l}”`).join(", ")}</p>}
+              <div className="flex gap-3">
+                <form action={confirmMinutes}><PendingButton className={btn} pending="Saving…">Save minutes</PendingButton></form>
+                <form action={discardMinutes}><PendingButton className="text-sm text-muted underline underline-offset-4" pending="…">Start again</PendingButton></form>
+              </div>
+            </div>
+          ) : (
+            <form action={readMinutesAction} className="space-y-3">
+              <p className="text-sm text-muted">After a match, jot who played and for how long, one per line: “Ola Adeyemi 90”, “Ortiz 65”, “Sam DNP”. It shows on each player&apos;s page next to how they check in. It does not change anyone&apos;s session.</p>
+              <div>
+                <label htmlFor="minutes_date" className="block text-sm font-medium">Match date</label>
+                <input id="minutes_date" name="date" type="date" max={today} defaultValue={lastMatch} className={`${input} mt-1 max-w-48`} />
+              </div>
+              <label htmlFor="minutes_text" className="sr-only">Minutes played</label>
+              <textarea id="minutes_text" name="minutes" rows={5} className={input} placeholder={"Ola Adeyemi 90\nOrtiz 65\nSam DNP"} />
+              <PendingButton className={btn} pending="Reading…">Read minutes</PendingButton>
+            </form>
+          )}
         </Card>
       </section>
     </div>

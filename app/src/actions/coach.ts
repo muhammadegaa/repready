@@ -12,10 +12,11 @@ import { readFixtureDates } from "@/lib/fixtures";
 import { planFor, playerExerciseNames } from "@/lib/plan";
 import { validateOverride } from "@/lib/overrides";
 import { runAgentFor, todayStr } from "@/lib/run-agent";
+import { readMinutes } from "@/lib/minutes";
 import { fileToText } from "@/lib/read/files";
 import { POSITIONS, readSquad, storedPlayers } from "@/lib/squad";
 import {
-  approvePlayer, CODE_RE, getNotice, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
+  approvePlayer, CODE_RE, getNotice, listAthletes, saveMinutes, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -238,4 +239,45 @@ export async function toggleProtected(f: FormData) {
   const has = a.protected.includes(exercise);
   await setProtected(a.code, has ? a.protected.filter((x) => x !== exercise) : [...a.protected, exercise]);
   revalidatePath(`/coach/athletes/${a.code}`);
+}
+
+// Match minutes: a coach jots who played; names are matched in our own code, shown for a check, then saved.
+const isoDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && new Date(`${s}T00:00:00Z`).toISOString().startsWith(s);
+
+export async function readMinutesAction(f: FormData) {
+  const { club } = await requireStaff("coach");
+  const date = text(f, "date");
+  const raw = text(f, "minutes").slice(0, 8000);
+  if (!isoDate(date) || date > todayStr()) {
+    await setNotice(club, "minutes", "Choose the date of the match. It cannot be in the future.");
+  } else {
+    const { rows, unmatched } = readMinutes(raw, (await listAthletes(club)).filter((a) => a.approved).map((a) => ({ code: a.code, name: a.name })));
+    if (!rows.length) await setNotice(club, "minutes", raw ? "I could not match any of those lines to a player. Use the player's name and their minutes, one per line." : "Paste who played and for how long, one player per line.");
+    else {
+      await setNotice(club, "minutes", null);
+      await setNotice(club, "minutes_preview", JSON.stringify({ date, rows, unmatched: unmatched.slice(0, 10) }));
+    }
+  }
+  revalidatePath("/coach/program");
+  redirect("/coach/program#minutes");
+}
+
+export async function confirmMinutes() {
+  const { club } = await requireStaff("coach");
+  const stored = await getNotice(club, "minutes_preview");
+  await setNotice(club, "minutes_preview", null);
+  try {
+    const d = JSON.parse(stored ?? "") as { date: string; rows: { code: string; name: string; minutes: number }[] };
+    const mine = new Set((await listAthletes(club)).map((a) => a.code));
+    const rows = d.rows.filter((r) => mine.has(r.code) && Number.isInteger(r.minutes) && r.minutes >= 0 && r.minutes <= 130);
+    if (isoDate(d.date) && rows.length) await saveMinutes(club, d.date, rows);
+  } catch { /* nothing valid was waiting */ }
+  revalidatePath("/coach");
+  redirect("/coach/program?applied=" + encodeURIComponent("Match minutes saved."));
+}
+
+export async function discardMinutes() {
+  const { club } = await requireStaff("coach");
+  await setNotice(club, "minutes_preview", null);
+  redirect("/coach/program#minutes");
 }

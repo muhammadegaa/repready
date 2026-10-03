@@ -345,3 +345,20 @@ test("an admin deletes the whole club by typing its name, and the account is gon
   await page.locator("form button").click();
   await expect(page.getByText("That email and password did not match.")).toBeVisible();
 });
+
+test("a coach jots match minutes, checks the matches, and they show on the player's page", async ({ page }) => {
+  await signUp(page);
+  await addPlayer(page, "Ola Adeyemi");
+  await addPlayer(page, "Sam Okafor");
+  await page.goto("/coach/program");
+  await page.locator("#minutes_text").fill("Ola Adeyemi 90\nSam DNP\nNobody Here 30");
+  await page.getByRole("button", { name: "Read minutes" }).click();
+  await expect(page.getByText(/I matched 2 players/)).toBeVisible();
+  await expect(page.getByText(/Not matched to a single player/)).toBeVisible();
+  await page.getByRole("button", { name: "Save minutes" }).click();
+  await expect(page.getByText("Match minutes saved.")).toBeVisible();
+  await page.goto("/coach/squad");
+  await page.getByRole("link", { name: "Open", exact: true }).first().click(); // alphabetical: Ola first
+  await expect(page.getByText("Match minutes, last 14 days")).toBeVisible();
+  await expect(page.getByText("Total 90 min")).toBeVisible();
+});
