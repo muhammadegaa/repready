@@ -125,3 +125,6 @@ Email confirmation is off by default (no banner, digest to every coach address) 
 
 ## Theme and brand (2026-10-03)
 One light theme (the near-black automatic dark mode is removed; `color-scheme: light`). Cool light page, white cards, slate text instead of near-black, one brand blue (`--brand` #2f6bed) for primary buttons, the active tab, selected pills, progress and the landing call to action. The yellow highlighter stays as the accent for "this value was changed". New mark: a tick ("ready") on brand blue with the highlighter dot; `app/icon.svg` is the favicon. Status colours (green/amber/red) are unchanged because they carry meaning.
+
+## Palette B and name redaction (2026-10-03)
+Palette **B, pitch and chalk**: chalk-white page, deep pitch-green actions and active tab (`--brand` #0f6b4f), slate-green text, signal lime (#d7ff3f) only where a value was changed. Status colours unchanged. Every model call now goes through `withRedaction`: known player names (full names and each part) become codes before the call and are restored in the answer; the browser test uses a fake model that fails the request if a name arrives.

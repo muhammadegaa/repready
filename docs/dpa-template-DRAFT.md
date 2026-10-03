@@ -34,7 +34,7 @@ The Controller decides the lawful basis and Article 9 condition for using player
 | Vercel | Hosting and server code | Functions pinned to London (lhr1); platform logs: [confirm] |
 | Resend | Staff emails (password reset, morning digest) | [confirm] |
 | Polar Electro | Only if a player connects a Polar device | Finland [confirm] |
-| OpenRouter (routes to an upstream model provider) | Reads the training program a coach pastes or uploads, into a draft the coach checks. Receives only that text, never player names, check-ins or health data. Squad lists and fixtures are read in our own code and never leave it | [confirm upstream region, retention and training use] |
+| OpenRouter (routes to an upstream model provider) | Reads the training program a coach pastes or uploads, into a draft the coach checks. Receives only that text. Known player names are replaced by codes in our own code before the call and restored after; check-ins and health data are never sent. Squad lists and fixtures are read in our own code and never leave it | [confirm upstream region, retention and training use] |
 | Junction | Wearable aggregator. Webhook exists but is not live | US [confirm]. Not used unless agreed |
 
 No AI model service receives player data. The program reader receives the coach's program text only; the screen tells coaches to leave out players' names and health information. If a model is ever given player data, this table and the privacy notice change first.

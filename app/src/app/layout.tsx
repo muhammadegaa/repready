@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "Players check in daily. The agent proposes edits to the planned session with reasons. Your staff approve every change.",
 };
 
-export const viewport: Viewport = { themeColor: "#2f6bed" };
+export const viewport: Viewport = { themeColor: "#0f6b4f" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

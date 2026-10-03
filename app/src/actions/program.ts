@@ -6,10 +6,11 @@ import { requireStaff } from "@/lib/auth";
 import { describeReport, resolveProgram } from "@/lib/library/resolve";
 import { fileToText } from "@/lib/read/files";
 import { ask, ModelUnavailable } from "@/lib/read/model";
+import { withRedaction } from "@/lib/read/redact";
 import { carryForward, nextMonday } from "@/lib/read/carry";
 import { addDays, blocking, defaultWeekStart, issuesOf, readProgram, reviseProgram, type ProgramDraft } from "@/lib/read/program";
 import { todayStr } from "@/lib/run-agent";
-import { closeDraft, createDraft, getDraft, getFixtures, listSessions, replaceSessionsInRange, saveDraft } from "@/lib/store";
+import { closeDraft, createDraft, getDraft, getFixtures, listAthletes, listSessions, replaceSessionsInRange, saveDraft } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && new Date(`${s}T00:00:00Z`).toISOString().startsWith(s);
@@ -36,13 +37,18 @@ export async function readProgramAction(f: FormData) {
 
   let draft: ProgramDraft;
   try {
-    draft = await readProgram(ask, { text: body, weekStart, today, fixtures: await getFixtures(club) });
+    draft = await readProgram(await safeAsk(club), { text: body, weekStart, today, fixtures: await getFixtures(club) });
   } catch (e) {
     if (e instanceof ModelUnavailable) return back("/coach/program", "readerr", e.message + MANUAL);
     throw e;
   }
   const id = await createDraft(club, name, draft);
   redirect(`/coach/program/review/${id}`);
+}
+
+// Every model call goes through this: player names are replaced by codes on the way out and restored on the way back.
+async function safeAsk(club: string) {
+  return withRedaction(ask, (await listAthletes(club)).map((a) => a.name));
 }
 
 async function open(club: string, id: string) {
@@ -79,7 +85,7 @@ export async function reviseDraft(f: FormData) {
   if (!instruction) return back(here, "err", "Say what to change, for example: reserves also train on Tuesday.");
   if (d.revisions >= 8) return back(here, "err", "That is a lot of changes. Discard this one and start again with the corrected text.");
   try {
-    const next = await reviseProgram(ask, d.program, instruction, { weekStart: d.program.week_start, today: todayStr(), fixtures: await getFixtures(club) });
+    const next = await reviseProgram(await safeAsk(club), d.program, instruction, { weekStart: d.program.week_start, today: todayStr(), fixtures: await getFixtures(club) });
     await saveDraft(club, id, next, d.revisions + 1);
   } catch (e) {
     if (e instanceof ModelUnavailable) return back(here, "err", e.message);

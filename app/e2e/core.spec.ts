@@ -284,8 +284,9 @@ test("a new coach loads a sample squad, tries a player's phone, and removes it a
 
 test("a coach pastes a program, checks what was read, changes it in words, and only then do players get it", async ({ page }) => {
   await signUp(page);
+  await addPlayer(page, "Ola Adeyemi"); // a name in the pasted text must not reach the model (the fake fails the request if it does)
   await page.goto("/coach/program");
-  await page.locator("#program_text").fill("Mon lower: squat 4x5, RDL 3x8\nWed upper: bench 4x6\nFri Reserves: split squat 3x8");
+  await page.locator("#program_text").fill("Mon lower: squat 4x5, RDL 3x8 (Adeyemi lighter)\nWed upper: bench 4x6\nFri Reserves: split squat 3x8");
   await page.getByRole("button", { name: "Read my program" }).click();
   await page.waitForURL(/\/coach\/program\/review\//);
   await expect(page.getByText("Nothing has reached your players yet")).toBeVisible();

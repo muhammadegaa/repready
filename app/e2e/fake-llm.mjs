@@ -13,6 +13,8 @@ http.createServer((req, res) => {
   let raw = "";
   req.on("data", (c) => (raw += c));
   req.on("end", () => {
+    // A player's name must never arrive here. If one does, fail loudly so the test catches it.
+    if (/Adeyemi/i.test(raw)) { res.statusCode = 500; return res.end("name leaked to the model"); }
     let user = "";
     try { user = JSON.parse(raw).messages.find((m) => m.role === "user").content; } catch {}
     // Tests that need an exact program put it in the pasted text after FAKE_PROGRAM:, and the fake "reads" it back.
