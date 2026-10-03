@@ -2,6 +2,7 @@ import { cert, getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore, type DocumentData } from "firebase-admin/firestore";
 import { createHash, randomBytes } from "node:crypto";
 import type { Edit, Exercise } from "./agent/schema";
+import { cleanGroup, pickSession } from "./groups";
 import { decisionCopy } from "./copy";
 
 // Hosted (Vercel): FIREBASE_SERVICE_ACCOUNT holds the service-account JSON on one line.
@@ -30,10 +31,11 @@ export type AthleteRow = {
   device_token: string | null;
   claimed_at: string | null;
   protected: string[];
+  group: string | null; // the coach's group for this player; null means Everyone
   sample: boolean; // fictional player created by the sample squad, removable in one click
   created_at: string;
 };
-export type SessionRow = { id: string; on_date: string; label: string; week_type: string; exercises: Exercise[]; sample?: boolean };
+export type SessionRow = { id: string; on_date: string; label: string; week_type: string; exercises: Exercise[]; group: string | null; sample?: boolean };
 export type Availability = "full" | "limited" | "out";
 export const AVAILABILITY: Availability[] = ["full", "limited", "out"];
 export type CheckinRow = { sleep_h: number; soreness: number; stress: number; note: string | null; availability: Availability };
@@ -74,7 +76,7 @@ export type EvalRun = {
 };
 
 const key = (code: string, date: string) => `${code}_${date}`;
-const session = (id: string, d: DocumentData): SessionRow => ({ id, on_date: d.on_date, label: d.label, week_type: d.week_type, exercises: d.exercises });
+const session = (id: string, d: DocumentData): SessionRow => ({ id, on_date: d.on_date, label: d.label, week_type: d.week_type, exercises: d.exercises, group: cleanGroup(d.group) });
 const athlete = (code: string, d: DocumentData): AthleteRow => ({
   code,
   club: clubOf(code),
@@ -87,6 +89,7 @@ const athlete = (code: string, d: DocumentData): AthleteRow => ({
   device_token: d.device_token ?? null,
   claimed_at: d.claimed_at ?? null,
   protected: d.protected ?? [],
+  group: cleanGroup(d.group),
   sample: d.sample === true,
   created_at: d.created_at ?? "",
 });
@@ -407,13 +410,15 @@ export async function setFixtures(club: string, dates: string[]): Promise<void> 
 }
 
 // ---- program
-export async function replaceSessions(club: string, sessions: Omit<SessionRow, "id">[]): Promise<void> {
+// A date can hold several sessions: one for everyone (group null) and one per group that has its own version.
+export async function replaceSessions(club: string, sessions: (Omit<SessionRow, "id" | "group"> & { group?: string | null })[]): Promise<void> {
   const old = await col(club, "sessions").get();
   const batch = fs.batch();
   old.docs.forEach((d) => batch.delete(d.ref));
-  sessions.forEach((s) => batch.set(col(club, "sessions").doc(), s));
+  sessions.forEach((x) => batch.set(col(club, "sessions").doc(), { ...x, group: cleanGroup(x.group) }));
   await batch.commit();
-  await logEvent(club, { type: "program", athlete_code: null, athlete_name: null, text: `Program imported: ${sessions.length} session${sessions.length === 1 ? "" : "s"}` });
+  const own = sessions.filter((x) => cleanGroup(x.group)).length;
+  await logEvent(club, { type: "program", athlete_code: null, athlete_name: null, text: `Program imported: ${sessions.length} session${sessions.length === 1 ? "" : "s"}${own ? `, ${own} for a group` : ""}` });
   const athletes = await col(club, "athletes").select().get();
   await touch(club, "coach", ...athletes.docs.map((d) => `a_${d.id}` as PulseScope));
 }
@@ -422,24 +427,48 @@ export async function countSessions(club: string): Promise<number> {
   return (await col(club, "sessions").count().get()).data().count;
 }
 
+// Every session from a date on, group versions included, for the Program page.
 export async function listSessions(club: string, fromDate: string, limit: number): Promise<SessionRow[]> {
   const q = await col(club, "sessions").where("on_date", ">=", fromDate).orderBy("on_date").limit(limit).get();
   return q.docs.map((d) => session(d.id, d.data()));
 }
 
-export async function sessionOn(club: string, date: string): Promise<SessionRow | null> {
-  const q = await col(club, "sessions").where("on_date", "==", date).limit(1).get();
-  return q.empty ? null : session(q.docs[0].id, q.docs[0].data());
-}
-
-export async function sessionsOnDates(club: string, dates: string[]): Promise<SessionRow[]> {
-  const q = await col(club, "sessions").where("on_date", "in", dates).get();
+// All versions on one date.
+export async function sessionsOn(club: string, date: string): Promise<SessionRow[]> {
+  const q = await col(club, "sessions").where("on_date", "==", date).get();
   return q.docs.map((d) => session(d.id, d.data()));
 }
 
-export async function sessionBefore(club: string, date: string): Promise<{ on_date: string; label: string } | null> {
-  const q = await col(club, "sessions").where("on_date", "<", date).orderBy("on_date", "desc").limit(1).get();
-  return q.empty ? null : { on_date: q.docs[0].get("on_date"), label: q.docs[0].get("label") };
+// The session this player gets on a date: their group's version, else the one for everyone.
+export async function sessionFor(club: string, date: string, group: string | null): Promise<SessionRow | null> {
+  return pickSession(await sessionsOn(club, date), group);
+}
+
+// One session per date (the player's own version) for a run of dates.
+export async function sessionsForDates(club: string, dates: string[], group: string | null): Promise<SessionRow[]> {
+  const q = await col(club, "sessions").where("on_date", "in", dates).get();
+  const byDate = new Map<string, SessionRow[]>();
+  for (const d of q.docs) {
+    const row = session(d.id, d.data());
+    byDate.set(row.on_date, [...(byDate.get(row.on_date) ?? []), row]);
+  }
+  return [...byDate.values()].map((rows) => pickSession(rows, group)).filter((x): x is SessionRow => x !== null);
+}
+
+// The last session before a date that this player had (their own version when there is one).
+export async function sessionBefore(club: string, date: string, group: string | null): Promise<{ on_date: string; label: string } | null> {
+  const q = await col(club, "sessions").where("on_date", "<", date).orderBy("on_date", "desc").limit(40).get();
+  const rows = q.docs.map((d) => session(d.id, d.data()));
+  for (const day of [...new Set(rows.map((r) => r.on_date))]) {
+    const mine = pickSession(rows.filter((r) => r.on_date === day), group);
+    if (mine) return { on_date: mine.on_date, label: mine.label };
+  }
+  return null;
+}
+
+export async function setGroup(code: string, group: string | null): Promise<void> {
+  await col(clubOf(code), "athletes").doc(code).update({ group: cleanGroup(group) });
+  await touch(clubOf(code), "coach", `a_${code}`);
 }
 
 // ---- athlete inputs

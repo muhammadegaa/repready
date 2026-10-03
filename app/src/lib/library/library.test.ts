@@ -24,7 +24,7 @@ describe("exercise matching", () => {
 import { describeReport, resolveProgram } from "./resolve";
 
 describe("resolveProgram", () => {
-  const session = (names: string[]) => [{ on_date: "2026-10-05", label: "L", week_type: "normal" as const, exercises: names.map((name) => ({ name, sets: 3, reps: 8, load: "", target_rpe: null })) }];
+  const session = (names: string[]) => [{ on_date: "2026-10-05", label: "L", week_type: "normal" as const, group: null, exercises: names.map((name) => ({ name, sets: 3, reps: 8, load: "", target_rpe: null })) }];
   it("renames aliases and reports the rest without changing them", () => {
     const { sessions, report } = resolveProgram(session(["Nordics", "zzz qqq"]));
     expect(sessions[0].exercises.map((e) => e.name)).toEqual(["Nordic hamstring curl", "zzz qqq"]);

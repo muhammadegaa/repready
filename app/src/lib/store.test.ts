@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   acceptStaffInvite, approvePlayer, clubOf, countSessions, createClubWithOwner, createStaffInvite, decideProposal, deleteAthleteData, getAthlete, getCheckin, getCheckins, getNotice, getProposal, getPulse, getSessionLogs,
   giveConsentTo, hasCheckin, listAthletes, listEvalRuns, listEvents, listLabels, listProposals, listProposalsFor, listRuleOverrides, listSessions,
-  logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionOn,
-  sessionsOnDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads, createPlayers, claimLink, resetLink,
+  logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionFor, sessionsOn, setGroup,
+  sessionsForDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads, createPlayers, claimLink, resetLink,
   createPasswordReset, resetPassword, resetTokenUsable,
   getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
 } from "./store";
@@ -36,11 +36,11 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
       { on_date: "2030-01-03", label: "B", week_type: "deload", exercises: ex },
     ]);
     expect(await countSessions(C)).toBe(2);
-    expect((await sessionOn(C, "2030-01-03"))?.week_type).toBe("deload");
-    expect(await sessionOn(C, "2030-01-02")).toBeNull();
-    expect((await sessionBefore(C, "2030-01-03"))?.label).toBe("A");
-    expect(await sessionBefore(C, "2030-01-01")).toBeNull();
-    expect((await sessionsOnDates(C, ["2030-01-01", "2030-01-02", "2030-01-03"])).length).toBe(2);
+    expect((await sessionFor(C, "2030-01-03", null))?.week_type).toBe("deload");
+    expect(await sessionFor(C, "2030-01-02", null)).toBeNull();
+    expect((await sessionBefore(C, "2030-01-03", null))?.label).toBe("A");
+    expect(await sessionBefore(C, "2030-01-01", null)).toBeNull();
+    expect((await sessionsForDates(C, ["2030-01-01", "2030-01-02", "2030-01-03"], null)).length).toBe(2);
     await replaceSessions(C, [{ on_date: "2030-02-01", label: "C", week_type: "normal", exercises: ex }]);
     expect(await countSessions(C)).toBe(1);
   });
@@ -208,8 +208,8 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     expect((await listAthletes(C)).some((a) => a.code === theirs)).toBe(false);
     expect((await listAthletes(other)).some((a) => a.code === mine)).toBe(false);
     await replaceSessions(other, [{ on_date: "2032-01-01", label: "Theirs", week_type: "normal", exercises: ex }]);
-    expect(await sessionOn(C, "2032-01-01")).toBeNull();
-    expect((await sessionOn(other, "2032-01-01"))?.label).toBe("Theirs");
+    expect(await sessionFor(C, "2032-01-01", null)).toBeNull();
+    expect((await sessionFor(other, "2032-01-01", null))?.label).toBe("Theirs");
     await saveProposal({
       athlete_code: theirs, athlete_name: "Theirs", session_label: "A", on_date: "2032-01-01", decision: "reduce", edits: [], reason: "r", rules_applied: [],
       flag: null, status: "pending", error: null, created_at: new Date().toISOString(), decided_at: null,
@@ -281,5 +281,39 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     expect(await resetTokenUsable(token)).toBe(false);
     expect(await resetPassword(token, "again")).toBe("invalid");
     expect((await getStaffByEmail(email))?.pw).toBe("new-hash");
+  });
+
+  it("gives each player their group's version of a session, and the base to everyone else", async () => {
+    const club = `g${run}`.slice(0, 6).padEnd(6, "0");
+    const base = [{ name: "Back squat", sets: 4, reps: 5, load: "85%", target_rpe: 8 }];
+    const reserves = [{ name: "Back squat", sets: 5, reps: 5, load: "85%", target_rpe: 8 }, { name: "Nordic hamstring curl", sets: 3, reps: 5, load: "BW", target_rpe: 8 }];
+    await replaceSessions(club, [
+      { on_date: "2034-03-01", label: "Lower", week_type: "normal", exercises: base },
+      { on_date: "2034-03-01", label: "Lower", week_type: "normal", exercises: reserves, group: "Reserves" },
+      { on_date: "2034-03-03", label: "Upper", week_type: "normal", exercises: base },
+      { on_date: "2034-03-05", label: "Reserves only", week_type: "normal", exercises: reserves, group: "Reserves" },
+    ]);
+    expect((await sessionsOn(club, "2034-03-01")).map((x) => x.group ?? "").sort()).toEqual(["", "Reserves"]);
+    expect((await sessionFor(club, "2034-03-01", "Reserves"))?.exercises).toHaveLength(2);
+    expect((await sessionFor(club, "2034-03-01", "reserves"))?.exercises).toHaveLength(2); // case does not matter
+    expect((await sessionFor(club, "2034-03-01", "Starters"))?.exercises).toHaveLength(1);
+    expect((await sessionFor(club, "2034-03-01", null))?.exercises).toHaveLength(1);
+    // a day only one group has
+    expect(await sessionFor(club, "2034-03-05", null)).toBeNull();
+    expect((await sessionFor(club, "2034-03-05", "Reserves"))?.label).toBe("Reserves only");
+    // one session per date for a run of dates
+    expect((await sessionsForDates(club, ["2034-03-01", "2034-03-03", "2034-03-05"], "Reserves")).map((x) => x.on_date)).toEqual(expect.arrayContaining(["2034-03-01", "2034-03-03", "2034-03-05"]));
+    expect((await sessionsForDates(club, ["2034-03-01", "2034-03-03", "2034-03-05"], null)).map((x) => x.on_date).sort()).toEqual(["2034-03-01", "2034-03-03"]);
+    expect((await sessionBefore(club, "2034-03-06", null))?.label).toBe("Upper"); // skips the day only Reserves train
+    expect((await sessionBefore(club, "2034-03-06", "Reserves"))?.label).toBe("Reserves only");
+  });
+
+  it("stores a player's group, cleans it, and treats Everyone as none", async () => {
+    const code = await createAthlete("Grouped");
+    expect((await getAthlete(code))?.group).toBeNull();
+    await setGroup(code, "  Reserves ");
+    expect((await getAthlete(code))?.group).toBe("Reserves");
+    await setGroup(code, "Everyone");
+    expect((await getAthlete(code))?.group).toBeNull();
   });
 });

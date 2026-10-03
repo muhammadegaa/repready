@@ -7,6 +7,7 @@ import { btn, Card, Chip, Eyebrow, input } from "@/components/ui";
 import { requirePage } from "@/lib/auth";
 import { dateLabel } from "@/lib/copy";
 import { matchDayTag } from "@/lib/fixtures";
+import { groupLabel } from "@/lib/groups";
 import { todayStr } from "@/lib/run-agent";
 import { getFixtures, getNotice, getPulse, listSessions } from "@/lib/store";
 
@@ -28,7 +29,7 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
       <header>
         <Link href="/coach" className="text-sm text-muted hover:text-ink">← Today</Link>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Program</h1>
-        <p className="mt-1 text-muted">One program applies to every player. Pasting a new one replaces all sessions.</p>
+        <p className="mt-1 max-w-2xl text-muted">Rows with no group are the session for everyone. A row with a group name is that group’s own version of the session, and its players get it instead. Pasting a new program replaces all sessions.</p>
       </header>
 
       <section className="space-y-3">
@@ -48,6 +49,7 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
                     {matchDayTag(s.on_date, fixtures) && <Chip tone="neutral">{matchDayTag(s.on_date, fixtures)}</Chip>}
                     {s.on_date === today && <Chip tone="marker">Today</Chip>}
                     {s.week_type === "deload" && <Chip tone="neutral">Deload</Chip>}
+                    <Chip tone={s.group ? "marker" : "neutral"}>{s.group ? `Group: ${groupLabel(s.group)}` : "Everyone"}</Chip>
                   </div>
                 </div>
                 <SessionTable planned={s.exercises} />
@@ -74,7 +76,7 @@ ${today},Lower strength,normal,Split squat,3,8,RPE 7,7`;
         <Eyebrow>Import</Eyebrow>
         <Card className="space-y-3 p-5">
           {importError && <pre className="whitespace-pre-wrap rounded-md border border-line bg-paper p-3 text-sm text-ink">{importError}</pre>}
-          <p className="text-sm text-muted">One row per exercise. Columns: date (YYYY-MM-DD), label, week_type (normal or deload), exercise, sets, reps, load, target_rpe (optional).</p>
+          <p className="text-sm text-muted">One row per exercise. Columns: date (YYYY-MM-DD), label, week_type (normal or deload), exercise, sets, reps, load, target_rpe (optional). Add a ninth column, <span className="font-mono">group</span>, to give a group its own version, for example <span className="font-mono">Reserves</span>. Assign players to groups in <Link href="/coach/squad" className="underline underline-offset-4">Squad</Link>.</p>
           <form action={importProgram} className="space-y-3">
             <label htmlFor="csv" className="block text-sm font-medium">Program CSV</label>
             <textarea id="csv" name="csv" rows={9} defaultValue={example} className={`${input} font-mono text-[13px]`} />

@@ -47,3 +47,30 @@ describe("applyEdits", () => {
     expect(out[0].load).toBe("90% of 85% 1RM");
   });
 });
+
+describe("groups in the program", () => {
+  const h = "date,label,week_type,exercise,sets,reps,load,target_rpe,group";
+  it("reads an optional group column; rows without one are for everyone", () => {
+    const { sessions, errors } = parseProgram([
+      h,
+      "2026-10-05,Lower,normal,Back squat,4,5,85% 1RM,8,",
+      "2026-10-05,Lower,normal,Back squat,5,5,85% 1RM,8,Reserves",
+      "2026-10-05,Lower,normal,Nordics,3,5,BW,8,Reserves",
+    ].join("\n"));
+    expect(errors).toEqual([]);
+    expect(sessions).toHaveLength(2);
+    expect(sessions.find((s) => s.group === null)?.exercises).toHaveLength(1);
+    expect(sessions.find((s) => s.group === "Reserves")?.exercises).toHaveLength(2);
+  });
+  it("still accepts the original eight columns", () => {
+    expect(parseProgram([header, "2026-10-05,Lower,normal,Back squat,4,5,85% 1RM,8"].join("\n")).sessions[0].group).toBeNull();
+  });
+  it("treats Everyone, All and blank as no group, and merges names that differ only in case", () => {
+    const { sessions } = parseProgram([h, "2026-10-05,A,normal,X,3,5,,,Everyone", "2026-10-05,A,normal,Y,3,5,,,reserves", "2026-10-05,A,normal,Z,3,5,,,Reserves"].join("\n"));
+    expect(sessions.map((s) => s.group)).toEqual([null, "reserves"]);
+    expect(sessions[1].exercises).toHaveLength(2);
+  });
+  it("rejects an over-long group name with its row", () => {
+    expect(parseProgram([h, `2026-10-05,A,normal,X,3,5,,,${"g".repeat(31)}`].join("\n")).errors[0]).toMatch(/Row 2.*group/);
+  });
+});

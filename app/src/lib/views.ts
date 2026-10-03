@@ -1,7 +1,8 @@
+import { pickSession } from "./groups";
 import { dayStr } from "./run-agent";
 import {
   getAthlete, getCheckin, getCheckins, getProposal, getReadiness, getReadinessOn, getSessionLogs, listAthletes, listEvents, listProposals,
-  listProposalsFor, listSessions, sessionBefore, sessionOn, sessionsOnDates,
+  listProposalsFor, listSessions, sessionBefore, sessionFor, sessionsForDates, sessionsOn,
   type AthleteRow, type CheckinRow, type EventRow, type ProposalRow, type ReadinessRow, type SessionRow,
 } from "./store";
 
@@ -41,21 +42,25 @@ export type RosterEntry = {
   checkin: (CheckinRow & { created_at: string | null }) | null;
   readiness: ReadinessRow | null;
   proposal: ProposalRow | null;
+  session: SessionRow | null; // this player's version of today's session (their group's, else the one for everyone)
   sleep7: (number | null)[];
 };
 
 export async function coachToday(club: string, today: string) {
   const dates7 = Array.from({ length: 7 }, (_, i) => dayStr(today, 6 - i));
-  const [everyone, session, events, recent] = await Promise.all([listAthletes(club), sessionOn(club, today), listEvents(club, 14), listProposals(club, 30)]);
+  const [everyone, todays, events, recent] = await Promise.all([listAthletes(club), sessionsOn(club, today), listEvents(club, 14), listProposals(club, 30)]);
+  // The header shows the version for everyone when there is one; each player's own row uses their own version.
+  const session = pickSession(todays, null) ?? todays[0] ?? null;
   const athletes = everyone.filter((a) => a.approved);
   const roster: RosterEntry[] = await Promise.all(
     athletes.map(async (athlete) => {
       const [checkin, readiness, proposal, week] = await Promise.all([
         getCheckin(athlete.code, today), getReadiness(athlete.code, today), getProposal(athlete.code, today), getCheckins(athlete.code, dates7),
       ]);
+      const own = pickSession(todays, athlete.group);
       return {
-        athlete, checkin, readiness, proposal,
-        status: statusOf(athlete, session, checkin?.created_at ?? (checkin ? new Date(0).toISOString() : null), proposal),
+        athlete, checkin, readiness, proposal, session: own,
+        status: statusOf(athlete, own, checkin?.created_at ?? (checkin ? new Date(0).toISOString() : null), proposal),
         sleep7: dates7.map((d) => week.get(d)?.sleep_h ?? null),
       };
     }),
@@ -63,7 +68,7 @@ export async function coachToday(club: string, today: string) {
   const pending = roster.filter((r) => r.status === "needs_decision");
   const decided = recent.filter((p) => p.status === "approved" || p.status === "rejected");
   return {
-    session, roster, pending, events, decided, waiting: everyone.length - athletes.length,
+    session, versions: todays.length, roster, pending, events, decided, waiting: everyone.length - athletes.length,
     counts: {
       athletes: athletes.length,
       checkedIn: roster.filter((r) => r.checkin).length,
@@ -81,8 +86,8 @@ export async function athleteDetail(code: string, today: string) {
   const club = athlete.club;
   const dates = Array.from({ length: 14 }, (_, i) => dayStr(today, 13 - i));
   const [checkins, readiness, logs, sessions, proposals, todaySession, upcoming, events] = await Promise.all([
-    getCheckins(code, dates), getReadinessOn(code, dates), getSessionLogs(code, dates), sessionsOnDates(club, dates),
-    listProposalsFor(code, 20), sessionOn(club, today), listSessions(club, today, 40), listEvents(club, 40),
+    getCheckins(code, dates), getReadinessOn(code, dates), getSessionLogs(code, dates), sessionsForDates(club, dates, athlete.group),
+    listProposalsFor(code, 20), sessionFor(club, today, athlete.group), listSessions(club, today, 40), listEvents(club, 40),
   ]);
   const target = new Map(sessions.map((s) => {
     const t = s.exercises.map((e) => e.target_rpe).filter((x): x is number => typeof x === "number");
@@ -100,7 +105,11 @@ export async function athleteDetail(code: string, today: string) {
       note: c?.note ?? null,
     };
   });
-  const names = [...new Set(upcoming.flatMap((s) => s.exercises.map((e) => e.name)).concat(athlete.protected))].sort();
+  // Exercises this player will actually get in the coming sessions, for the protect list.
+  const upcomingByDate = new Map<string, typeof upcoming>();
+  for (const u of upcoming) upcomingByDate.set(u.on_date, [...(upcomingByDate.get(u.on_date) ?? []), u]);
+  const mine = [...upcomingByDate.values()].map((rows) => pickSession(rows, athlete.group)).filter((x): x is NonNullable<typeof x> => x !== null);
+  const names = [...new Set(mine.flatMap((s) => s.exercises.map((e) => e.name)).concat(athlete.protected))].sort();
   return {
     athlete, days, proposals, todaySession, exerciseNames: names,
     wearable: readiness.get(today) ?? null,
@@ -114,8 +123,8 @@ export async function athleteToday(code: string, today: string) {
   const club = athlete.club;
   const dates7 = Array.from({ length: 7 }, (_, i) => dayStr(today, 6 - i));
   const [session, checkin, readiness, proposal, week, prev, logsWeek] = await Promise.all([
-    sessionOn(club, today), getCheckin(code, today), getReadiness(code, today), getProposal(code, today), getCheckins(code, dates7),
-    sessionBefore(club, today), getSessionLogs(code, [today]),
+    sessionFor(club, today, athlete.group), getCheckin(code, today), getReadiness(code, today), getProposal(code, today), getCheckins(code, dates7),
+    sessionBefore(club, today, athlete.group), getSessionLogs(code, [today]),
   ]);
   const prevLogged = prev ? (await getSessionLogs(code, [prev.on_date])).has(prev.on_date) : true;
   return {

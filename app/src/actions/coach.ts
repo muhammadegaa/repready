@@ -5,12 +5,13 @@ import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { buildEdits, COACH_LIMITS } from "@/lib/edits";
 import { deregister } from "@/lib/polar";
+import { cleanGroup, GROUP_MAX, groupLabel } from "@/lib/groups";
 import { describeReport, resolveProgram } from "@/lib/library/resolve";
 import { parseFixtures } from "@/lib/fixtures";
 import { parseProgram } from "@/lib/program";
 import { parsePlayers, POSITIONS } from "@/lib/squad";
 import {
-  approvePlayer, CODE_RE, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, resetLink, sessionOn, setFixtures, setNotice, setProtected,
+  approvePlayer, CODE_RE, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, resetLink, sessionFor, setFixtures, setGroup, setNotice, setProtected,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -53,6 +54,37 @@ export async function addPlayers(f: FormData) {
   revalidatePath("/coach");
   revalidatePath("/coach/squad");
   if (!errors.length && players.length) redirect(`/coach/squad?added=${players.length}`);
+}
+
+// Puts the ticked players in a group (or back to Everyone). Only this club's own players are touched.
+export async function setGroupForMany(f: FormData) {
+  const { club } = await requireStaff("coach");
+  const raw = text(f, "group");
+  if (raw.length > GROUP_MAX) return redirect(`/coach/squad?grouperr=${encodeURIComponent(`Group names are at most ${GROUP_MAX} characters.`)}`);
+  const group = cleanGroup(raw);
+  const codes = [...new Set(f.getAll("code").map(String))].slice(0, 200);
+  if (!codes.length) return redirect(`/coach/squad?grouperr=${encodeURIComponent("Tick at least one player first.")}`);
+  let moved = 0;
+  for (const code of codes) {
+    const a = await ownPlayer(club, code);
+    if (!a) continue;
+    await setGroup(a.code, group);
+    moved++;
+  }
+  revalidatePath("/coach");
+  revalidatePath("/coach/squad");
+  redirect(`/coach/squad?grouped=${encodeURIComponent(`${moved} player${moved === 1 ? "" : "s"} now in ${groupLabel(group)}.`)}`);
+}
+
+export async function setPlayerGroup(f: FormData) {
+  const { club } = await requireStaff("coach");
+  const a = await ownPlayer(club, text(f, "code"));
+  const raw = text(f, "group");
+  if (!a || raw.length > GROUP_MAX) return;
+  await setGroup(a.code, cleanGroup(raw));
+  revalidatePath("/coach");
+  revalidatePath("/coach/squad");
+  revalidatePath(`/coach/athletes/${a.code}`);
 }
 
 export async function resetPlayerLink(f: FormData) {
@@ -122,8 +154,9 @@ export async function approveEdited(f: FormData) {
   const id = text(f, "id");
   if (!PROPOSAL_ID.test(id) || id.slice(0, 6) !== club) return;
   const [code, date] = [id.slice(0, 16), id.slice(17)];
-  const [p, session] = await Promise.all([getProposal(code, date), sessionOn(club, date)]);
-  if (!p || !session) return back("That session no longer exists.");
+  const a = await ownPlayer(club, code);
+  const [p, session] = await Promise.all([getProposal(code, date), a ? sessionFor(club, date, a.group) : null]);
+  if (!a || !p || !session) return back("That session no longer exists.");
   const { edits, error } = buildEdits((k) => text(f, k), session.exercises, COACH_LIMITS);
   if (error) return back(error);
   if (!edits.length) return back("No changes entered. Use Approve to accept the proposal as it is.");

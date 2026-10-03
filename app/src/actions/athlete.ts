@@ -81,7 +81,7 @@ export async function logRpe(f: FormData) {
   const a = await requirePlayer(code);
   if (!half(rpe, 1, 10)) return;
   const today = todayStr();
-  const prev = await sessionBefore(a.club, today);
+  const prev = await sessionBefore(a.club, today, a.group);
   if (date !== today && date !== prev?.on_date) return;
   await saveSessionLog(code, date, Number(rpe));
   await logEvent(a.club, { type: "rpe", athlete_code: code, athlete_name: a.name, text: `${a.name} logged session effort ${rpe} of 10` });

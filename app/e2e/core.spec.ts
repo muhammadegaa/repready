@@ -110,3 +110,53 @@ test("the player's session shows a picture only where the library has the exact 
   expect((await phone.page.request.get("/api/exercise-image/not-in-library")).status()).toBe(404);
   await phone.ctx.close();
 });
+
+test("a coach splits the squad: the group gets its own version of the session and everyone else keeps the base", async ({ page, browser }) => {
+  await signUp(page);
+  await importProgram(page, [
+    `${today()},Lower,normal,Back squat,4,5,85%,8`,
+    `${today()},Lower,normal,Romanian deadlift,3,8,70%,7`,
+  ]);
+  // The group column is a ninth, optional column: import again with a Reserves version alongside the base.
+  await page.goto("/coach/program");
+  await page.locator("#csv").fill([
+    "date,label,week_type,exercise,sets,reps,load,target_rpe,group",
+    `${today()},Lower,normal,Back squat,4,5,85%,8,`,
+    `${today()},Lower,normal,Romanian deadlift,3,8,70%,7,`,
+    `${today()},Lower,normal,Back squat,5,5,85%,8,Reserves`,
+    `${today()},Lower,normal,Nordics,3,5,BW,8,Reserves`,
+  ].join("\n"));
+  await page.getByRole("button", { name: /replace program/i }).click();
+  await expect(page.getByText("Group: Reserves")).toBeVisible();
+  await expect(page.getByText("Everyone", { exact: true }).first()).toBeVisible();
+
+  await addPlayer(page, "Reserve One");
+  await addPlayer(page, "Starter One");
+  await page.goto("/coach/squad");
+  await page.getByLabel("Select Reserve One").check();
+  await page.locator("#group").fill("Reserves");
+  await page.getByRole("button", { name: "Set group for ticked players" }).click();
+  await expect(page.getByText("1 player now in Reserves.")).toBeVisible();
+  await expect(page.locator("section#players").getByText("Reserves").first()).toBeVisible();
+
+  // Players are listed alphabetically: Reserve One, then Starter One.
+  const reserve = await newPhone(browser);
+  await reserve.page.goto(await playerLink(page, 0));
+  await agreeAndClaim(reserve.page);
+  await expect(reserve.page.getByText("Reserve One")).toBeVisible();
+  await expect(reserve.page.locator("tr", { hasText: "Nordic hamstring curl" })).toBeVisible();
+  await expect(reserve.page.locator("tr", { hasText: "Back squat" })).toContainText("5");
+
+  const starter = await newPhone(browser);
+  await starter.page.goto(await playerLink(page, 1));
+  await agreeAndClaim(starter.page);
+  await expect(starter.page.getByText("Starter One")).toBeVisible();
+  await expect(starter.page.locator("tr", { hasText: "Romanian deadlift" })).toBeVisible();
+  await expect(starter.page.locator("tr", { hasText: "Nordic hamstring curl" })).toHaveCount(0);
+
+  // Today shows the reserve's group beside their name, and a header that says there are two versions.
+  await page.goto("/coach");
+  await expect(page.getByText("2 versions today")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Reserve One/ })).toContainText("Reserves");
+  await reserve.ctx.close(); await starter.ctx.close();
+});

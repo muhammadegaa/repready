@@ -93,7 +93,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
       <header className="space-y-2 pt-1">
         <div className="flex items-center justify-between"><Eyebrow>{dateLabel(today)}</Eyebrow></div>
         <h1 className="text-3xl font-semibold leading-tight tracking-tight">{session ? session.label : "No session today"}</h1>
-        <p className="text-sm text-muted">{athlete.name}{session?.week_type === "deload" ? " · deload week" : ""}</p>
+        <p className="text-sm text-muted">{athlete.name}{athlete.group ? ` · ${athlete.group}` : ""}{session?.week_type === "deload" ? " · deload week" : ""}</p>
       </header>
 
       {session && <Steps steps={["Check in", "Coach reviews", "Session ready"]} active={active} warn={status === "agent_error"} />}

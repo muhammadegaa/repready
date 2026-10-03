@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import QRCode from "qrcode";
-import { addPlayer, addPlayers, confirmPlayer, removeAthlete, resetPlayerLink } from "@/actions/coach";
+import { addPlayer, addPlayers, confirmPlayer, removeAthlete, resetPlayerLink, setGroupForMany } from "@/actions/coach";
 import { rotateSquadLink } from "@/actions/club";
 import { CopyButton } from "@/components/CopyButton";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { btn, btnGhost, Card, Chip, Eyebrow, input, Notice } from "@/components/ui";
 import { requirePage } from "@/lib/auth";
+import { groupLabel, groupNames } from "@/lib/groups";
 import { inviteMessage, POSITIONS, squadMessage } from "@/lib/squad";
 import { getNotice, getPulse, listAthletes, squadInvite, type AthleteRow } from "@/lib/store";
 
@@ -22,7 +23,7 @@ function status(a: AthleteRow): { label: string; tone: "neutral" | "warn" | "ok"
 
 export default async function Squad(props: PageProps<"/coach/squad">) {
   const { club, clubName, admin } = await requirePage("coach");
-  const { added } = await props.searchParams;
+  const { added, grouped, grouperr } = await props.searchParams;
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
   const [all, notice, pastedList, pulse, joinToken] = await Promise.all([listAthletes(club), getNotice(club, "squad"), getNotice(club, "squad_list"), getPulse(club, "coach"), squadInvite(club)]);
@@ -48,6 +49,9 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
           {/^\d+$/.test(added) ? `Added ${added} players.` : `Added ${added}.`} They are listed under <a href="#players" className="font-medium underline underline-offset-4">Players and links</a>. Send each their link, or share the squad link.
         </Notice>
       )}
+
+      {typeof grouped === "string" && grouped && <Notice tone="ok">{grouped}</Notice>}
+      {typeof grouperr === "string" && grouperr && <Notice tone="bad">{grouperr}</Notice>}
 
       <Card className="space-y-3 p-5">
         <Eyebrow>Squad link</Eyebrow>
@@ -116,6 +120,22 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
         </Card>
       </section>
 
+      <Card className="space-y-3 p-5">
+        <Eyebrow>Groups</Eyebrow>
+        <p className="max-w-2xl text-sm text-muted">Split the squad when players need different work, for example starters and reserves, or players returning from injury. A group can have its own version of a session in the Program. Tick players below, name a group, and press Set group. Leave the name empty, or type Everyone, to take them out of a group.</p>
+        <div className="flex flex-wrap gap-1.5">
+          {[null, ...groupNames(players)].map((g) => (
+            <Chip key={g ?? "everyone"} tone={g ? "marker" : "neutral"}>{groupLabel(g)} · {players.filter((p) => (p.group ?? null) === g).length}</Chip>
+          ))}
+        </div>
+        <form id="groupform" action={setGroupForMany} className="flex flex-wrap items-center gap-2">
+          <label htmlFor="group" className="sr-only">Group name</label>
+          <input id="group" name="group" list="group-names" maxLength={30} placeholder="Group name, e.g. Reserves" className={`${input} max-w-64`} />
+          <datalist id="group-names">{groupNames(players).map((g) => <option key={g} value={g} />)}</datalist>
+          <PendingButton className={btn} pending="Setting…">Set group for ticked players</PendingButton>
+        </form>
+      </Card>
+
       <section id="players" className="space-y-3">
         <Eyebrow>Players and links</Eyebrow>
         {sorted.length === 0 ? (
@@ -129,10 +149,12 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
               return (
                 <div key={p.code} className="space-y-3 px-5 py-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <input type="checkbox" form="groupform" name="code" value={p.code} aria-label={`Select ${p.name}`} className="h-4 w-4" />
                       <div className="font-medium">
                         {p.shirt ? <span className="mr-2 font-mono text-muted">{p.shirt}</span> : null}{p.name}
                         <span className="ml-2 text-xs font-normal text-muted">{[p.position, p.squad].filter(Boolean).join(" · ")}</span>
+                        {p.group ? <span className="ml-2 align-middle"><Chip tone="marker">{p.group}</Chip></span> : null}
                       </div>
                     </div>
                     <Chip tone={st.tone}>{st.label}</Chip>

@@ -20,7 +20,7 @@ export default async function Today(props: PageProps<"/coach">) {
   const today = todayStr();
   const { notice } = await props.searchParams;
   const [data, rules, pulse, sessionCount] = await Promise.all([coachToday(club, today), allRules(club), getPulse(club, "coach"), countSessions(club)]);
-  const { session, roster, pending, events, counts, waiting } = data;
+  const { session, versions, roster, pending, events, counts, waiting } = data;
   const notIn = roster.filter((r) => r.status === "waiting");
 
   return (
@@ -33,7 +33,7 @@ export default async function Today(props: PageProps<"/coach">) {
         </div>
         {session ? (
           <Link href="/coach/program" className="text-sm text-muted hover:text-ink">
-            <span className="font-medium text-ink">{session.label}</span> · {session.exercises.length} exercises{session.week_type === "deload" ? " · deload week" : ""}
+            <span className="font-medium text-ink">{session.label}</span> · {session.exercises.length} exercises{session.week_type === "deload" ? " · deload week" : ""}{versions > 1 ? ` · ${versions} versions today` : ""}
           </Link>
         ) : (
           <Link href="/coach/program" className="text-sm font-medium underline underline-offset-4">No session today. Open the program</Link>
@@ -67,7 +67,7 @@ export default async function Today(props: PageProps<"/coach">) {
                 <p className="mt-1 text-sm text-muted">A proposal appears here the moment a player checks in and the agent has read their numbers.</p>
               </Card>
             ) : (
-              pending.map((e) => session && <ProposalCard key={e.proposal!.id} entry={e} session={session} rules={rules} />)
+              pending.map((e) => e.session && <ProposalCard key={e.proposal!.id} entry={e} session={e.session} rules={rules} />)
             )}
           </section>
 
@@ -85,7 +85,7 @@ export default async function Today(props: PageProps<"/coach">) {
                   return (
                     <Link key={e.athlete.code} href={`/coach/athletes/${e.athlete.code}`} className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3.5 transition hover:bg-paper">
                       <div className="min-w-32 flex-1">
-                        <div className="font-medium">{e.athlete.shirt ? <span className="mr-2 font-mono text-muted">{e.athlete.shirt}</span> : null}{e.athlete.name}{e.athlete.position ? <span className="ml-2 text-xs font-normal text-muted">{e.athlete.position}</span> : null}</div>
+                        <div className="font-medium">{e.athlete.shirt ? <span className="mr-2 font-mono text-muted">{e.athlete.shirt}</span> : null}{e.athlete.name}{e.athlete.position ? <span className="ml-2 text-xs font-normal text-muted">{e.athlete.position}</span> : null}{e.athlete.group ? <span className="ml-2 align-middle"><Chip tone="neutral">{e.athlete.group}</Chip></span> : null}</div>
                         <div className="text-xs text-muted">
                           {c ? `${e.readiness?.sleep_h ?? c.sleep_h} h sleep · soreness ${c.soreness} · stress ${c.stress}` : e.athlete.consented_at ? "No check-in yet today" : "Link sent, not opened"}
                         </div>

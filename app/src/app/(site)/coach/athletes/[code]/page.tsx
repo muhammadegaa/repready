@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { removeAthlete, toggleProtected } from "@/actions/coach";
+import { removeAthlete, setPlayerGroup, toggleProtected } from "@/actions/coach";
 import { CopyButton } from "@/components/CopyButton";
 import { Heat } from "@/components/Heat";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { SessionTable } from "@/components/SessionTable";
-import { btnGhost, Card, Chip, Eyebrow } from "@/components/ui";
+import { btnGhost, Card, Chip, Eyebrow, input } from "@/components/ui";
+import { groupLabel } from "@/lib/groups";
 import { requirePage } from "@/lib/auth";
 import { ago, dateLabel, decisionCopy } from "@/lib/copy";
 import { todayStr } from "@/lib/run-agent";
@@ -55,7 +56,14 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
         <p className="mt-1 text-sm text-muted">
           {athlete.consented_at ? `Joined ${ago(athlete.consented_at)}` : "Has not agreed to the terms yet"}
           {wearable ? ` · ${providerName(wearable.provider)} connected` : ""}
+          {` · Group: ${groupLabel(athlete.group)}`}
         </p>
+        <form action={setPlayerGroup} className="mt-3 flex flex-wrap items-center gap-2">
+          <input type="hidden" name="code" value={athlete.code} />
+          <label htmlFor="group" className="text-sm text-muted">Group</label>
+          <input id="group" name="group" defaultValue={athlete.group ?? ""} maxLength={30} placeholder="Everyone" className={`${input} max-w-56`} />
+          <PendingButton className={btnGhost} pending="Saving…">Set group</PendingButton>
+        </form>
       </div>
 
       {todaySession && todays && (
