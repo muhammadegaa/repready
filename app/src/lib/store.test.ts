@@ -5,7 +5,7 @@ import {
   logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionFor, sessionsOn, setGroup,
   sessionsForDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads, createPlayers, claimLink, resetLink,
   createPasswordReset, resetPassword, resetTokenUsable, createOverride, liftOverride, listOverrides, listActiveOverrides, listClubOverrides,
-  getClub, markClubPaid, createEmailVerification, verifyEmail, getStaff, getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
+  getClub, markClubPaid, createEmailVerification, verifyEmail, getStaff, deleteClub, getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
 } from "./store";
 
 // Needs the Firestore emulator: npm run test:emulator
@@ -28,6 +28,26 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     expect((await getStaff(id))?.verified_at).toMatch(/^\d{4}-/);
     expect(await verifyEmail((v as { token: string }).token)).toBe("invalid"); // spent
     expect(await createEmailVerification(id)).toBe("done");
+  });
+
+  it("deleting a club removes its players and their data, its staff and its invites, and nothing of another club", async () => {
+    const a = await createClubWithOwner(`Gone FC ${run}`, { email: `gone-${run}@example.com`, name: "Gus", pw: "x" });
+    const b = await createClubWithOwner(`Stays FC ${run}`, { email: `stays-${run}@example.com`, name: "Sam", pw: "x" });
+    const ga = a!.club.id, gb = b!.club.id;
+    const pa = (await createPlayers(ga, [{ name: "Gone Player", shirt: null, position: "", squad: "First team" }]))[0];
+    const pb = (await createPlayers(gb, [{ name: "Stays Player", shirt: null, position: "", squad: "First team" }]))[0];
+    await saveCheckin(pa, "2026-10-01", { sleep_h: 6.5, soreness: 4, stress: 3, note: null });
+    const inv = await createStaffInvite(ga, ["coach"]);
+    await createEmailVerification(a!.staff.id);
+    await deleteClub(ga);
+    expect(await getClub(ga)).toBeNull();
+    expect(await getStaff(a!.staff.id)).toBeNull();
+    expect(await getAthlete(pa)).toBeNull();
+    expect(await hasCheckin(pa, "2026-10-01")).toBe(false);
+    expect(await getInvite(inv)).toBeNull();
+    expect((await getClub(gb))?.name).toBe(`Stays FC ${run}`);
+    expect(await getStaff(b!.staff.id)).not.toBeNull();
+    expect(await getAthlete(pb)).not.toBeNull();
   });
 
   it("a new club is unpaid until a payment marks it, and an unknown club cannot be marked", async () => {

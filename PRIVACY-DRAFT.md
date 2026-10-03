@@ -44,6 +44,7 @@ The coach or their organisation decides why and how athlete data is used, so the
 
 - Consent screen before the first check-in. It now says written rules decide and no outside AI service receives answers. If a model step is added, this must change before it ships.
 - The coach can delete an athlete and all their check-ins, session logs, device data and proposals (`Remove athlete`, coach page).
+- The club admin can delete the whole club (Staff page, by typing the club name): all players and their data, program, suggestions, staff accounts and invites. Wearable connections are closed first. No copy is kept.
 - The athlete can delete their own data from their page. Both paths deregister the athlete from Polar before deleting.
 - The athlete can disconnect Polar at any time, which deregisters them and removes the stored token.
 - Adults only for the pilot. Under-18s would need parental consent and safeguarding rules.

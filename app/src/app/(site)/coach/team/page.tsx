@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { inviteStaff, removeStaffMember, revokeStaffInvite } from "@/actions/club";
+import { deleteWholeClub, inviteStaff, removeStaffMember, revokeStaffInvite } from "@/actions/club";
 import { CopyButton } from "@/components/CopyButton";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 
 const roleLabel = (roles: StaffRole[]) => (roles.length === 2 ? "Coach and sports scientist" : roles[0] === "scientist" ? "Sports scientist" : "Coach");
 
-export default async function Team() {
+export default async function Team(props: PageProps<"/coach/team">) {
+  const { deleteerr } = await props.searchParams;
   const { club, clubName, admin, id: me } = await requirePage("coach");
   const [staff, invites, pulse] = await Promise.all([listStaff(club), admin ? listOpenStaffInvites(club) : Promise.resolve([]), getPulse(club, "coach")]);
 
@@ -85,6 +86,23 @@ export default async function Team() {
         </section>
       ) : (
         <p className="text-sm text-muted">Only the club admin can invite or remove staff.</p>
+      )}
+
+      {admin && (
+        <section className="space-y-3">
+          <Eyebrow>Delete this club</Eyebrow>
+          <Card className="space-y-3 border-bad/30 p-5">
+            {typeof deleteerr === "string" && <p className="rounded-md border border-bad/30 bg-bad-bg p-3 text-sm text-bad">{deleteerr}</p>}
+            <p className="max-w-2xl text-sm text-muted">This permanently deletes {clubName}: every player and all their answers, the program, suggestions, staff accounts and invites. Connected wearables are disconnected. It cannot be undone and we keep no copy. If you want a copy of anything first, take it now.</p>
+            <form action={deleteWholeClub} className="flex flex-wrap items-end gap-3">
+              <div>
+                <label htmlFor="del-name" className="block text-sm font-medium">Type the club name to confirm</label>
+                <input id="del-name" name="name" autoComplete="off" required className={`${input} mt-1`} placeholder={clubName} />
+              </div>
+              <PendingButton className={btnGhost} pending="Deleting…">Delete the club and everything in it</PendingButton>
+            </form>
+          </Card>
+        </section>
       )}
     </div>
   );

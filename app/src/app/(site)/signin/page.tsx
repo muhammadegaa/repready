@@ -10,12 +10,13 @@ export const metadata = { title: "Sign in" };
 export default async function SignIn(props: PageProps<"/signin">) {
   const s = await getSession();
   if (s) redirect(homeFor(s));
-  const { error } = await props.searchParams;
+  const { error, deleted } = await props.searchParams;
   return (
     <div className="mx-auto max-w-sm pt-10">
       <h1 className="text-2xl font-semibold tracking-tight">Sign in</h1>
       <p className="mt-1 text-sm text-muted">For club staff. Players use the link their club sent.</p>
       <Card className="mt-6 p-5">
+        {deleted === "1" && <div className="mb-4"><Notice tone="ok">Your club and everything in it have been deleted.</Notice></div>}
         {typeof error === "string" && <div className="mb-4"><Notice tone="bad">{error}</Notice></div>}
         <form action={signIn} className="space-y-3">
           <label htmlFor="email" className="block text-sm font-medium">Email</label>

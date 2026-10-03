@@ -781,6 +781,24 @@ export async function deleteAthleteData(code: string, opts: { quiet?: boolean } 
   await touch(club, "coach");
 }
 
+// Removes a whole club: every player and everything recorded about them, the program, staff accounts, invites and the club itself.
+// The caller deregisters wearables first. Nothing is kept, and nothing can be undone.
+export async function deleteClub(club: string): Promise<void> {
+  if (!/^[0-9a-f]{6}$/.test(club)) return;
+  const staff = await fs.collection("staff").where("club", "==", club).get();
+  const ids = staff.docs.map((d) => d.id);
+  for (const c of ["resets", "verifications"]) {
+    for (let i = 0; i < ids.length; i += 30) {
+      const q = await fs.collection(c).where("staff_id", "in", ids.slice(i, i + 30)).get();
+      await Promise.all(q.docs.map((d) => d.ref.delete()));
+    }
+  }
+  await Promise.all(staff.docs.map((d) => d.ref.delete()));
+  const invites = await fs.collection("invites").where("club", "==", club).get();
+  await Promise.all(invites.docs.map((d) => d.ref.delete()));
+  await fs.recursiveDelete(fs.collection("clubs").doc(club));
+}
+
 // ---- science: rules, labels, evaluation runs
 const ruleRow = (id: string, d: DocumentData): RuleRow => ({
   id,

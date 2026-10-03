@@ -329,3 +329,19 @@ test("a new account is asked to confirm its email, and the link confirms it", as
   await page.goto("/verify/" + "0".repeat(48));
   await expect(page.getByText("That link did not work")).toBeVisible();
 });
+
+test("an admin deletes the whole club by typing its name, and the account is gone", async ({ page }) => {
+  const { email, club } = await signUp(page);
+  await addPlayer(page, "Soon Gone");
+  await page.goto("/coach/team");
+  await page.locator("#del-name").fill("Wrong Name");
+  await page.getByRole("button", { name: /Delete the club/ }).click();
+  await expect(page.getByText("The name did not match, so nothing was deleted.")).toBeVisible();
+  await page.locator("#del-name").fill(club);
+  await page.getByRole("button", { name: /Delete the club/ }).click();
+  await expect(page.getByText("Your club and everything in it have been deleted.")).toBeVisible();
+  await page.locator("#email").fill(email);
+  await page.locator("#password").fill(PASSWORD);
+  await page.locator("form button").click();
+  await expect(page.getByText("That email and password did not match.")).toBeVisible();
+});
