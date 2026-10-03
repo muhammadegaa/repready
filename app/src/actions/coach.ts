@@ -14,9 +14,10 @@ import { planFor, playerExerciseNames } from "@/lib/plan";
 import { validateOverride } from "@/lib/overrides";
 import { runAgentFor, todayStr } from "@/lib/run-agent";
 import { parseProgram } from "@/lib/program";
-import { parsePlayers, POSITIONS } from "@/lib/squad";
+import { fileToText } from "@/lib/read/files";
+import { POSITIONS, readSquad, storedPlayers } from "@/lib/squad";
 import {
-  approvePlayer, CODE_RE, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
+  approvePlayer, CODE_RE, getNotice, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -43,22 +44,49 @@ export async function addPlayer(f: FormData) {
   redirect(`/coach/squad?added=${encodeURIComponent(name)}`);
 }
 
-export async function addPlayers(f: FormData) {
+// The coach gives a list however they have it (pasted, or a spreadsheet); it is read here, with no outside service,
+// and shown back for a check before anyone is added.
+export async function readSquadAction(f: FormData) {
   const { club } = await requireStaff("coach");
-  const raw = text(f, "list");
-  const { players, errors } = parsePlayers(raw);
-  if (errors.length) {
-    // Keep what was pasted so one bad line does not cost the coach the whole list.
-    await setNotice(club, "squad", errors.join("\n"));
-    await setNotice(club, "squad_list", raw.slice(0, 20000));
-  } else if (players.length) {
-    await createPlayers(club, players);
-    await setNotice(club, "squad", null);
-    await setNotice(club, "squad_list", null);
+  let raw = text(f, "list");
+  const file = f.get("file");
+  if (file instanceof File && file.size > 0) {
+    const r = await fileToText(file.name, new Uint8Array(await file.arrayBuffer()));
+    if ("error" in r) {
+      await setNotice(club, "squad", r.error);
+      revalidatePath("/coach/squad");
+      return redirect("/coach/squad");
+    }
+    raw = [raw, r.text].filter(Boolean).join("\n");
   }
+  const { players, skipped, tooMany } = readSquad(raw.slice(0, 40000));
+  if (!players.length) {
+    await setNotice(club, "squad", raw ? "I could not find any names in that. One player per line is enough." : "Paste your squad, or choose a file, then press Read my squad.");
+    await setNotice(club, "squad_preview", null);
+  } else {
+    await setNotice(club, "squad", null);
+    await setNotice(club, "squad_preview", JSON.stringify({ players, skipped: skipped.slice(0, 10), tooMany }));
+  }
+  revalidatePath("/coach/squad");
+  redirect("/coach/squad");
+}
+
+export async function confirmSquad() {
+  const { club } = await requireStaff("coach");
+  const raw = await getNotice(club, "squad_preview");
+  await setNotice(club, "squad_preview", null);
+  const players = storedPlayers(raw);
+  if (players.length) await createPlayers(club, players);
   revalidatePath("/coach");
   revalidatePath("/coach/squad");
-  if (!errors.length && players.length) redirect(`/coach/squad?added=${players.length}`);
+  redirect(players.length ? `/coach/squad?added=${players.length}` : "/coach/squad");
+}
+
+export async function discardSquadPreview() {
+  const { club } = await requireStaff("coach");
+  await setNotice(club, "squad_preview", null);
+  revalidatePath("/coach/squad");
+  redirect("/coach/squad");
 }
 
 // Puts the ticked players in a group (or back to Everyone). Only this club's own players are touched.

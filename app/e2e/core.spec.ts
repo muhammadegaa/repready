@@ -13,18 +13,17 @@ test("a new coach lands on a checklist that updates as they set up", async ({ pa
   await expect(page.getByText("2 of 4 done")).toBeVisible();
 });
 
-test("adding players confirms, and one bad line keeps the pasted list", async ({ page }) => {
+test("a coach pastes a squad, checks what was read, and then adds it; unreadable lines are listed, not fatal", async ({ page }) => {
   await signUp(page);
   await page.goto("/coach/squad");
-  const bad = "J. Mensah, 5, Centre-back\nBad Row, abc, Wizard";
-  await page.locator("#list").fill(bad);
-  await page.getByRole("button", { name: "Add players", exact: true }).click();
-  await expect(page.getByText("Line 2: shirt number must be 1 to 99 or empty.")).toBeVisible();
-  await expect(page.locator("#list")).toHaveValue(bad);
-  await page.locator("#list").fill("J. Mensah, 5, Centre-back\nL. Ortiz, 9, Forward, U21");
-  await page.getByRole("button", { name: "Add players", exact: true }).click();
+  await page.locator("#list").fill("Player\tPos\tNo\tGroup\nJ. Mensah\tCB\t5\tStarters\nL. Ortiz\tST\t9\tReserves\nBad Row\tGK\tabc");
+  await page.getByRole("button", { name: "Read my squad" }).click();
+  await expect(page.getByText("I found 2 players")).toBeVisible();
+  await expect(page.getByText(/Left out/)).toBeVisible();
+  await expect(page.getByText("#5 · Centre-back · First team · Group: Starters")).toBeVisible();
+  await page.getByRole("button", { name: "Add 2 players" }).click();
   await expect(page.getByText("Added 2 players.")).toBeVisible();
-  await expect(page.locator("#list")).toHaveValue("");
+  await expect(page.getByText("J. Mensah").first()).toBeVisible();
 });
 
 test("a player joins by the squad link and the coach confirms them", async ({ page, browser }) => {

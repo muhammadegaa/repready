@@ -29,7 +29,7 @@ Club staff sign in with email and password (scrypt-hashed). Each club has its ow
 | Recipient | What they get | Notes |
 |---|---|---|
 | Google Firebase (Firestore) | Everything above | Database is in europe-west2 (London), created 2026-10-01. |
-| OpenRouter (not used in the morning loop since the rules-first change; kept only if a model note-classifier or wording step is added) | Per check-in: planned session, 14 days of sleep, soreness, stress, RPE deltas, notes, device figures. Not the athlete's name. | Free-text notes can contain names or health detail. OpenRouter routes to an upstream model provider; one error message during testing showed Amazon Bedrock. Upstream region, retention and training use **open**. |
+| OpenRouter (program reader only) | The training program text a coach pastes or uploads on the Program page, to turn it into a draft the coach reviews. Not player names, check-ins or health data: squad lists and fixtures are read in our own code, and the screen asks coaches to leave out names and health information. | A coach could still paste personal data into the program text. OpenRouter routes to an upstream model provider. Upstream region, retention and training use **open**. |
 | Polar (AccessLink) | The athlete authorises read access to their Polar sleep and Nightly Recharge data; we send their link code as a member id | Polar Electro is Finnish, so likely inside UK/EU adequacy, **open**: confirm. A Polar access token is stored per athlete. |
 | Junction (webhook receiver exists, not live) | The athlete's wearable account link and sleep data | US company, **open**: transfer terms. |
 | Stripe | The coach's payment details, not athletes' | Out of athlete scope. |

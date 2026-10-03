@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import QRCode from "qrcode";
-import { addPlayer, addPlayers, confirmPlayer, loadSample, removeAthlete, removeSample, resetPlayerLink, setGroupForMany } from "@/actions/coach";
+import { addPlayer, confirmPlayer, confirmSquad, discardSquadPreview, readSquadAction, loadSample, removeAthlete, removeSample, resetPlayerLink, setGroupForMany } from "@/actions/coach";
 import { rotateSquadLink } from "@/actions/club";
 import { CopyButton } from "@/components/CopyButton";
 import { Live } from "@/components/Live";
@@ -9,7 +9,7 @@ import { PendingButton } from "@/components/Pending";
 import { btn, btnGhost, Card, Chip, Eyebrow, input, Notice } from "@/components/ui";
 import { requirePage } from "@/lib/auth";
 import { groupLabel, groupNames } from "@/lib/groups";
-import { inviteMessage, POSITIONS, squadMessage } from "@/lib/squad";
+import { inviteMessage, POSITIONS, squadMessage, storedPlayers } from "@/lib/squad";
 import { getNotice, getPulse, listAthletes, squadInvite, type AthleteRow } from "@/lib/store";
 
 export const metadata = { title: "Squad" };
@@ -26,7 +26,9 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
   const { added, grouped, grouperr } = await props.searchParams;
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
-  const [all, notice, pastedList, pulse, joinToken] = await Promise.all([listAthletes(club), getNotice(club, "squad"), getNotice(club, "squad_list"), getPulse(club, "coach"), squadInvite(club)]);
+  const [all, notice, previewRaw, pulse, joinToken] = await Promise.all([listAthletes(club), getNotice(club, "squad"), getNotice(club, "squad_preview"), getPulse(club, "coach"), squadInvite(club)]);
+  const preview = storedPlayers(previewRaw);
+  const skipped: string[] = (() => { try { return (JSON.parse(previewRaw ?? "") as { skipped?: string[] }).skipped ?? []; } catch { return []; } })();
   const waiting = all.filter((p) => !p.approved);
   const players = all.filter((p) => p.approved);
   const joinPath = `/join/${joinToken}`;
@@ -112,12 +114,32 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
 
         <Card className="space-y-3 p-5">
           <Eyebrow>Add a whole squad</Eyebrow>
-          {notice && <pre className="whitespace-pre-wrap rounded-md border border-bad/30 bg-bad-bg p-3 text-sm text-bad">{notice}</pre>}
-          <form action={addPlayers} className="space-y-3">
-            <label htmlFor="list" className="block text-sm text-muted">One player per line: name, shirt number, position, squad. Paste straight from a spreadsheet. Only the name is needed.</label>
-            <textarea id="list" name="list" rows={5} defaultValue={notice ? pastedList ?? "" : ""} placeholder={"J. Mensah, 5, Centre-back\nL. Ortiz, 9, Forward, U21"} className={`${input} font-mono text-[13px]`} />
-            <PendingButton className={btnGhost} pending="Adding…">Add players</PendingButton>
-          </form>
+          {notice && <div className="rounded-md border border-warn/30 bg-warn-bg p-3 text-sm text-warn">{notice}</div>}
+          {preview.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-sm">I found {preview.length} player{preview.length === 1 ? "" : "s"}. Check them, then add.</p>
+              <ul className="max-h-64 divide-y divide-line overflow-auto rounded-md border border-line text-sm">
+                {preview.map((p, i) => (
+                  <li key={i} className="flex flex-wrap items-center gap-x-3 px-3 py-1.5">
+                    <span className="font-medium">{p.name}</span>
+                    <span className="text-muted">{[p.shirt ? `#${p.shirt}` : null, p.position || null, p.squad, p.group ? `Group: ${p.group}` : null].filter(Boolean).join(" · ")}</span>
+                  </li>
+                ))}
+              </ul>
+              {skipped.length > 0 && <p className="text-sm text-muted">Left out, with no usable name or shirt number: {skipped.map((l) => `“${l}”`).join(", ")}</p>}
+              <div className="flex gap-3">
+                <form action={confirmSquad}><PendingButton className={btn} pending="Adding…">Add {preview.length} player{preview.length === 1 ? "" : "s"}</PendingButton></form>
+                <form action={discardSquadPreview}><PendingButton className="text-sm text-muted underline underline-offset-4" pending="…">Start again</PendingButton></form>
+              </div>
+            </div>
+          ) : (
+            <form action={readSquadAction} className="space-y-3">
+              <label htmlFor="list" className="block text-sm text-muted">Paste your squad as you have it: a column of names, or a spreadsheet with number, position, group. Only the name is needed. Or choose a file.</label>
+              <textarea id="list" name="list" rows={5} placeholder={"J. Mensah, 5, Centre-back\nL. Ortiz, 9, Forward, U21"} className={`${input} font-mono text-[13px]`} />
+              <div><label htmlFor="squad_file" className="sr-only">Squad file</label><input id="squad_file" name="file" type="file" accept=".xlsx,.csv,.txt" className="block text-sm" /></div>
+              <PendingButton className={btnGhost} pending="Reading…">Read my squad</PendingButton>
+            </form>
+          )}
         </Card>
       </section>
 

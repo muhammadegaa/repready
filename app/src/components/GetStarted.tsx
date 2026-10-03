@@ -11,7 +11,7 @@ export function setupSteps(s: SetupState): Step[] {
   return [
     {
       title: "Add your players",
-      how: "Paste your squad from a spreadsheet, add them one by one, or post the squad link in your team chat and let players add themselves.",
+      how: "Paste your squad or upload a spreadsheet (I read it, you check it), add them one by one, or post the squad link in your team chat and let players add themselves.",
       href: "/coach/squad", cta: "Open Squad", done: s.players + s.waiting > 0,
     },
     {
