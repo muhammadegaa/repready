@@ -116,7 +116,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
               <div className="mb-2 text-sm font-medium">Can you train today?</div>
               <div className="flex flex-wrap gap-2 text-sm">
                 {([["full", "Yes, as planned"], ["limited", "Limited"], ["out", "No"]] as const).map(([v, label]) => (
-                  <label key={v} className="cursor-pointer rounded-md border border-line-strong bg-surface px-3 py-2 has-[:checked]:border-ink has-[:checked]:bg-ink has-[:checked]:text-paper">
+                  <label key={v} className="cursor-pointer rounded-md border border-line-strong bg-surface px-3 py-2 has-[:checked]:border-brand has-[:checked]:bg-brand has-[:checked]:text-on-brand">
                     <input type="radio" name="availability" value={v} defaultChecked={v === "full"} className="sr-only" />
                     {label}
                   </label>
@@ -275,7 +275,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
         <div className="flex gap-1.5" aria-label="Check-ins this week">
           {week.map((d) => (
             <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
-              <span className={`flex h-8 w-full items-center justify-center rounded-md text-xs ${d.checked ? "bg-ink text-paper" : "border border-dashed border-line-strong text-muted"}`}>{d.checked ? "✓" : ""}</span>
+              <span className={`flex h-8 w-full items-center justify-center rounded-md text-xs ${d.checked ? "bg-brand text-on-brand" : "border border-dashed border-line-strong text-muted"}`}>{d.checked ? "✓" : ""}</span>
               <span className="font-mono text-[10px] text-muted">{new Date(`${d.date}T00:00:00Z`).toLocaleDateString("en-GB", { weekday: "narrow", timeZone: "UTC" })}</span>
             </div>
           ))}

@@ -9,7 +9,7 @@ export function Pills({
         {values.map((v) => (
           <label key={v} className="cursor-pointer">
             <input type="radio" name={name} value={v} defaultChecked={defaultValue === v} required={required} className="peer sr-only" />
-            <span className="flex h-10 min-w-10 items-center justify-center rounded-md border border-line-strong bg-surface px-2 font-mono text-sm tabular-nums transition peer-checked:border-ink peer-checked:bg-ink peer-checked:text-paper peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ink">
+            <span className="flex h-10 min-w-10 items-center justify-center rounded-md border border-line-strong bg-surface px-2 font-mono text-sm tabular-nums transition peer-checked:border-brand peer-checked:bg-brand peer-checked:text-on-brand peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand">
               {v}
             </span>
           </label>

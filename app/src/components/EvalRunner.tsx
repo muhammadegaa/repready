@@ -49,7 +49,7 @@ export function EvalRunner({ ids, disabledReason }: { ids: string[]; disabledRea
       </div>
       {running && (
         <div className="h-1.5 w-full max-w-md overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={done} aria-valuemax={ids.length}>
-          <div className="h-full bg-ink transition-all" style={{ width: `${(done / Math.max(ids.length, 1)) * 100}%` }} />
+          <div className="h-full bg-brand transition-all" style={{ width: `${(done / Math.max(ids.length, 1)) * 100}%` }} />
         </div>
       )}
       {error && <p className="text-sm text-bad">The run stopped: {error}</p>}

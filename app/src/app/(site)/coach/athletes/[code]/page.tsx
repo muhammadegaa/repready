@@ -190,7 +190,7 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
                     <input type="hidden" name="exercise" value={n} />
                     <button
                       aria-pressed={on}
-                      className={`rounded-full border px-3 py-1 text-sm font-medium transition ${on ? "border-ink bg-ink text-paper" : "border-line-strong bg-surface hover:bg-paper"}`}
+                      className={`rounded-full border px-3 py-1 text-sm font-medium transition ${on ? "border-brand bg-brand text-on-brand" : "border-line-strong bg-surface hover:bg-paper"}`}
                     >
                       {on ? "Protected · " : ""}{n}
                     </button>

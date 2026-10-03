@@ -8,7 +8,7 @@ export function Steps({ steps, active, warn = false }: { steps: string[]; active
           <li key={s} className="flex flex-1 items-center gap-2" aria-current={current ? "step" : undefined}>
             <span
               className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${
-                done ? "border-ink bg-ink text-paper" : current ? (warn ? "border-warn bg-warn-bg text-warn" : "border-ink bg-marker text-marker-ink") : "border-line-strong text-muted"
+                done ? "border-brand bg-brand text-on-brand" : current ? (warn ? "border-warn bg-warn-bg text-warn" : "border-brand bg-marker text-marker-ink") : "border-line-strong text-muted"
               }`}
             >
               {done ? "✓" : i + 1}

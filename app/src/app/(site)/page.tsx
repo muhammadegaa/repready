@@ -82,7 +82,7 @@ export default function Landing() {
         <Eyebrow>How it works</Eyebrow>
         <ol className="grid gap-5 md:grid-cols-3">
           {steps.map(([t, b], i) => (
-            <li key={t} className="space-y-2 border-t border-ink pt-4">
+            <li key={t} className="space-y-2 border-t-2 border-brand/70 pt-4">
               <span className="font-mono text-xs text-muted">0{i + 1}</span>
               <h3 className="font-semibold tracking-tight">{t}</h3>
               <p className="text-sm leading-relaxed text-muted">{b}</p>
@@ -95,7 +95,7 @@ export default function Landing() {
         <div className="space-y-4">
           <Eyebrow>Control</Eyebrow>
           <ul className="space-y-2.5">
-            {control.map((c) => <li key={c} className="flex gap-3 text-[15px] leading-relaxed"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-sm bg-marker ring-1 ring-ink/70" />{c}</li>)}
+            {control.map((c) => <li key={c} className="flex gap-3 text-[15px] leading-relaxed"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-sm bg-marker ring-1 ring-brand/40" />{c}</li>)}
           </ul>
         </div>
         <div className="space-y-4">
@@ -111,12 +111,12 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="rounded-2xl bg-ink px-6 py-10 text-paper sm:px-12">
+      <section className="rounded-2xl bg-brand px-6 py-10 text-on-brand sm:px-12">
         <h2 className="max-w-xl text-2xl font-semibold tracking-tight">Run a pilot with your squad</h2>
         <div className="mt-6 max-w-xl [&_input]:border-paper/30 [&_input]:bg-paper [&_input]:text-ink [&_button]:bg-marker [&_button]:text-marker-ink">
           <LeadForm id="final" />
         </div>
-        <p className="mt-5 text-sm text-paper/60">Ready to start? <Link href="/signup" className="underline underline-offset-4">Create a club account</Link>. Already have one? <Link href="/signin" className="underline underline-offset-4">Sign in</Link>.</p>
+        <p className="mt-5 text-sm text-on-brand/80">Ready to start? <Link href="/signup" className="underline underline-offset-4">Create a club account</Link>. Already have one? <Link href="/signin" className="underline underline-offset-4">Sign in</Link>.</p>
       </section>
     </div>
   );

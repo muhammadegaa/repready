@@ -5,7 +5,7 @@ export function Spark({ values, max = 10 }: { values: (number | null)[]; max?: n
       {values.map((v, i) => (
         <span
           key={i}
-          className={`w-[5px] rounded-[1px] ${v === null ? "bg-line" : v < 6 ? "bg-bad" : "bg-ink/70"}`}
+          className={`w-[5px] rounded-[1px] ${v === null ? "bg-line" : v < 6 ? "bg-bad" : "bg-brand/60"}`}
           style={{ height: v === null ? 3 : Math.max(3, Math.round((Math.min(v, max) / max) * 24)) }}
         />
       ))}

@@ -14,7 +14,7 @@ export function Nav({ links }: { links: { href: string; label: string }[] }) {
             key={l.href}
             href={l.href}
             aria-current={active ? "page" : undefined}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${active ? "bg-ink text-paper" : "text-muted hover:text-ink"}`}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${active ? "bg-brand-soft text-brand-ink" : "text-muted hover:bg-brand-soft/60 hover:text-ink"}`}
           >
             {l.label}
           </Link>

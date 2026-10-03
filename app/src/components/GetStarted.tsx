@@ -48,8 +48,8 @@ export function GetStarted({ name, state, hasSample = false }: { name: string; s
       </div>
       <ol className="space-y-3">
         {steps.map((s, i) => (
-          <li key={s.title} className={`flex gap-3 rounded-lg border px-4 py-3 ${i === next ? "border-ink bg-surface" : "border-line"}`}>
-            <span aria-hidden className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${s.done ? "bg-ok text-paper" : "border border-line-strong text-muted"}`}>{s.done ? "✓" : i + 1}</span>
+          <li key={s.title} className={`flex gap-3 rounded-lg border px-4 py-3 ${i === next ? "border-brand bg-surface shadow-sm" : "border-line"}`}>
+            <span aria-hidden className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium ${s.done ? "bg-ok text-on-brand" : "border border-line-strong text-muted"}`}>{s.done ? "✓" : i + 1}</span>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`font-medium ${s.done ? "text-muted line-through" : ""}`}>{s.title}</span>

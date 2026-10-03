@@ -32,7 +32,7 @@ export function UsualToday({ days, first }: { days: DayPoint[]; first: string })
             <div className="text-sm font-medium">{m.label}</div>
             <div className="relative h-2.5 rounded-full bg-paper ring-1 ring-line" aria-hidden>
               {u && <div className="absolute top-0 h-2.5 rounded-full bg-line-strong/60" style={{ left: pct(u.low), width: `max(${pct(u.high - u.low)}, 6px)` }} />}
-              {t !== null && <div className={`absolute -top-1 w-1 -translate-x-1/2 rounded-full ${off ? "bg-warn" : "bg-ink"}`} style={{ left: pct(t), height: "18px" }} />}
+              {t !== null && <div className={`absolute -top-1 w-1 -translate-x-1/2 rounded-full ${off ? "bg-warn" : "bg-brand"}`} style={{ left: pct(t), height: "18px" }} />}
             </div>
             <div className="col-span-2 flex items-center gap-2 text-sm sm:col-span-1">
               <span className={off ? "text-warn" : "text-muted"}>{sentence}</span>

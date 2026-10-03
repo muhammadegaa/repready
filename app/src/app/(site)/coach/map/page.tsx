@@ -38,7 +38,7 @@ function Row({ r, dates, fixtures }: { r: MapRow; dates: string[]; fixtures: str
         <span
           key={dates[i]}
           title={`${r.athlete.name}, ${dateLabel(dates[i])}: ${LABEL[c.level]}${c.notes.length ? `. ${c.notes.join("; ")}` : ""}${r.minutes[i] !== null ? `. Played ${r.minutes[i]} min` : ""}${r.flagged[i] ? ". Flagged for you" : ""}`}
-          className={`relative flex h-7 items-center justify-center rounded-[4px] font-mono text-[10px] tabular-nums ${FILL[c.level]} ${fixtures.includes(dates[i]) ? "ring-1 ring-ink/40" : ""}`}
+          className={`relative flex h-7 items-center justify-center rounded-[4px] font-mono text-[10px] tabular-nums ${FILL[c.level]} ${fixtures.includes(dates[i]) ? "ring-2 ring-brand/50" : ""}`}
         >
           {r.minutes[i] !== null ? r.minutes[i] : ""}
           {r.flagged[i] && <span className="absolute right-0.5 top-0 text-[11px] font-bold leading-none text-bad">!</span>}

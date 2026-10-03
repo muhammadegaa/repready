@@ -37,7 +37,7 @@ export function Heat({ days }: { days: DayPoint[] }) {
                   style={{ background: `color-mix(in srgb, var(--bad) ${Math.round(c * 62)}%, var(--surface))`, color: c > 0.55 ? "var(--paper)" : "var(--ink)" }}
                 >
                   {row.format(v)}
-                  {row.label === "Sleep" && d.device !== null && <span className="absolute right-0.5 top-0.5 h-1 w-1 rounded-full bg-ink" />}
+                  {row.label === "Sleep" && d.device !== null && <span className="absolute right-0.5 top-0.5 h-1 w-1 rounded-full bg-brand" />}
                 </span>
               );
             })}

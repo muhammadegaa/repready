@@ -22,7 +22,7 @@ export function ProposalCard({ entry, session, rules }: { entry: RosterEntry; se
         <input type="hidden" name="id" value={p.id} />
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-semibold text-paper">{entry.athlete.name[0]}</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft font-semibold text-brand-ink">{entry.athlete.name[0]}</span>
             <div>
               <div className="font-semibold leading-tight">{entry.athlete.name}</div>
               <div className="text-xs text-muted">{session.label}</div>
