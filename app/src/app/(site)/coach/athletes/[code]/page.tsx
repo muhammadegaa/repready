@@ -9,6 +9,7 @@ import { SessionTable } from "@/components/SessionTable";
 import { btnGhost, Card, Chip, Eyebrow, input } from "@/components/ui";
 import { groupLabel } from "@/lib/groups";
 import { describeOverride, isActive } from "@/lib/overrides";
+import { UsualToday } from "@/components/UsualToday";
 import { requirePage } from "@/lib/auth";
 import { ago, dateLabel, decisionCopy } from "@/lib/copy";
 import { todayStr } from "@/lib/run-agent";
@@ -87,6 +88,11 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
           </Card>
         </section>
       )}
+
+      <section className="space-y-3">
+        <Eyebrow>Today against their own usual</Eyebrow>
+        <UsualToday days={days} first={athlete.name.split(" ")[0]} />
+      </section>
 
       <section className="space-y-3">
         <Eyebrow>Last 14 days</Eyebrow>

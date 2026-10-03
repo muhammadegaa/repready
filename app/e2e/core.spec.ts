@@ -220,6 +220,9 @@ test("a coach changes one player's plan: the player, the rules and the coach's c
 
   // A review date of today puts a reminder on Today.
   await page.goto(`/coach/athletes/${kneeCode}`);
+  // A brand-new player has no usual range yet, and the page says so instead of inventing one.
+  await expect(page.getByText("Today against their own usual")).toBeVisible();
+  await expect(page.getByText("Not enough history yet to compare.")).toHaveCount(3);
   await page.locator("#ov-exercise").selectOption("Romanian deadlift");
   await page.locator("#ov-swap").fill("Hip thrust");
   await page.locator("#ov-review").fill(today());
