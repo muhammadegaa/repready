@@ -27,6 +27,7 @@ export default async function Today(props: PageProps<"/coach">) {
   const { session, versions, reviews, roster, pending, events, counts, waiting } = data;
   const notIn = roster.filter((r) => r.status === "waiting");
   const hasSample = roster.some((r) => r.athlete.sample);
+  const nudge = waiting > 0 ? "waiting" : reviews.length > 0 ? "reviews" : data.matchToLog ? "minutes" : data.nextWeekOffer ? "nextweek" : null;
   const routine = pending.filter((e) => e.proposal && isRoutine(e.proposal));
   const handled = roster.filter((e) => e.proposal?.status === "approved" && e.proposal.decided_by === "delegated");
 
@@ -59,32 +60,31 @@ export default async function Today(props: PageProps<"/coach">) {
       )}
 
       {notice && <Notice>{notice}</Notice>}
-      {reviews.length > 0 && (
+      {/* One thing at a time: the most useful next step, not a stack of banners. */}
+      {nudge === "waiting" && (
+        <Notice>{waiting} player{waiting === 1 ? " has" : "s have"} asked to join the squad. <Link href="/coach/squad" className="font-medium underline underline-offset-4">Confirm in Squad</Link>.</Notice>
+      )}
+      {nudge === "reviews" && (
         <Notice>
           Plan changes to review: {reviews.map((o, i) => (
             <span key={o.id}>{i ? ", " : ""}<Link href={`/coach/athletes/${o.athlete_code}#plan-changes`} className="font-medium underline underline-offset-4">{o.athlete_name} ({o.exercise})</Link></span>
           ))}.
         </Notice>
       )}
-      {waiting > 0 && (
-        <Notice>{waiting} player{waiting === 1 ? " has" : "s have"} asked to join the squad. <Link href="/coach/squad" className="font-medium underline underline-offset-4">Confirm in Squad</Link>.</Notice>
-      )}
-
-      {data.nextWeekOffer && (
-        <Notice tone="ok">
-          <form action={draftNextWeek} className="flex flex-wrap items-center justify-between gap-3">
-            <span>Next week has no sessions yet. Start it from this week?</span>
-            <PendingButton className="font-medium underline underline-offset-4" pending="Drafting…">Draft next week</PendingButton>
-          </form>
-        </Notice>
-      )}
-
-      {data.matchToLog && (
+      {nudge === "minutes" && data.matchToLog && (
         <Notice tone="ok">
           <span className="flex flex-wrap items-center justify-between gap-3">
             <span>There was a match on {dateLabel(data.matchToLog)}. Who played?</span>
             <Link href={`/coach/program?matchdate=${data.matchToLog}#minutes`} className="font-medium underline underline-offset-4">Add minutes</Link>
           </span>
+        </Notice>
+      )}
+      {nudge === "nextweek" && (
+        <Notice tone="ok">
+          <form action={draftNextWeek} className="flex flex-wrap items-center justify-between gap-3">
+            <span>Next week has no sessions yet. Start it from this week?</span>
+            <PendingButton className="font-medium underline underline-offset-4" pending="Drafting…">Draft next week</PendingButton>
+          </form>
         </Notice>
       )}
 
@@ -101,8 +101,8 @@ export default async function Today(props: PageProps<"/coach">) {
             <Eyebrow>Needs you</Eyebrow>
             {pending.length === 0 ? (
               <Card className="px-5 py-8 text-center">
-                <p className="font-medium">{counts.checkedIn === 0 ? "Nobody has checked in yet." : "Nothing is waiting on you."}</p>
-                <p className="mt-1 text-sm text-muted">A proposal appears here the moment a player checks in and the agent has read their numbers.</p>
+                <p className="font-medium">{counts.checkedIn === 0 ? "Nobody has checked in yet." : counts.athletes > 0 && counts.checkedIn === counts.athletes ? "All clear. Everyone has checked in and nothing needs you." : "Nothing is waiting on you."}</p>
+                <p className="mt-1 text-sm text-muted">{counts.checkedIn === 0 ? "A suggestion appears here the moment a player checks in and the agent has read their numbers." : "If a check-in needs a decision, it appears here straight away."}</p>
               </Card>
             ) : (
               <>

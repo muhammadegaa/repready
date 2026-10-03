@@ -137,7 +137,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
             ) : (
               <div>
                 <label htmlFor="sleep_h" className="block text-sm font-medium">Hours slept last night</label>
-                <input id="sleep_h" name="sleep_h" type="number" inputMode="decimal" step="0.5" min="0" max="16" required className={`${input} mt-2 max-w-32 text-base`} />
+                <input id="sleep_h" name="sleep_h" type="number" inputMode="decimal" step="0.5" min="0" max="16" required placeholder="e.g. 7.5" className={`${input} mt-2 max-w-32 text-base`} />
               </div>
             )}
             <div>
@@ -159,7 +159,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
 
       {session && checkin && (
         <Card className="p-4">
-          {status === "analysing" && <p className="text-sm"><span className="font-medium">Got it.</span> Reading your numbers now. This page updates by itself.</p>}
+          {status === "analysing" && <p className="text-sm"><span className="font-medium">Thanks, {v.athlete.name.split(" ")[0]}. Got it.</span> Reading your numbers now. This page updates by itself.</p>}
           {status === "needs_decision" && <p className="text-sm"><span className="font-medium">Your coach is reviewing a suggested change.</span> Check back before you train. This page updates by itself.</p>}
           {status === "agent_error" && <p className="text-sm"><span className="font-medium">Your check-in is in.</span> No suggestion came back, so your coach will look at it. Train to the plan unless they say otherwise.</p>}
           {status === "on_plan" && <p className="text-sm"><span className="font-medium">All good.</span> Nothing to change. Train to the plan.</p>}

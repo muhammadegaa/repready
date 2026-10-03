@@ -8,7 +8,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const s = await getSession();
   const links = s
     ? [
-        ...(s.access && s.roles.includes("coach") ? [{ href: "/coach", label: "Today" }, { href: "/coach/squad", label: "Squad" }, { href: "/coach/map", label: "Map" }, { href: "/coach/team", label: "Staff" }, { href: "/coach/program", label: "Program" }, { href: "/coach/results", label: "Results" }] : []),
+        ...(s.access && s.roles.includes("coach") ? [{ href: "/coach", label: "Today" }, { href: "/coach/squad", label: "Squad" }, { href: "/coach/map", label: "Map" }, { href: "/coach/program", label: "Program" }, { href: "/coach/results", label: "Results" }, { href: "/coach/team", label: "Staff" }] : []),
         ...(s.access && s.roles.includes("scientist") ? [{ href: "/science", label: "Rules" }, { href: "/science/evaluation", label: "Evaluation" }] : []),
       ]
     : [];
