@@ -35,6 +35,7 @@ export type AthleteRow = {
   protected: string[];
   group: string | null; // the coach's group for this player; null means Everyone
   sample: boolean; // fictional player created by the sample squad, removable in one click
+  ask_always: boolean; // the coach wants every suggestion for this player to come to them, whatever is delegated
   created_at: string;
 };
 export type SessionRow = { id: string; on_date: string; label: string; week_type: string; exercises: Exercise[]; group: string | null; sample?: boolean };
@@ -60,6 +61,7 @@ export type ProposalRow = {
   decided_at: string | null;
   coach_note: string | null;
   edited_by_coach: boolean;
+  decided_by: "coach" | "delegated" | null; // delegated: the agent applied it under the coach's standing instruction
 };
 export type EventRow = { id: string; at: string; type: string; athlete_code: string | null; athlete_name: string | null; text: string };
 export type RuleRow = { id: string; name: string; trigger: string; action: string; evidence: string; keep: "keep" | "change" | "delete" | null; updated_at: string | null; updated_by: string | null };
@@ -93,9 +95,10 @@ const athlete = (code: string, d: DocumentData): AthleteRow => ({
   protected: d.protected ?? [],
   group: cleanGroup(d.group),
   sample: d.sample === true,
+  ask_always: d.ask_always === true,
   created_at: d.created_at ?? "",
 });
-const proposal = (id: string, d: DocumentData): ProposalRow => ({ coach_note: null, edited_by_coach: false, ...d, id }) as ProposalRow;
+const proposal = (id: string, d: DocumentData): ProposalRow => ({ coach_note: null, edited_by_coach: false, decided_by: null, ...d, id }) as ProposalRow;
 
 // ---- pulse: a timestamp per audience that changes on every write, so open views can tell when to refresh.
 export type PulseScope = "coach" | "science" | `a_${string}`;
@@ -714,9 +717,9 @@ export async function getProposal(code: string, date: string): Promise<ProposalR
   return s.exists ? proposal(s.id, s.data()!) : null;
 }
 
-export async function saveProposal(p: Omit<ProposalRow, "id" | "coach_note" | "edited_by_coach">): Promise<void> {
+export async function saveProposal(p: Omit<ProposalRow, "id" | "coach_note" | "edited_by_coach" | "decided_by">): Promise<void> {
   const club = clubOf(p.athlete_code);
-  await col(club, "proposals").doc(key(p.athlete_code, p.on_date)).set({ ...p, coach_note: null, edited_by_coach: false });
+  await col(club, "proposals").doc(key(p.athlete_code, p.on_date)).set({ ...p, coach_note: null, edited_by_coach: false, decided_by: null });
   if (p.status === "pending") {
     await logEvent(club, { type: "proposal", athlete_code: p.athlete_code, athlete_name: p.athlete_name, text: `${p.athlete_name}: proposal to ${decisionCopy(p.decision).title.toLowerCase()}` });
   }
@@ -744,7 +747,7 @@ export async function decideProposal(
   club: string,
   id: string,
   status: "approved" | "rejected",
-  opts: { note?: string | null; edits?: Edit[] } = {},
+  opts: { note?: string | null; edits?: Edit[]; by?: "coach" | "delegated" } = {},
 ): Promise<ProposalRow | null> {
   if (clubOf(id) !== club) return null;
   const ref = col(club, "proposals").doc(id);
@@ -752,7 +755,7 @@ export async function decideProposal(
   await fs.runTransaction(async (t) => {
     const s = await t.get(ref);
     if (!s.exists || s.get("status") !== "pending") return;
-    const patch: Record<string, unknown> = { status, decided_at: new Date().toISOString(), coach_note: opts.note?.trim() || null };
+    const patch: Record<string, unknown> = { status, decided_at: new Date().toISOString(), coach_note: opts.note?.trim() || null, decided_by: opts.by ?? "coach" };
     if (opts.edits && status === "approved") {
       patch.edits = opts.edits;
       patch.edited_by_coach = true;
@@ -763,10 +766,42 @@ export async function decideProposal(
   const d = decided as ProposalRow | null;
   if (d) {
     const verb = status === "approved" ? (d.edited_by_coach ? "approved with changes" : "approved") : "kept the plan";
-    await logEvent(club, { type: "decision", athlete_code: d.athlete_code, athlete_name: d.athlete_name, text: `Coach ${verb} for ${d.athlete_name}` });
+    await logEvent(club, { type: "decision", athlete_code: d.athlete_code, athlete_name: d.athlete_name, text: d.decided_by === "delegated" ? `Applied for ${d.athlete_name} under your standing instruction` : `Coach ${verb} for ${d.athlete_name}` });
     await touch(club, "coach", `a_${d.athlete_code}`);
   }
   return d;
+}
+
+// Takes back something the agent applied under a standing instruction: the player's plan stands again, and it does not count as a coach decision.
+export async function undoDelegated(club: string, id: string): Promise<boolean> {
+  if (clubOf(id) !== club) return false;
+  const ref = col(club, "proposals").doc(id);
+  let undone: ProposalRow | null = null;
+  await fs.runTransaction(async (t) => {
+    const s = await t.get(ref);
+    if (!s.exists || s.get("status") !== "approved" || s.get("decided_by") !== "delegated") return;
+    t.update(ref, { status: "rejected", coach_note: "Taken back by the coach", decided_at: new Date().toISOString() });
+    undone = proposal(id, s.data()!);
+  });
+  const u = undone as ProposalRow | null;
+  if (u) {
+    await logEvent(club, { type: "decision", athlete_code: u.athlete_code, athlete_name: u.athlete_name, text: `Coach took back the change for ${u.athlete_name}: the plan stands` });
+    await touch(club, "coach", `a_${u.athlete_code}`);
+  }
+  return Boolean(u);
+}
+
+export async function getAutonomy(club: string): Promise<{ delegated: string[]; paused: boolean }> {
+  const a = (await fs.collection("clubs").doc(club).get()).data()?.autonomy;
+  return { delegated: Array.isArray(a?.delegated) ? a.delegated.filter((x: unknown) => typeof x === "string") : [], paused: a?.paused === true };
+}
+export async function setAutonomy(club: string, a: { delegated: string[]; paused: boolean }): Promise<void> {
+  await fs.collection("clubs").doc(club).update({ autonomy: a });
+  await touch(club, "coach");
+}
+export async function setAskAlways(code: string, on: boolean): Promise<void> {
+  await col(clubOf(code), "athletes").doc(code).update({ ask_always: on });
+  await touch(clubOf(code), "coach", `a_${code}`);
 }
 
 // ---- notices

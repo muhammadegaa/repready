@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addPlanOverride, liftPlanOverride, removeAthlete, setPlayerGroup, toggleProtected } from "@/actions/coach";
+import { askAlwaysAction, addPlanOverride, liftPlanOverride, removeAthlete, setPlayerGroup, toggleProtected } from "@/actions/coach";
 import { CopyButton } from "@/components/CopyButton";
 import { Heat } from "@/components/Heat";
 import { Live } from "@/components/Live";
@@ -171,6 +171,18 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
               <PendingButton className={btnGhost} pending="Saving…">Save change</PendingButton>
             </form>
           )}
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <Eyebrow>Suggestions for {athlete.name.split(" ")[0]}</Eyebrow>
+        <Card className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm">
+          <span>{athlete.ask_always ? "Every suggestion for this player comes to you, even for rules you have handed to the agent." : "Rules you have handed to the agent may apply routine trims for this player."}</span>
+          <form action={askAlwaysAction}>
+            <input type="hidden" name="code" value={athlete.code} />
+            <input type="hidden" name="on" value={athlete.ask_always ? "no" : "yes"} />
+            <PendingButton className={btnGhost} pending="Saving…">{athlete.ask_always ? "Allow routine trims" : "Always ask me"}</PendingButton>
+          </form>
         </Card>
       </section>
 

@@ -12,13 +12,15 @@ import { readFixtureDates } from "@/lib/fixtures";
 import { planFor, playerExerciseNames } from "@/lib/plan";
 import { validateOverride } from "@/lib/overrides";
 import { runAgentFor, todayStr } from "@/lib/run-agent";
+import { isRoutine, ruleStats } from "@/lib/autonomy";
+import { allRules } from "@/lib/rules";
 import { cleanCalendarUrl } from "@/lib/calendar";
 import { syncCalendar } from "@/lib/calendar-sync";
 import { readMinutes } from "@/lib/minutes";
 import { fileToText } from "@/lib/read/files";
 import { POSITIONS, readSquad, storedPlayers } from "@/lib/squad";
 import {
-  approvePlayer, CODE_RE, saveCalendarLink, getNotice, listAthletes, saveMinutes, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
+  approvePlayer, CODE_RE, getAutonomy, listProposals, setAskAlways, setAutonomy, undoDelegated, saveCalendarLink, getNotice, listAthletes, saveMinutes, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -304,4 +306,58 @@ export async function removeCalendarAction() {
   await saveCalendarLink(club, null);
   revalidatePath("/coach/program");
   redirect("/coach/program#fixtures");
+}
+
+// ---- the autonomy ladder
+// Level 1: the coach looks at today's routine suggestions together and approves them in one action.
+export async function approveRoutine() {
+  const { club } = await requireStaff("coach");
+  const today = todayStr();
+  const routine = (await listProposals(club, 200)).filter((p) => p.on_date === today && isRoutine(p));
+  for (const p of routine) await decideProposal(club, p.id, "approved", { by: "coach" });
+  revalidatePath("/coach");
+  redirect("/coach");
+}
+
+// Level 2: hand a rule to the agent. Only a rule the coach has earned the right to hand over (enough decisions, nine in ten as proposed).
+export async function setDelegation(f: FormData) {
+  const { club } = await requireStaff("coach");
+  const rule = text(f, "rule");
+  const on = text(f, "on") === "yes";
+  const a = await getAutonomy(club);
+  const ids = (await allRules(club)).map((r) => r.id);
+  if (!ids.includes(rule)) return redirect("/coach/results#autonomy");
+  if (on) {
+    const stat = ruleStats(await listProposals(club, 500), todayStr(), ids).find((s) => s.rule === rule);
+    if (!stat?.eligible) return redirect(`/coach/results?autoerr=${encodeURIComponent("That rule has not earned this yet. It needs at least 8 of your decisions in the last 28 days, with 9 in 10 approved as proposed.")}#autonomy`);
+    await setAutonomy(club, { ...a, delegated: [...new Set([...a.delegated, rule])] });
+  } else {
+    await setAutonomy(club, { ...a, delegated: a.delegated.filter((r) => r !== rule) });
+  }
+  revalidatePath("/coach/results");
+  redirect("/coach/results#autonomy");
+}
+
+export async function setAutopilotPaused(f: FormData) {
+  const { club } = await requireStaff("coach");
+  const a = await getAutonomy(club);
+  await setAutonomy(club, { ...a, paused: text(f, "paused") === "yes" });
+  revalidatePath("/coach/results");
+  redirect("/coach/results#autonomy");
+}
+
+export async function takeBack(f: FormData) {
+  const { club } = await requireStaff("coach");
+  const id = text(f, "id");
+  if (PROPOSAL_ID.test(id)) await undoDelegated(club, id);
+  revalidatePath("/coach");
+  redirect("/coach");
+}
+
+export async function askAlwaysAction(f: FormData) {
+  const { club } = await requireStaff("coach");
+  const a = await ownPlayer(club, text(f, "code"));
+  if (a) await setAskAlways(a.code, text(f, "on") === "yes");
+  revalidatePath(`/coach/athletes/${text(f, "code")}`);
+  redirect(`/coach/athletes/${text(f, "code")}`);
 }

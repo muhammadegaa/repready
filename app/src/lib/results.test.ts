@@ -4,7 +4,7 @@ import type { ProposalRow } from "./store";
 
 const p = (status: ProposalRow["status"], hours = 2, edited = false): ProposalRow => ({
   id: "x", athlete_code: "a", athlete_name: "A", session_label: "L", on_date: "2026-10-01", decision: null, edits: [], reason: null, rules_applied: [], flag: null,
-  status, error: null, created_at: "2026-10-01T07:00:00.000Z", decided_at: status === "pending" ? null : new Date(Date.parse("2026-10-01T07:00:00.000Z") + hours * 3_600_000).toISOString(), coach_note: null, edited_by_coach: edited,
+  status, error: null, created_at: "2026-10-01T07:00:00.000Z", decided_at: status === "pending" ? null : new Date(Date.parse("2026-10-01T07:00:00.000Z") + hours * 3_600_000).toISOString(), coach_note: null, edited_by_coach: edited, decided_by: null,
 });
 
 describe("summarise", () => {

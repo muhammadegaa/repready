@@ -431,3 +431,21 @@ test("next week starts as a copy of this week, with match days pointed out, and 
   await page.getByRole("button", { name: "Use this program" }).click();
   await expect(page.getByText(/Saved 1 session/)).toBeVisible();
 });
+
+test("routine suggestions are approved together, everything else stays with the coach, and the autonomy controls explain themselves", async ({ page }) => {
+  await signUp(page);
+  await page.goto("/coach/squad");
+  await page.getByRole("button", { name: "Load a sample squad" }).click();
+  await expect(page.getByText(/Sample squad loaded/).first()).toBeVisible();
+  await page.goto("/coach");
+  await expect(page.getByText("2 routine suggestions, all the same kind")).toBeVisible();
+  await page.getByRole("button", { name: "Approve these 2" }).click();
+  await expect(page.getByText("2 routine suggestions, all the same kind")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Check before training" })).toBeVisible(); // the pain note still waits for the coach
+
+  await page.goto("/coach/results");
+  await expect(page.getByText("How much the agent does for you")).toBeVisible();
+  await expect(page.getByText("Never automatic").first()).toBeVisible();
+  await expect(page.getByText("Not enough history yet").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Let the agent handle it" })).toHaveCount(0);
+});

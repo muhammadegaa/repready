@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { approveRoutine, takeBack } from "@/actions/coach";
 import { draftNextWeek } from "@/actions/program";
 import { PendingButton } from "@/components/Pending";
 import { CopyButton } from "@/components/CopyButton";
@@ -6,9 +7,10 @@ import { GetStarted } from "@/components/GetStarted";
 import { Live } from "@/components/Live";
 import { ProposalCard } from "@/components/ProposalCard";
 import { Spark } from "@/components/Spark";
-import { btnGhost, Card, Chip, Eyebrow, Notice, Stat } from "@/components/ui";
+import { btn, btnGhost, Card, Chip, Eyebrow, Notice, Stat } from "@/components/ui";
 import { requirePage } from "@/lib/auth";
 import { ago, dateLabel } from "@/lib/copy";
+import { isRoutine } from "@/lib/autonomy";
 import { allRules } from "@/lib/rules";
 import { todayStr } from "@/lib/run-agent";
 import { countSessions, getPulse } from "@/lib/store";
@@ -25,6 +27,8 @@ export default async function Today(props: PageProps<"/coach">) {
   const { session, versions, reviews, roster, pending, events, counts, waiting } = data;
   const notIn = roster.filter((r) => r.status === "waiting");
   const hasSample = roster.some((r) => r.athlete.sample);
+  const routine = pending.filter((e) => e.proposal && isRoutine(e.proposal));
+  const handled = roster.filter((e) => e.proposal?.status === "approved" && e.proposal.decided_by === "delegated");
 
   return (
     <div className="space-y-8">
@@ -101,9 +105,41 @@ export default async function Today(props: PageProps<"/coach">) {
                 <p className="mt-1 text-sm text-muted">A proposal appears here the moment a player checks in and the agent has read their numbers.</p>
               </Card>
             ) : (
-              pending.map((e) => e.session && <ProposalCard key={e.proposal!.id} entry={e} session={e.session} rules={rules} />)
+              <>
+                {routine.length >= 2 && (
+                  <Card className="space-y-3 border-brand/30 bg-brand-soft/50 p-5">
+                    <div>
+                      <h3 className="font-semibold">{routine.length} routine suggestions, all the same kind</h3>
+                      <p className="mt-0.5 text-sm text-muted">Small volume trims, nothing flagged, nothing the limits had to change. Look them over, then approve them together. Anything else stays below for you.</p>
+                    </div>
+                    <ul className="space-y-1 text-sm">
+                      {routine.map((e) => <li key={e.proposal!.id}><b>{e.athlete.name}</b> <span className="text-muted">· {e.proposal!.reason}</span></li>)}
+                    </ul>
+                    <form action={approveRoutine}><PendingButton className={btn} pending="Approving…">Approve these {routine.length}</PendingButton></form>
+                  </Card>
+                )}
+                {pending.map((e) => e.session && <ProposalCard key={e.proposal!.id} entry={e} session={e.session} rules={rules} />)}
+              </>
             )}
           </section>
+
+          {handled.length > 0 && (
+            <section className="space-y-3">
+              <Eyebrow>Handled for you ({handled.length})</Eyebrow>
+              <Card className="divide-y divide-line">
+                {handled.map((e) => (
+                  <form key={e.proposal!.id} action={takeBack} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                    <input type="hidden" name="id" value={e.proposal!.id} />
+                    <div className="min-w-0 text-sm">
+                      <b>{e.athlete.name}</b> <span className="text-muted">· {e.proposal!.reason}</span>
+                      <div className="text-xs text-muted">Applied under your standing instruction for {e.proposal!.rules_applied.join(", ")}.</div>
+                    </div>
+                    <PendingButton className="text-sm text-muted underline underline-offset-4" pending="Taking back…">Take it back</PendingButton>
+                  </form>
+                ))}
+              </Card>
+            </section>
+          )}
 
           <section className="space-y-3">
             <Eyebrow>Squad today</Eyebrow>

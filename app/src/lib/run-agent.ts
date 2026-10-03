@@ -3,9 +3,10 @@ import { matchDayTag } from "./fixtures";
 import { planFor } from "./plan";
 import type { Scenario } from "./agent/propose";
 import type { Exercise } from "./agent/schema";
+import { mayAutoApply, ruleStats } from "./autonomy";
 import { activeRules, allRules } from "./rules";
 import {
-  clubOf, getAthlete, getFixtures, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionsForDates,
+  clubOf, decideProposal, getAthlete, getAutonomy, getFixtures, listProposals, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionsForDates,
   type ProposalRow, type SessionRow,
 } from "./store";
 
@@ -67,7 +68,7 @@ export async function runAgentFor(code: string, today: string): Promise<void> {
   if (existing && (existing.status === "approved" || existing.status === "rejected")) return;
 
   const base = { athlete_code: code, athlete_name: athlete.name, session_label: session.label, on_date: today, created_at: new Date().toISOString(), decided_at: null };
-  let row: Omit<ProposalRow, "id" | "coach_note" | "edited_by_coach">;
+  let row: Omit<ProposalRow, "id" | "coach_note" | "edited_by_coach" | "decided_by">;
   try {
     const active = new Set(activeRules(await allRules(clubOf(code))).map((r) => r.id));
     const ctx = { injuryFlaggedExercises: athlete.protected, clearedExercises: [] as string[] };
@@ -97,4 +98,17 @@ export async function runAgentFor(code: string, today: string): Promise<void> {
     row = { ...base, decision: null, edits: [], reason: null, rules_applied: [], flag: null, status: "error", error: `Agent unavailable: ${(e as Error).message}` };
   }
   await saveProposal(row);
+  await applyIfDelegated(code, row);
+}
+
+// Level 2 of the autonomy ladder: a routine suggestion the coach has handed to the agent is applied, and logged as such.
+async function applyIfDelegated(code: string, row: Omit<ProposalRow, "id" | "coach_note" | "edited_by_coach" | "decided_by">): Promise<void> {
+  if (row.status !== "pending") return;
+  const club = clubOf(code);
+  const autonomy = await getAutonomy(club);
+  if (autonomy.paused || autonomy.delegated.length === 0) return;
+  const athlete = await getAthlete(code);
+  const rules = (await allRules(club)).map((r) => r.id);
+  const stats = ruleStats(await listProposals(club, 500), todayStr(), rules);
+  if (mayAutoApply(row, autonomy, stats, athlete?.ask_always ?? false)) await decideProposal(club, `${code}_${row.on_date}`, "approved", { by: "delegated" });
 }
