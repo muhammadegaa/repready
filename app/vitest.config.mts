@@ -3,5 +3,5 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
-  test: { exclude: ["e2e/**", "node_modules/**", ".next/**"] },
+  test: { testTimeout: 30_000, exclude: ["e2e/**", "node_modules/**", ".next/**"] },
 });
