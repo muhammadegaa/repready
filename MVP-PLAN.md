@@ -93,3 +93,11 @@ Decisions taken (the production-grade options): named groups the coach creates; 
 | S5 Sample squad | Started (a `sample` flag on athletes exists). Not built |
 
 Not verified: the live site (everything above was run against the emulator and on GitHub's runners), and the scientist's rule thresholds are still fixed in code.
+
+## Input without difficult formats (added 2026-10-03)
+Principle: give it whatever you have; it reads it; you confirm. No coach or player is asked to write a raw format.
+- **Program**: pasted text or a spreadsheet is read by a model into a draft (`/coach/program/review/[id]`). The coach fixes dates, drops sessions, or says what is wrong in words, then presses Use this program. Nothing reaches players before that. Every model answer is validated in code (zod, dates, limits). CSV remains under Advanced.
+- **Squad**: read in our own code (any column order, header or none, positions in shorthand, a group column), shown for a check, then added. No model, because rosters carry player names.
+- **Fixtures**: read in our own code from the formats coaches write; unreadable lines are listed, good ones kept.
+- **Tests**: unit tests per reader; the browser suite runs against a fake model server (`app/e2e/fake-llm.mjs`), 12 tests. CI green on 729ea48.
+- **Open**: the program reader has not run against a real model (no route to OpenRouter from the build sandbox): check with a real week before the pilot. Upstream provider region/retention/training use for OpenRouter is still to confirm (see PRIVACY-DRAFT.md).
