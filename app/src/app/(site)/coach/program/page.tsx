@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { confirmMinutes, discardMinutes, readMinutesAction, removeCalendarAction, saveCalendarAction, saveFixtureList } from "@/actions/coach";
-import { readProgramAction } from "@/actions/program";
+import { draftNextWeek, readProgramAction } from "@/actions/program";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { SessionTable } from "@/components/SessionTable";
-import { btn, Card, Chip, Eyebrow, input } from "@/components/ui";
+import { btn, btnGhost, Card, Chip, Eyebrow, input } from "@/components/ui";
+import { nextMonday } from "@/lib/read/carry";
 import { addDays, defaultWeekStart } from "@/lib/read/program";
 import { requirePage } from "@/lib/auth";
 import { ago, dateLabel } from "@/lib/copy";
@@ -26,6 +27,8 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
   const today = todayStr();
   const [sessions, fixtureError, minutesError, minutesPreview, fixtures, manualFixtures, calendar, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "fixtures"), getNotice(club, "minutes"), getNotice(club, "minutes_preview"), getFixtures(club), getManualFixtures(club), getCalendarLink(club), getPulse(club, "coach")]);
   const asked = typeof q.matchdate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(q.matchdate) ? q.matchdate : null;
+  const target = nextMonday(today);
+  const canCopy = (await listSessions(club, addDays(target, -7), 100)).some((x) => !x.sample && x.on_date < target);
   const lastMatch = asked ?? [...fixtures].filter((d) => d <= today).pop() ?? addDays(today, -1);
   const preview = (() => { try { return JSON.parse(minutesPreview ?? "") as { date: string; rows: { code: string; name: string; minutes: number }[]; unmatched: string[] }; } catch { return null; } })();
 
@@ -44,6 +47,12 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
         <Eyebrow>Tell me your program</Eyebrow>
         <Card className="space-y-3 p-5">
           {readerr && <div className="rounded-md border border-warn/30 bg-warn-bg p-3 text-sm text-warn">{readerr}</div>}
+          {canCopy && (
+            <form action={draftNextWeek} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-paper p-3">
+              <span className="text-sm">Planning next week? Start from this week and change what is different. Match days from your fixtures are pointed out.</span>
+              <PendingButton className={btnGhost} pending="Drafting…">Start from this week</PendingButton>
+            </form>
+          )}
           <p className="text-sm text-muted">Paste a week from a message, a document or a spreadsheet, or choose the file. Name a group (Starters, Reserves) and it gets its own version. Nothing changes for players until you press Use this program.</p>
           <form action={readProgramAction} className="space-y-3">
             <div>

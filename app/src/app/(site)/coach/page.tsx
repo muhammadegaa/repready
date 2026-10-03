@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { draftNextWeek } from "@/actions/program";
+import { PendingButton } from "@/components/Pending";
 import { CopyButton } from "@/components/CopyButton";
 import { GetStarted } from "@/components/GetStarted";
 import { Live } from "@/components/Live";
@@ -62,6 +64,15 @@ export default async function Today(props: PageProps<"/coach">) {
       )}
       {waiting > 0 && (
         <Notice>{waiting} player{waiting === 1 ? " has" : "s have"} asked to join the squad. <Link href="/coach/squad" className="font-medium underline underline-offset-4">Confirm in Squad</Link>.</Notice>
+      )}
+
+      {data.nextWeekOffer && (
+        <Notice tone="ok">
+          <form action={draftNextWeek} className="flex flex-wrap items-center justify-between gap-3">
+            <span>Next week has no sessions yet. Start it from this week?</span>
+            <PendingButton className="font-medium underline underline-offset-4" pending="Drafting…">Draft next week</PendingButton>
+          </form>
+        </Notice>
       )}
 
       {data.matchToLog && (

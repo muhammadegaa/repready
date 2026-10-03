@@ -6,9 +6,10 @@ import { requireStaff } from "@/lib/auth";
 import { describeReport, resolveProgram } from "@/lib/library/resolve";
 import { fileToText } from "@/lib/read/files";
 import { ask, ModelUnavailable } from "@/lib/read/model";
+import { carryForward, nextMonday } from "@/lib/read/carry";
 import { addDays, blocking, defaultWeekStart, issuesOf, readProgram, reviseProgram, type ProgramDraft } from "@/lib/read/program";
 import { todayStr } from "@/lib/run-agent";
-import { closeDraft, createDraft, getDraft, getFixtures, replaceSessionsInRange, saveDraft } from "@/lib/store";
+import { closeDraft, createDraft, getDraft, getFixtures, listSessions, replaceSessionsInRange, saveDraft } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && new Date(`${s}T00:00:00Z`).toISOString().startsWith(s);
@@ -115,4 +116,14 @@ export async function discardDraft(f: FormData) {
   const id = text(f, "id");
   if (await open(club, id)) await closeDraft(club, id, "discarded");
   redirect("/coach/program");
+}
+
+// Next week starts as a copy of this week. The coach corrects it in the same review screen as a pasted program.
+export async function draftNextWeek() {
+  const { club, name } = await requireStaff("coach");
+  const target = nextMonday(todayStr());
+  const draft = carryForward(await listSessions(club, addDays(target, -7), 100), target, await getFixtures(club));
+  if (!draft) return back("/coach/program", "readerr", "There is nothing in the week before to copy. Tell me next week's program instead.");
+  const id = await createDraft(club, name, draft);
+  redirect(`/coach/program/review/${id}`);
 }

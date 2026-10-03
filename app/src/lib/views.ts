@@ -2,9 +2,10 @@ import { pickSession } from "./groups";
 import { resolvePlan, type Override } from "./overrides";
 import { planFor, playerExerciseNames, withResolved } from "./plan";
 import { dayStr } from "./run-agent";
+import { nextMonday } from "./read/carry";
 import { cellsFor, trendOf, todayLevel, squadShare, type Cell } from "./squadmap";
 import {
-  getAthlete, getCheckin, getCheckins, getFixtures, hasMinutesOn, listMinutesSince, getProposal, getReadiness, getReadinessOn, getSessionLogs, listAthletes, listEvents, listProposals,
+  getAthlete, getCheckin, getCheckins, getFixtures, hasMinutesOn, listMinutesSince, listSessions, getProposal, getReadiness, getReadinessOn, getSessionLogs, listAthletes, listEvents, listProposals,
   listProposalsFor, listClubOverrides, listOverrides, sessionBefore, sessionsForDates, sessionsOn,
   type AthleteRow, type CheckinRow, type EventRow, type ProposalRow, type ReadinessRow, type SessionRow,
 } from "./store";
@@ -77,10 +78,19 @@ export async function coachToday(club: string, today: string) {
   const fixtures = await getFixtures(club);
   const lastMatch = fixtures.filter((d) => d < today && d >= dayStr(today, 2)).pop() ?? null;
   const matchToLog = lastMatch && roster.some((r) => !r.athlete.sample) && !(await hasMinutesOn(club, lastMatch)) ? lastMatch : null;
+  // Late in the week, with nothing yet planned for next week but this week to copy from, the agent offers to start it.
+  const dow = new Date(`${today}T00:00:00Z`).getUTCDay();
+  let nextWeekOffer = false;
+  if (dow === 0 || dow >= 4) {
+    const target = nextMonday(today);
+    const around = await listSessions(club, dayStr(target, 7), 100);
+    const real = around.filter((x) => !x.sample);
+    nextWeekOffer = real.some((x) => x.on_date < target) && !real.some((x) => x.on_date >= target && x.on_date <= dayStr(target, -6));
+  }
   const pending = roster.filter((r) => r.status === "needs_decision");
   const decided = recent.filter((p) => p.status === "approved" || p.status === "rejected");
   return {
-    session, matchToLog, versions: todays.length, reviews: overrides.filter((o) => o.review_on !== null && o.review_on <= today).map((o) => ({ ...o, athlete_name: athletes.find((a) => a.code === o.athlete_code)?.name ?? "A player" })), roster, pending, events, decided, waiting: everyone.length - athletes.length,
+    session, matchToLog, nextWeekOffer, versions: todays.length, reviews: overrides.filter((o) => o.review_on !== null && o.review_on <= today).map((o) => ({ ...o, athlete_name: athletes.find((a) => a.code === o.athlete_code)?.name ?? "A player" })), roster, pending, events, decided, waiting: everyone.length - athletes.length,
     counts: {
       athletes: athletes.length,
       checkedIn: roster.filter((r) => r.checkin).length,

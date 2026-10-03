@@ -404,3 +404,29 @@ test("the squad map shows every player against their own usual and links through
   await page.getByRole("link", { name: /Mensah/ }).click();
   await expect(page).toHaveURL(/\/coach\/athletes\//);
 });
+
+test("next week starts as a copy of this week, with match days pointed out, and nothing is live until the coach uses it", async ({ page }) => {
+  await signUp(page);
+  const monday = new Date(); // a session in the week before next Monday
+  const dow = monday.getUTCDay();
+  const nextMon = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + (((8 - dow) % 7) || 7)));
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const lastWeekDay = iso(new Date(nextMon.getTime() - 3 * 86_400_000));
+  const copiedDay = iso(new Date(nextMon.getTime() + 4 * 86_400_000));
+  await importProgram(page, [`${lastWeekDay},Lower,normal,Back squat,4,5,85%,8`]);
+  const lateInWeek = dow === 0 || dow >= 4; // the offer on Today appears Thursday to Sunday
+  if (lateInWeek) {
+    await page.goto("/coach");
+    await expect(page.getByText("Next week has no sessions yet.")).toBeVisible();
+  }
+  await page.goto("/coach/program");
+  await page.locator("#fixtures").fill(iso(new Date(nextMon.getTime() + 5 * 86_400_000)));
+  await page.getByRole("button", { name: "Save fixtures" }).click();
+  await page.getByRole("button", { name: "Start from this week" }).click();
+  await page.waitForURL(/\/coach\/program\/review\//);
+  await expect(page.getByText(/Copied from the week of/)).toBeVisible();
+  await expect(page.getByText(/is MD-1/)).toBeVisible();
+  await expect(page.locator(`#date_0`)).toHaveValue(copiedDay);
+  await page.getByRole("button", { name: "Use this program" }).click();
+  await expect(page.getByText(/Saved 1 session/)).toBeVisible();
+});
