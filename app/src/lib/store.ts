@@ -30,9 +30,10 @@ export type AthleteRow = {
   device_token: string | null;
   claimed_at: string | null;
   protected: string[];
+  sample: boolean; // fictional player created by the sample squad, removable in one click
   created_at: string;
 };
-export type SessionRow = { id: string; on_date: string; label: string; week_type: string; exercises: Exercise[] };
+export type SessionRow = { id: string; on_date: string; label: string; week_type: string; exercises: Exercise[]; sample?: boolean };
 export type Availability = "full" | "limited" | "out";
 export const AVAILABILITY: Availability[] = ["full", "limited", "out"];
 export type CheckinRow = { sleep_h: number; soreness: number; stress: number; note: string | null; availability: Availability };
@@ -86,6 +87,7 @@ const athlete = (code: string, d: DocumentData): AthleteRow => ({
   device_token: d.device_token ?? null,
   claimed_at: d.claimed_at ?? null,
   protected: d.protected ?? [],
+  sample: d.sample === true,
   created_at: d.created_at ?? "",
 });
 const proposal = (id: string, d: DocumentData): ProposalRow => ({ coach_note: null, edited_by_coach: false, ...d, id }) as ProposalRow;
