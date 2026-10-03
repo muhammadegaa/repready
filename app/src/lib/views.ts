@@ -2,8 +2,9 @@ import { pickSession } from "./groups";
 import { resolvePlan, type Override } from "./overrides";
 import { planFor, playerExerciseNames, withResolved } from "./plan";
 import { dayStr } from "./run-agent";
+import { cellsFor, trendOf, todayLevel, squadShare, type Cell } from "./squadmap";
 import {
-  getAthlete, getCheckin, getCheckins, getFixtures, hasMinutesOn, getProposal, getReadiness, getReadinessOn, getSessionLogs, listAthletes, listEvents, listProposals,
+  getAthlete, getCheckin, getCheckins, getFixtures, hasMinutesOn, listMinutesSince, getProposal, getReadiness, getReadinessOn, getSessionLogs, listAthletes, listEvents, listProposals,
   listProposalsFor, listClubOverrides, listOverrides, sessionBefore, sessionsForDates, sessionsOn,
   type AthleteRow, type CheckinRow, type EventRow, type ProposalRow, type ReadinessRow, type SessionRow,
 } from "./store";
@@ -146,3 +147,27 @@ export async function athleteToday(code: string, today: string) {
 }
 
 export type { EventRow };
+
+// The squad on one page: every player's last `n` days against their own usual, with matches, minutes, flags and standing changes on it.
+export type MapRow = { athlete: AthleteRow; cells: Cell[]; trend: ReturnType<typeof trendOf>; now: Cell["level"]; minutes: (number | null)[]; flagged: boolean[]; hasOverride: boolean; minutesTotal: number };
+export async function squadMap(club: string, today: string, n = 14) {
+  const dates = Array.from({ length: n }, (_, i) => dayStr(today, n - 1 - i));
+  const [everyone, fixtures, minutes, proposals, overrides] = await Promise.all([listAthletes(club), getFixtures(club), listMinutesSince(club, dates[0]), listProposals(club, 300), listClubOverrides(club, today)]);
+  const athletes = everyone.filter((a) => a.approved);
+  const minutesBy = new Map(minutes.map((m) => [`${m.athlete_code}_${m.on_date}`, m.minutes]));
+  const flaggedBy = new Set(proposals.filter((p) => p.flag).map((p) => `${p.athlete_code}_${p.on_date}`));
+  const overridden = new Set(overrides.map((o) => o.athlete_code));
+  const rows: MapRow[] = await Promise.all(
+    athletes.map(async (athlete) => {
+      const week = await getCheckins(athlete.code, dates);
+      const cells = cellsFor(dates.map((d) => { const c = week.get(d); return c ? { sleep_h: c.sleep_h ?? null, soreness: c.soreness ?? null, stress: c.stress ?? null } : null; }));
+      const mins = dates.map((d) => minutesBy.get(`${athlete.code}_${d}`) ?? null);
+      return {
+        athlete, cells, trend: trendOf(cells), now: todayLevel(cells), minutes: mins,
+        flagged: dates.map((d) => flaggedBy.has(`${athlete.code}_${d}`)), hasOverride: overridden.has(athlete.code),
+        minutesTotal: mins.reduce<number>((t, m) => t + (m ?? 0), 0),
+      };
+    }),
+  );
+  return { dates, fixtures, rows, share: dates.map((_, i) => squadShare(rows.map((r) => r.cells), i)) };
+}

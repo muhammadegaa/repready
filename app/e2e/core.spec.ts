@@ -388,3 +388,19 @@ test("a calendar link that is not a calendar is refused with a reason", async ({
   await page.getByRole("button", { name: "Link calendar" }).click();
   await expect(page.getByText(/does not look like a calendar link/)).toBeVisible();
 });
+
+test("the squad map shows every player against their own usual and links through to each player", async ({ page }) => {
+  await signUp(page);
+  await page.goto("/coach/map");
+  await expect(page.getByText("Add players in Squad and the map fills in")).toBeVisible();
+  await page.goto("/coach/squad");
+  await page.getByRole("button", { name: "Load a sample squad" }).click();
+  await expect(page.getByText(/Sample squad loaded/).first()).toBeVisible();
+  await page.goto("/coach/map");
+  await expect(page.getByRole("heading", { name: "Squad map" })).toBeVisible();
+  await expect(page.getByText(/outside their usual today/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /Mensah/ })).toBeVisible();
+  await expect(page.getByText("Starters", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: /Mensah/ }).click();
+  await expect(page).toHaveURL(/\/coach\/athletes\//);
+});

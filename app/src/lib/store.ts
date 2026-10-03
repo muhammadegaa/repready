@@ -790,6 +790,10 @@ export async function saveMinutes(club: string, onDate: string, rows: { code: st
   await logEvent(club, { type: "minutes", athlete_code: null, athlete_name: null, text: `Match minutes saved for ${rows.length} player${rows.length === 1 ? "" : "s"} (${onDate})` });
   await touch(club, "coach");
 }
+export async function listMinutesSince(club: string, from: string): Promise<MinutesEntry[]> {
+  const q = await col(club, "minutes").where("on_date", ">=", from).limit(2000).get();
+  return q.docs.map((d) => d.data() as MinutesEntry);
+}
 export async function hasMinutesOn(club: string, onDate: string): Promise<boolean> {
   return !(await col(club, "minutes").where("on_date", "==", onDate).limit(1).get()).empty;
 }
