@@ -1,5 +1,5 @@
 import { cert, getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore, type DocumentData } from "firebase-admin/firestore";
+import { FieldValue, getFirestore, type DocumentData } from "firebase-admin/firestore";
 import { createHash, randomBytes } from "node:crypto";
 import type { Edit, Exercise } from "./agent/schema";
 import { cleanGroup, pickSession } from "./groups";
@@ -441,9 +441,28 @@ export async function setProtected(code: string, names: string[]): Promise<void>
 }
 
 // ---- fixtures
+// Match dates the coach typed, and dates read from the club calendar, are one list to everything that uses them.
 export async function getFixtures(club: string): Promise<string[]> {
-  const s = await fs.collection("clubs").doc(club).get();
-  return (s.data()?.fixtures as string[] | undefined) ?? [];
+  const d = (await fs.collection("clubs").doc(club).get()).data();
+  return [...new Set([...((d?.fixtures as string[] | undefined) ?? []), ...((d?.calendar?.dates as string[] | undefined) ?? [])])].sort();
+}
+
+export async function getManualFixtures(club: string): Promise<string[]> {
+  return ((await fs.collection("clubs").doc(club).get()).data()?.fixtures as string[] | undefined) ?? [];
+}
+
+export type CalendarLink = { url: string; synced_at: string | null; dates: string[]; examples: string[]; error: string | null };
+export async function getCalendarLink(club: string): Promise<CalendarLink | null> {
+  const c = (await fs.collection("clubs").doc(club).get()).data()?.calendar;
+  return c ? { url: c.url, synced_at: c.synced_at ?? null, dates: c.dates ?? [], examples: c.examples ?? [], error: c.error ?? null } : null;
+}
+export async function saveCalendarLink(club: string, link: CalendarLink | null): Promise<void> {
+  await fs.collection("clubs").doc(club).update({ calendar: link ?? FieldValue.delete() });
+  await touch(club, "coach");
+}
+export async function listCalendarClubs(): Promise<string[]> {
+  const q = await fs.collection("clubs").get();
+  return q.docs.filter((d) => d.get("calendar")?.url).map((d) => d.id);
 }
 
 export async function setFixtures(club: string, dates: string[]): Promise<void> {
@@ -770,6 +789,9 @@ export async function saveMinutes(club: string, onDate: string, rows: { code: st
   await batch.commit();
   await logEvent(club, { type: "minutes", athlete_code: null, athlete_name: null, text: `Match minutes saved for ${rows.length} player${rows.length === 1 ? "" : "s"} (${onDate})` });
   await touch(club, "coach");
+}
+export async function hasMinutesOn(club: string, onDate: string): Promise<boolean> {
+  return !(await col(club, "minutes").where("on_date", "==", onDate).limit(1).get()).empty;
 }
 export async function listMinutesFor(code: string, from: string): Promise<MinutesEntry[]> {
   const q = await col(clubOf(code), "minutes").where("athlete_code", "==", code).get();

@@ -3,7 +3,7 @@ import { resolvePlan, type Override } from "./overrides";
 import { planFor, playerExerciseNames, withResolved } from "./plan";
 import { dayStr } from "./run-agent";
 import {
-  getAthlete, getCheckin, getCheckins, getProposal, getReadiness, getReadinessOn, getSessionLogs, listAthletes, listEvents, listProposals,
+  getAthlete, getCheckin, getCheckins, getFixtures, hasMinutesOn, getProposal, getReadiness, getReadinessOn, getSessionLogs, listAthletes, listEvents, listProposals,
   listProposalsFor, listClubOverrides, listOverrides, sessionBefore, sessionsForDates, sessionsOn,
   type AthleteRow, type CheckinRow, type EventRow, type ProposalRow, type ReadinessRow, type SessionRow,
 } from "./store";
@@ -72,10 +72,14 @@ export async function coachToday(club: string, today: string) {
       };
     }),
   );
+  // The most recent match in the last two days that nobody has logged minutes for: the agent asks once, on the day after.
+  const fixtures = await getFixtures(club);
+  const lastMatch = fixtures.filter((d) => d < today && d >= dayStr(today, 2)).pop() ?? null;
+  const matchToLog = lastMatch && roster.some((r) => !r.athlete.sample) && !(await hasMinutesOn(club, lastMatch)) ? lastMatch : null;
   const pending = roster.filter((r) => r.status === "needs_decision");
   const decided = recent.filter((p) => p.status === "approved" || p.status === "rejected");
   return {
-    session, versions: todays.length, reviews: overrides.filter((o) => o.review_on !== null && o.review_on <= today).map((o) => ({ ...o, athlete_name: athletes.find((a) => a.code === o.athlete_code)?.name ?? "A player" })), roster, pending, events, decided, waiting: everyone.length - athletes.length,
+    session, matchToLog, versions: todays.length, reviews: overrides.filter((o) => o.review_on !== null && o.review_on <= today).map((o) => ({ ...o, athlete_name: athletes.find((a) => a.code === o.athlete_code)?.name ?? "A player" })), roster, pending, events, decided, waiting: everyone.length - athletes.length,
     counts: {
       athletes: athletes.length,
       checkedIn: roster.filter((r) => r.checkin).length,

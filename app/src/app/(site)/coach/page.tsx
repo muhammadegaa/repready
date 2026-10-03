@@ -64,6 +64,15 @@ export default async function Today(props: PageProps<"/coach">) {
         <Notice>{waiting} player{waiting === 1 ? " has" : "s have"} asked to join the squad. <Link href="/coach/squad" className="font-medium underline underline-offset-4">Confirm in Squad</Link>.</Notice>
       )}
 
+      {data.matchToLog && (
+        <Notice tone="ok">
+          <span className="flex flex-wrap items-center justify-between gap-3">
+            <span>There was a match on {dateLabel(data.matchToLog)}. Who played?</span>
+            <Link href={`/coach/program?matchdate=${data.matchToLog}#minutes`} className="font-medium underline underline-offset-4">Add minutes</Link>
+          </span>
+        </Notice>
+      )}
+
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Summary">
         <Stat label="Players" value={counts.athletes} />
         <Stat label="Checked in" value={`${counts.checkedIn}/${counts.athletes}`} hint={counts.athletes === 0 ? "Add players in Squad" : undefined} />

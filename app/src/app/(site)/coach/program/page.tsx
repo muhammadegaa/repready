@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { confirmMinutes, discardMinutes, readMinutesAction, saveFixtureList } from "@/actions/coach";
+import { confirmMinutes, discardMinutes, readMinutesAction, removeCalendarAction, saveCalendarAction, saveFixtureList } from "@/actions/coach";
 import { readProgramAction } from "@/actions/program";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
@@ -7,11 +7,11 @@ import { SessionTable } from "@/components/SessionTable";
 import { btn, Card, Chip, Eyebrow, input } from "@/components/ui";
 import { addDays, defaultWeekStart } from "@/lib/read/program";
 import { requirePage } from "@/lib/auth";
-import { dateLabel } from "@/lib/copy";
+import { ago, dateLabel } from "@/lib/copy";
 import { matchDayTag } from "@/lib/fixtures";
 import { groupLabel } from "@/lib/groups";
 import { todayStr } from "@/lib/run-agent";
-import { getFixtures, getNotice, getPulse, listSessions } from "@/lib/store";
+import { getCalendarLink, getFixtures, getManualFixtures, getNotice, getPulse, listSessions } from "@/lib/store";
 
 export const metadata = { title: "Program" };
 export const dynamic = "force-dynamic";
@@ -24,8 +24,9 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
   const applied = one("applied");
   const { club } = await requirePage("coach");
   const today = todayStr();
-  const [sessions, fixtureError, minutesError, minutesPreview, fixtures, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "fixtures"), getNotice(club, "minutes"), getNotice(club, "minutes_preview"), getFixtures(club), getPulse(club, "coach")]);
-  const lastMatch = [...fixtures].filter((d) => d <= today).pop() ?? addDays(today, -1);
+  const [sessions, fixtureError, minutesError, minutesPreview, fixtures, manualFixtures, calendar, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "fixtures"), getNotice(club, "minutes"), getNotice(club, "minutes_preview"), getFixtures(club), getManualFixtures(club), getCalendarLink(club), getPulse(club, "coach")]);
+  const asked = typeof q.matchdate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(q.matchdate) ? q.matchdate : null;
+  const lastMatch = asked ?? [...fixtures].filter((d) => d <= today).pop() ?? addDays(today, -1);
   const preview = (() => { try { return JSON.parse(minutesPreview ?? "") as { date: string; rows: { code: string; name: string; minutes: number }[]; unmatched: string[] }; } catch { return null; } })();
 
   return (
@@ -94,10 +95,27 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
         <Eyebrow>Fixtures</Eyebrow>
         <Card className="space-y-3 p-5">
           {fixtureError && <div className="rounded-md border border-warn/30 bg-warn-bg p-3 text-sm text-warn">{fixtureError}</div>}
-          <p className="text-sm text-muted">Paste your fixture list as it is: “Sat 11 Oct v Reading (H)”, “18/10/2026” or “2026-10-25”, one per line. Sessions within three days of a match are tagged MD-2, MD, MD+1 and so on, and the agent is told.</p>
+          {calendar ? (
+            <div className="space-y-2 rounded-md border border-line bg-paper p-3 text-sm">
+              <p>
+                <b>Synced with your club calendar.</b> {calendar.dates.length} match date{calendar.dates.length === 1 ? "" : "s"} found{calendar.synced_at ? `, last read ${ago(calendar.synced_at)}` : ""}. It is read again every morning.
+              </p>
+              {calendar.examples.length > 0 && <p className="text-muted">For example: {calendar.examples.slice(0, 3).join(" · ")}</p>}
+              {calendar.error && <p className="text-warn">The last read failed: {calendar.error} The dates above are from the last good read.</p>}
+              <form action={removeCalendarAction}><PendingButton className="text-sm text-muted underline underline-offset-4" pending="Removing…">Stop syncing</PendingButton></form>
+            </div>
+          ) : (
+            <form action={saveCalendarAction} className="space-y-2">
+              <label htmlFor="calendar" className="block text-sm font-medium">Link your club calendar</label>
+              <p className="text-sm text-muted">Paste the calendar link once (in Google Calendar: Settings → your calendar → “Secret address in iCal format”) and match dates stay up to date by themselves. Only events with “v”, “vs” or “match” in the title are taken.</p>
+              <input id="calendar" name="calendar" inputMode="url" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" className={input} />
+              <PendingButton className={btn} pending="Reading…">Link calendar</PendingButton>
+            </form>
+          )}
+          <p className="text-sm text-muted">Or paste match dates as they are: “Sat 11 Oct v Reading (H)”, “18/10/2026” or “2026-10-25”, one per line. Sessions within three days of a match are tagged MD-2, MD, MD+1 and so on, and the agent is told.</p>
           <form action={saveFixtureList} className="space-y-3">
             <label htmlFor="fixtures" className="block text-sm font-medium">Match dates</label>
-            <textarea id="fixtures" name="fixtures" rows={3} defaultValue={fixtures.join("\n")} className={`${input} font-mono text-[13px]`} />
+            <textarea id="fixtures" name="fixtures" rows={3} defaultValue={manualFixtures.join("\n")} className={`${input} font-mono text-[13px]`} />
             <PendingButton className={btn} pending="Saving…">Save fixtures</PendingButton>
           </form>
         </Card>

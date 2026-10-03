@@ -362,3 +362,29 @@ test("a coach jots match minutes, checks the matches, and they show on the playe
   await expect(page.getByText("Match minutes, last 14 days")).toBeVisible();
   await expect(page.getByText("Total 90 min")).toBeVisible();
 });
+
+test("the day after a match the coach is asked who played, and the question goes once minutes are saved", async ({ page }) => {
+  await signUp(page);
+  await addPlayer(page, "Ola Adeyemi");
+  const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+  await page.goto("/coach/program");
+  await page.locator("#fixtures").fill(yesterday);
+  await page.getByRole("button", { name: "Save fixtures" }).click();
+  await page.goto("/coach");
+  await expect(page.getByText(/There was a match on/)).toBeVisible();
+  await page.getByRole("link", { name: "Add minutes" }).click();
+  await expect(page.locator("#minutes_date")).toHaveValue(yesterday);
+  await page.locator("#minutes_text").fill("Ola Adeyemi 90");
+  await page.getByRole("button", { name: "Read minutes" }).click();
+  await page.getByRole("button", { name: "Save minutes" }).click();
+  await page.goto("/coach");
+  await expect(page.getByText(/There was a match on/)).toHaveCount(0);
+});
+
+test("a calendar link that is not a calendar is refused with a reason", async ({ page }) => {
+  await signUp(page);
+  await page.goto("/coach/program");
+  await page.locator("#calendar").fill("http://localhost/private.ics");
+  await page.getByRole("button", { name: "Link calendar" }).click();
+  await expect(page.getByText(/does not look like a calendar link/)).toBeVisible();
+});

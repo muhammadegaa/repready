@@ -5,7 +5,7 @@ import {
   logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionFor, sessionsOn, setGroup,
   sessionsForDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads, createPlayers, claimLink, resetLink,
   createPasswordReset, resetPassword, resetTokenUsable, createOverride, liftOverride, listOverrides, listActiveOverrides, listClubOverrides,
-  getClub, markClubPaid, createEmailVerification, verifyEmail, getStaff, deleteClub, getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
+  getClub, markClubPaid, getFixtures, getManualFixtures, saveCalendarLink, getCalendarLink, hasMinutesOn, saveMinutes, setFixtures, createEmailVerification, verifyEmail, getStaff, deleteClub, getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
 } from "./store";
 
 // Needs the Firestore emulator: npm run test:emulator
@@ -48,6 +48,22 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     expect((await getClub(gb))?.name).toBe(`Stays FC ${run}`);
     expect(await getStaff(b!.staff.id)).not.toBeNull();
     expect(await getAthlete(pb)).not.toBeNull();
+  });
+
+  it("fixtures are one list from typed dates and the calendar, and the prompt for minutes goes once they are logged", async () => {
+    const made = await createClubWithOwner(`Cal FC ${run}`, { email: `cal-${run}@example.com`, name: "Cal", pw: "x" });
+    const id = made!.club.id;
+    await setFixtures(id, ["2026-10-11", "2026-10-25"]);
+    await saveCalendarLink(id, { url: "https://example.com/a.ics", synced_at: null, dates: ["2026-10-18", "2026-10-25"], examples: [], error: null });
+    expect(await getFixtures(id)).toEqual(["2026-10-11", "2026-10-18", "2026-10-25"]);
+    expect(await getManualFixtures(id)).toEqual(["2026-10-11", "2026-10-25"]);
+    await saveCalendarLink(id, null);
+    expect(await getCalendarLink(id)).toBeNull();
+    expect(await getFixtures(id)).toEqual(["2026-10-11", "2026-10-25"]);
+    const p = (await createPlayers(id, [{ name: "Min Player", shirt: null, position: "", squad: "First team" }]))[0];
+    expect(await hasMinutesOn(id, "2026-10-11")).toBe(false);
+    await saveMinutes(id, "2026-10-11", [{ code: p, name: "Min Player", minutes: 90 }]);
+    expect(await hasMinutesOn(id, "2026-10-11")).toBe(true);
   });
 
   it("a new club is unpaid until a payment marks it, and an unknown club cannot be marked", async () => {

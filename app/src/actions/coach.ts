@@ -12,11 +12,13 @@ import { readFixtureDates } from "@/lib/fixtures";
 import { planFor, playerExerciseNames } from "@/lib/plan";
 import { validateOverride } from "@/lib/overrides";
 import { runAgentFor, todayStr } from "@/lib/run-agent";
+import { cleanCalendarUrl } from "@/lib/calendar";
+import { syncCalendar } from "@/lib/calendar-sync";
 import { readMinutes } from "@/lib/minutes";
 import { fileToText } from "@/lib/read/files";
 import { POSITIONS, readSquad, storedPlayers } from "@/lib/squad";
 import {
-  approvePlayer, CODE_RE, getNotice, listAthletes, saveMinutes, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
+  approvePlayer, CODE_RE, saveCalendarLink, getNotice, listAthletes, saveMinutes, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -280,4 +282,26 @@ export async function discardMinutes() {
   const { club } = await requireStaff("coach");
   await setNotice(club, "minutes_preview", null);
   redirect("/coach/program#minutes");
+}
+
+// A club calendar link keeps the fixtures up to date by itself. It is read now, to show the coach what was taken, and again each morning.
+export async function saveCalendarAction(f: FormData) {
+  const { club } = await requireStaff("coach");
+  const raw = text(f, "calendar");
+  if (!cleanCalendarUrl(raw)) {
+    await setNotice(club, "fixtures", "That does not look like a calendar link. It should start with https:// or webcal://.");
+  } else {
+    await saveCalendarLink(club, { url: raw.replace(/^webcal:\/\//i, "https://"), synced_at: null, dates: [], examples: [], error: null });
+    const r = await syncCalendar(club);
+    await setNotice(club, "fixtures", r.ok ? (r.count ? null : "The calendar opened, but I found no events that look like matches. Matches should have “v”, “vs” or “match” in the title.") : r.error);
+  }
+  revalidatePath("/coach/program");
+  redirect("/coach/program#fixtures");
+}
+
+export async function removeCalendarAction() {
+  const { club } = await requireStaff("coach");
+  await saveCalendarLink(club, null);
+  revalidatePath("/coach/program");
+  redirect("/coach/program#fixtures");
 }
