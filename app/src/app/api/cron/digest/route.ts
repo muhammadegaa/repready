@@ -23,8 +23,10 @@ export async function GET(req: Request) {
   const summary: { club: string; sent: number; failed: number }[] = [];
   for (const club of await listClubs()) {
     const [data, staff] = await Promise.all([coachToday(club.id, today), listStaff(club.id)]);
-    if (data.roster.length === 0) continue;
-    const { subject, text } = buildDigest({ clubName: club.name, date: today, sessionLabel: data.session?.label ?? null, roster: data.roster, appUrl });
+    // Fictional sample players are never named in an email.
+    const roster = data.roster.filter((r) => !r.athlete.sample);
+    if (roster.length === 0) continue;
+    const { subject, text } = buildDigest({ clubName: club.name, date: today, sessionLabel: data.session?.label ?? null, roster, appUrl });
     let sent = 0, failed = 0;
     for (const s of staff.filter((x) => x.roles.includes("coach"))) {
       const r = await sendMail({ to: s.email, subject, text });

@@ -307,9 +307,9 @@ export async function squadInvite(club: string, rotate = false): Promise<string>
 }
 
 // ---- athletes
-export type NewPlayerInput = { name: string; shirt: number | null; position: string; squad: string };
+export type NewPlayerInput = { name: string; shirt: number | null; position: string; squad: string; group?: string | null; consented?: boolean };
 
-export async function createPlayers(club: string, players: NewPlayerInput[], opts: { approved?: boolean; via?: "staff" | "link" } = {}): Promise<string[]> {
+export async function createPlayers(club: string, players: NewPlayerInput[], opts: { approved?: boolean; via?: "staff" | "link"; sample?: boolean } = {}): Promise<string[]> {
   const codes: string[] = [];
   const batch = fs.batch();
   const now = new Date().toISOString();
@@ -319,11 +319,14 @@ export async function createPlayers(club: string, players: NewPlayerInput[], opt
     batch.set(col(club, "athletes").doc(code), {
       name: p.name, shirt: p.shirt, position: p.position, squad: p.squad,
       approved: opts.approved ?? true, joined_via: opts.via ?? "staff",
-      consented_at: null, device_token: null, claimed_at: null, protected: [],
+      group: cleanGroup(p.group), sample: opts.sample === true,
+      // Only sample players start already agreed; a real player always agrees themselves, on their own phone.
+      consented_at: opts.sample && p.consented ? now : null, device_token: null, claimed_at: null, protected: [],
       created_at: new Date(Date.parse(now) + i).toISOString(),
     });
   });
   await batch.commit();
+  if (opts.sample) { await touch(club, "coach"); return codes; } // the sample loader writes its own activity line
   const text = opts.via === "link"
     ? `${players[0].name} asked to join the squad`
     : players.length === 1 ? `${players[0].name} added to the squad` : `${players.length} players added to the squad`;
@@ -526,6 +529,20 @@ export async function liftOverride(code: string, id: string, by: string): Promis
   return true;
 }
 
+// ---- sample squad (fictional players, flagged so they can be removed in one step)
+export async function listSampleAthletes(club: string): Promise<AthleteRow[]> {
+  const q = await col(club, "athletes").where("sample", "==", true).get();
+  return q.docs.map((d) => athlete(d.id, d.data()));
+}
+
+export async function deleteSampleSessions(club: string): Promise<number> {
+  const q = await col(club, "sessions").where("sample", "==", true).get();
+  const batch = fs.batch();
+  q.docs.forEach((d) => batch.delete(d.ref));
+  await batch.commit();
+  return q.size;
+}
+
 // ---- athlete inputs
 export async function saveCheckin(code: string, date: string, c: Omit<CheckinRow, "availability"> & { availability?: Availability }): Promise<void> {
   const club = clubOf(code);
@@ -659,7 +676,7 @@ export async function setNotice(club: string, k: string, v: string | null): Prom
 }
 
 // ---- deletion
-export async function deleteAthleteData(code: string): Promise<void> {
+export async function deleteAthleteData(code: string, opts: { quiet?: boolean } = {}): Promise<void> {
   const club = clubOf(code);
   const a = await getAthlete(code);
   for (const c of ["checkins", "readiness", "session_logs", "proposals", "events", "overrides"]) {
@@ -673,7 +690,7 @@ export async function deleteAthleteData(code: string): Promise<void> {
   await col(club, "athletes").doc(code).delete();
   await col(club, "polar_links").doc(code).delete();
   await col(club, "pulse").doc(`a_${code}`).delete();
-  if (a) await logEvent(club, { type: "athlete_removed", athlete_code: null, athlete_name: null, text: `${a.name} and all their data were removed` });
+  if (a && !opts.quiet) await logEvent(club, { type: "athlete_removed", athlete_code: null, athlete_name: null, text: `${a.name} and all their data were removed` });
   await touch(club, "coach");
 }
 

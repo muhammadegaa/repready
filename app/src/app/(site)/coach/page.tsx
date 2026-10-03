@@ -22,6 +22,7 @@ export default async function Today(props: PageProps<"/coach">) {
   const [data, rules, pulse, sessionCount] = await Promise.all([coachToday(club, today), allRules(club), getPulse(club, "coach"), countSessions(club)]);
   const { session, versions, reviews, roster, pending, events, counts, waiting } = data;
   const notIn = roster.filter((r) => r.status === "waiting");
+  const hasSample = roster.some((r) => r.athlete.sample);
 
   return (
     <div className="space-y-8">
@@ -43,7 +44,13 @@ export default async function Today(props: PageProps<"/coach">) {
       <GetStarted
         name={name}
         state={{ players: counts.athletes, waiting, sessions: sessionCount, agreed: roster.filter((r) => r.athlete.consented_at).length, checkedIn: counts.checkedIn }}
+        hasSample={hasSample}
       />
+      {hasSample && (
+        <Notice>
+          You are looking at a <b>sample squad</b>: fictional players, not real data. Remove it from <Link href="/coach/squad" className="font-medium underline underline-offset-4">Squad</Link> when you add your own.
+        </Notice>
+      )}
 
       {notice && <Notice>{notice}</Notice>}
       {reviews.length > 0 && (
@@ -92,7 +99,7 @@ export default async function Today(props: PageProps<"/coach">) {
                   return (
                     <Link key={e.athlete.code} href={`/coach/athletes/${e.athlete.code}`} className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3.5 transition hover:bg-paper">
                       <div className="min-w-32 flex-1">
-                        <div className="font-medium">{e.athlete.shirt ? <span className="mr-2 font-mono text-muted">{e.athlete.shirt}</span> : null}{e.athlete.name}{e.athlete.position ? <span className="ml-2 text-xs font-normal text-muted">{e.athlete.position}</span> : null}{e.athlete.group ? <span className="ml-2 align-middle"><Chip tone="neutral">{e.athlete.group}</Chip></span> : null}</div>
+                        <div className="font-medium">{e.athlete.shirt ? <span className="mr-2 font-mono text-muted">{e.athlete.shirt}</span> : null}{e.athlete.name}{e.athlete.position ? <span className="ml-2 text-xs font-normal text-muted">{e.athlete.position}</span> : null}{e.athlete.group ? <span className="ml-2 align-middle"><Chip tone="neutral">{e.athlete.group}</Chip></span> : null}{e.athlete.sample ? <span className="ml-2 align-middle"><Chip tone="warn">Sample</Chip></span> : null}</div>
                         <div className="text-xs text-muted">
                           {c ? `${e.readiness?.sleep_h ?? c.sleep_h} h sleep · soreness ${c.soreness} · stress ${c.stress}` : e.athlete.consented_at ? "No check-in yet today" : "Link sent, not opened"}
                         </div>

@@ -243,3 +243,44 @@ test("a coach changes one player's plan: the player, the rules and the coach's c
   await expect(knee.page.locator("tr", { hasText: "Box squat" })).toHaveCount(0);
   await knee.ctx.close(); await plain.ctx.close();
 });
+
+test("a new coach loads a sample squad, tries a player's phone, and removes it all", async ({ page, browser }) => {
+  await signUp(page);
+  await page.getByRole("button", { name: "Load a sample squad" }).click();
+  // The words appear in the notice and again in the Activity feed; both are right, so look for each once.
+  await expect(page.getByText(/Sample squad loaded: 6 fictional players and a sample program/)).toBeVisible();
+  await expect(page.getByText("Sample squad loaded: 6 fictional players with two weeks of history")).toBeVisible();
+  await expect(page.getByText(/You are looking at a/)).toBeVisible();
+  await expect(page.getByText("2 versions today")).toBeVisible();
+
+  // The rules ran for real on the sample answers: a pain note is a flag, short sleep is a proposal.
+  await expect(page.getByRole("heading", { name: "Check before training" })).toBeVisible();
+  await expect(page.getByText("Mensah").first()).toBeVisible();
+  await expect(page.getByText("Sample").first()).toBeVisible();
+
+  // Try a player's phone: Reid is in Reserves, has a standing plan change, and has not checked in.
+  await page.goto("/coach/squad");
+  await expect(page.getByText(/6 fictional players are mixed into this squad/)).toBeVisible();
+  const href = await page.getByRole("link", { name: "Try as this player" }).first().getAttribute("href");
+  const phone = await newPhone(browser);
+  await phone.page.goto(href!);
+  await agreeAndClaim(phone.page);
+  await expect(phone.page.getByText("Reid")).toBeVisible();
+  const slider = phone.page.locator("tr", { hasText: "Hamstring slider curl" });
+  await expect(slider).toContainText("Changed for you by your coach");
+  await expect(phone.page.locator("tr", { hasText: "Box jump" })).toBeVisible(); // the Reserves version of the session
+  await expect(phone.page.getByRole("button", { name: "Send check-in" })).toBeVisible();
+  await phone.ctx.close();
+
+  // Remove it all. Confirmation is required.
+  await page.getByRole("button", { name: "Remove sample squad" }).click(); // the box is required, so the browser stops this
+  await expect(page.getByText(/6 fictional players are mixed into this squad/)).toBeVisible();
+  await page.getByLabel("Remove the sample squad").check();
+  await page.getByRole("button", { name: "Remove sample squad" }).click();
+  await expect(page.getByText(/Removed the sample squad \(6 players\)/)).toBeVisible();
+  await page.goto("/coach/squad");
+  await expect(page.getByText("Mensah")).toHaveCount(0);
+  await expect(page.getByText("No players yet.")).toBeVisible();
+  await page.goto("/coach");
+  await expect(page.getByRole("button", { name: "Load a sample squad" })).toBeVisible(); // can be loaded again
+});

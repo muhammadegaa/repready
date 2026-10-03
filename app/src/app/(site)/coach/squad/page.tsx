@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import QRCode from "qrcode";
-import { addPlayer, addPlayers, confirmPlayer, removeAthlete, resetPlayerLink, setGroupForMany } from "@/actions/coach";
+import { addPlayer, addPlayers, confirmPlayer, loadSample, removeAthlete, removeSample, resetPlayerLink, setGroupForMany } from "@/actions/coach";
 import { rotateSquadLink } from "@/actions/club";
 import { CopyButton } from "@/components/CopyButton";
 import { Live } from "@/components/Live";
@@ -34,6 +34,7 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
   const sorted = [...players].sort((a, b) => a.squad.localeCompare(b.squad) || (a.shirt ?? 999) - (b.shirt ?? 999) || a.name.localeCompare(b.name));
   const qr = new Map(await Promise.all(sorted.map(async (p) => [p.code, await QRCode.toString(`${origin}/a/${p.code}`, { type: "svg", margin: 1, width: 168 })] as const)));
   const joined = players.filter((p) => p.device_token).length;
+  const sampleCount = all.filter((p) => p.sample).length;
 
   return (
     <div className="space-y-8">
@@ -121,6 +122,24 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
       </section>
 
       <Card className="space-y-3 p-5">
+        <Eyebrow>Sample squad</Eyebrow>
+        {sampleCount > 0 ? (
+          <>
+            <p className="max-w-2xl text-sm text-muted">{sampleCount} fictional players are mixed into this squad, marked Sample. Use <b>Try as this player</b> on any of them to see exactly what a player sees on their phone, and check in as them. Removing them takes the sample players, their answers, suggestions and plan changes, and the sample program. Your own players and program stay.</p>
+            <form action={removeSample} className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="confirm" value="yes" required />Remove the sample squad</label>
+              <PendingButton className={btnGhost} pending="Removing…">Remove sample squad</PendingButton>
+            </form>
+          </>
+        ) : (
+          <>
+            <p className="max-w-2xl text-sm text-muted">Six fictional players with two weeks of answers, two groups, a plan change and today&apos;s suggestions, so you can see every screen working. They are labelled Sample and removed in one click. Your own players and program are never touched.</p>
+            <form action={loadSample}><PendingButton className={btnGhost} pending="Loading…">Load a sample squad</PendingButton></form>
+          </>
+        )}
+      </Card>
+
+      <Card className="space-y-3 p-5">
         <Eyebrow>Groups</Eyebrow>
         <p className="max-w-2xl text-sm text-muted">Split the squad when players need different work, for example starters and reserves, or players returning from injury. A group can have its own version of a session in the Program. Tick players below, name a group, and press Set group. Leave the name empty, or type Everyone, to take them out of a group.</p>
         <div className="flex flex-wrap gap-1.5">
@@ -154,7 +173,7 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
                       <div className="font-medium">
                         {p.shirt ? <span className="mr-2 font-mono text-muted">{p.shirt}</span> : null}{p.name}
                         <span className="ml-2 text-xs font-normal text-muted">{[p.position, p.squad].filter(Boolean).join(" · ")}</span>
-                        {p.group ? <span className="ml-2 align-middle"><Chip tone="marker">{p.group}</Chip></span> : null}
+                        {p.group ? <span className="ml-2 align-middle"><Chip tone="marker">{p.group}</Chip></span> : null}{p.sample ? <span className="ml-2 align-middle"><Chip tone="warn">Sample</Chip></span> : null}
                       </div>
                     </div>
                     <Chip tone={st.tone}>{st.label}</Chip>
@@ -167,6 +186,7 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
                       <div className="border-t border-line p-3" dangerouslySetInnerHTML={{ __html: qr.get(p.code) ?? "" }} />
                     </details>
                     <Link href={`/coach/athletes/${p.code}`} className="px-2 text-sm font-medium text-muted underline-offset-4 hover:underline">Open</Link>
+                    {p.sample && <a href={`/a/${p.code}`} target="_blank" rel="noreferrer" className="px-2 text-sm font-medium underline underline-offset-4">Try as this player</a>}
                   </div>
                   <details className="text-sm">
                     <summary className="disclosure cursor-pointer text-muted hover:text-ink">Link and removal</summary>

@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Card, Chip, Eyebrow } from "./ui";
+import { loadSample } from "@/actions/coach";
+import { PendingButton } from "./Pending";
+import { btnGhost, Card, Chip, Eyebrow } from "./ui";
 
 export type SetupState = { players: number; waiting: number; sessions: number; agreed: number; checkedIn: number };
 
@@ -30,7 +32,7 @@ export function setupSteps(s: SetupState): Step[] {
   ];
 }
 
-export function GetStarted({ name, state }: { name: string; state: SetupState }) {
+export function GetStarted({ name, state, hasSample = false }: { name: string; state: SetupState; hasSample?: boolean }) {
   const steps = setupSteps(state);
   const done = steps.filter((s) => s.done).length;
   if (done === steps.length) return null;
@@ -59,6 +61,15 @@ export function GetStarted({ name, state }: { name: string; state: SetupState })
           </li>
         ))}
       </ol>
+      {!hasSample && (
+        <form action={loadSample} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-line-strong p-4">
+          <div className="max-w-xl text-sm">
+            <div className="font-medium">Want to see it working first?</div>
+            <p className="mt-0.5 text-muted">Load a sample squad: six fictional players with two weeks of answers, two groups, a plan change, and today&apos;s suggestions. It is labelled as sample and removed in one click. Your own players and program are never touched.</p>
+          </div>
+          <PendingButton className={btnGhost} pending="Loading…">Load a sample squad</PendingButton>
+        </form>
+      )}
       <p className="text-xs text-muted">Optional, any time: add match dates in Program, and invite a sports scientist or another coach in Staff.</p>
     </Card>
   );

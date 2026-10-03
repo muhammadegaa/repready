@@ -8,6 +8,7 @@ import { buildEdits, COACH_LIMITS } from "@/lib/edits";
 import { deregister } from "@/lib/polar";
 import { cleanGroup, GROUP_MAX, groupLabel } from "@/lib/groups";
 import { describeReport, resolveProgram } from "@/lib/library/resolve";
+import { loadSampleSquad, removeSampleSquad } from "@/lib/sample";
 import { parseFixtures } from "@/lib/fixtures";
 import { planFor, playerExerciseNames } from "@/lib/plan";
 import { validateOverride } from "@/lib/overrides";
@@ -89,6 +90,26 @@ export async function setPlayerGroup(f: FormData) {
   revalidatePath("/coach");
   revalidatePath("/coach/squad");
   revalidatePath(`/coach/athletes/${a.code}`);
+}
+
+// Fictional players with history, flagged and removable, so every screen can be seen working before real players are added.
+export async function loadSample() {
+  const { club } = await requireStaff("coach");
+  const r = await loadSampleSquad(club);
+  revalidatePath("/coach");
+  revalidatePath("/coach/squad");
+  redirect(`/coach?notice=${encodeURIComponent(
+    r === "exists" ? "A sample squad is already loaded." : `Sample squad loaded: ${r.players} fictional players${r.program ? " and a sample program" : ""}. Remove it any time from Squad.`,
+  )}`);
+}
+
+export async function removeSample(f: FormData) {
+  const { club } = await requireStaff("coach");
+  if (f.get("confirm") !== "yes") return redirect(`/coach/squad?grouperr=${encodeURIComponent("Tick the box to confirm removing the sample squad.")}`);
+  const n = await removeSampleSquad(club);
+  revalidatePath("/coach");
+  revalidatePath("/coach/squad");
+  redirect(`/coach?notice=${encodeURIComponent(`Removed the sample squad (${n} players). Your own players and program were not touched.`)}`);
 }
 
 export async function resetPlayerLink(f: FormData) {
