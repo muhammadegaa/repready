@@ -79,3 +79,17 @@ Testing so far: unit tests, Firestore emulator tests (74 passing) and manual bro
 ## Step 6 status
 
 Player session view shows a picture only for an exact library match (or a football entry whose own name or alias is exactly a library name). Pictures are served through `/api/exercise-image/[id]` from a pinned free-exercise-db commit, cached for a year, so players' phones never contact GitHub; the route only resolves ids in the bundled library. Changed values were already shown struck-through and highlighted. No picture exists for Nordic hamstring curl, Copenhagen adduction and other football-specific entries; they show text only. Not done: instructions text, multiple images per exercise, self-hosting the images.
+
+## Coach point of view (added 2026-10-03, from the canvas boards "Coach jobs in detail" and "How one player's session is built")
+
+Decisions taken (the production-grade options): named groups the coach creates; a group version is a full session for that group (a `group` column in the program CSV), chosen over the earlier idea of a diff on the base because coaches already keep one sheet per group; a player override is a standing instruction per player and exercise (swap, cap on sets or reps, lower load, optional end date and review date) until lifted; the player is told it is a personal change from the coach, never the reason; per-player 1RM waits until the pilot club says it prescribes by percentage; the head coach is not a user yet.
+
+| Slice | State |
+|---|---|
+| S1 Groups | Done. Group column in the CSV, bulk assignment on Squad, the player's own version used by Today, the player's screen, the rules and the proposal form. One function picks the session |
+| S2 Player overrides | Done. Editor on the coach's player page, shown to the player as changed by the coach, the rules work from the changed plan, review reminders on Today, lift |
+| S3 Assess | Partly. Today against the player's own usual range (mean plus or minus one standard deviation, at least 5 earlier days, minimum room of half an hour of sleep or one point). Not yet: load and minutes, a dated return note, a "plan with its sources" per row beyond the change label |
+| S4 Load, minutes, tests | Not started. Waiting on the pilot club (decision D4) |
+| S5 Sample squad | Started (a `sample` flag on athletes exists). Not built |
+
+Not verified: the live site (everything above was run against the emulator and on GitHub's runners), and the scientist's rule thresholds are still fixed in code.

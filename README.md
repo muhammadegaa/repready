@@ -6,9 +6,9 @@ Three views share one record and update live:
 
 | View | Route | Who | What |
 |---|---|---|---|
-| Coach | `/coach` | passcode | Today queue, proposal diffs, edit numbers, notes, protected exercises, athlete detail, program import |
+| Coach | `/coach` | email account | Today queue, proposal diffs, edit numbers, notes, groups, per-player plan changes, protected exercises, usual-range view of each player, program import with optional group versions |
 | Athlete | `/a/<code>` | private link | Consent, check-in, session with highlighted changes, effort log, Polar connect, delete my data |
-| Sports scientist | `/science` | passcode | Edit rules and citations, label 30 scenarios, run the agent against the labels |
+| Sports scientist | `/science` | email account | Keep or delete rules and record citations, label 30 scenarios, score the rules engine against the labels |
 
 ## Run it locally
 
