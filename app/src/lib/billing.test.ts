@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { checkoutPaidFor, hasAccess, paidClubFrom, verifyStripe } from "./billing";
+import { checkoutPaidFor, findPaidCheckout, hasAccess, paidClubFrom, verifyStripe } from "./billing";
 
 const club = { id: "abc123", paid_at: null };
 describe("hasAccess", () => {
@@ -47,5 +47,17 @@ describe("checkoutPaidFor", () => {
     expect(await checkoutPaidFor(id, "abc123", reply({}, false))).toBe(false);
     expect(await checkoutPaidFor("not-a-session", "abc123", reply({ client_reference_id: "abc123", payment_status: "paid" }))).toBe(false);
     delete process.env.STRIPE_SECRET_KEY;
+  });
+});
+
+describe("findPaidCheckout", () => {
+  const list = (data: object[]) => (async () => ({ ok: true, json: async () => ({ data }) })) as unknown as typeof fetch;
+  it("finds a completed checkout for this club, including a free-trial one that took no payment yet", async () => {
+    process.env.STRIPE_SECRET_KEY = "sk_test_x";
+    expect(await findPaidCheckout("abc123", list([{ client_reference_id: "ffffff", status: "complete", payment_status: "paid" }, { client_reference_id: "abc123", status: "complete", payment_status: "no_payment_required" }]))).toBe(true);
+    expect(await findPaidCheckout("abc123", list([{ client_reference_id: "abc123", status: "open", payment_status: "unpaid" }]))).toBe(false);
+    expect(await findPaidCheckout("abc123", list([{ client_reference_id: "ffffff", status: "complete", payment_status: "paid" }]))).toBe(false);
+    delete process.env.STRIPE_SECRET_KEY;
+    expect(await findPaidCheckout("abc123", list([{ client_reference_id: "abc123", status: "complete", payment_status: "paid" }]))).toBe(false);
   });
 });

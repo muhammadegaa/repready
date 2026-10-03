@@ -15,7 +15,11 @@ export async function sendMail(m: Mail): Promise<{ sent: boolean; error?: string
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from: FROM(), to: [m.to], subject: m.subject, text: m.text }),
     });
-    if (!res.ok) return { sent: false, error: `Email provider returned ${res.status}` };
+    if (!res.ok) {
+      const detail = (await res.text().catch(() => "")).slice(0, 300);
+      console.error(`[mail] Resend ${res.status} sending from ${FROM()}: ${detail}`);
+      return { sent: false, error: `Email provider returned ${res.status}` };
+    }
     return { sent: true };
   } catch (e) {
     return { sent: false, error: (e as Error).message };

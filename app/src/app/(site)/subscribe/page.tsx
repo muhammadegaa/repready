@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { btn, Card } from "@/components/ui";
-import { checkoutPaidFor, checkoutUrl } from "@/lib/billing";
+import { checkoutPaidFor, checkoutUrl, findPaidCheckout } from "@/lib/billing";
 import { markClubPaid } from "@/lib/store";
 import { getSession, homeFor } from "@/lib/auth";
 
@@ -15,6 +15,11 @@ export default async function Subscribe(props: PageProps<"/subscribe">) {
   const { session_id } = await props.searchParams;
   const returning = typeof session_id === "string";
   if (returning && (await checkoutPaidFor(session_id, s.club))) {
+    await markClubPaid(s.club);
+    redirect(homeFor(s));
+  }
+  // Whatever the redirect and the webhook did, if Stripe has a completed checkout for this club, open it.
+  if (await findPaidCheckout(s.club)) {
     await markClubPaid(s.club);
     redirect(homeFor(s));
   }
@@ -36,7 +41,7 @@ export default async function Subscribe(props: PageProps<"/subscribe">) {
         {url ? (
           <>
             <a href={url} className={btn}>Subscribe</a>
-            <p className="text-xs text-muted">Payment is taken by Stripe. When it completes this page opens your club. If it does not within a minute, refresh it.</p>
+            <p className="text-xs text-muted">Payment is taken by Stripe. When it completes, come back to this page: it opens your club on its own.</p>
           </>
         ) : (
           <p className="text-sm text-warn">Payment is not available right now. Please contact us and we will open your club.</p>

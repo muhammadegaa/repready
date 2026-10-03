@@ -48,6 +48,7 @@ async function sendVerification(staffId: string): Promise<"sent" | "throttled" |
     subject: "Confirm your email for RepReady",
     text: `Confirm this email address for your RepReady account (the link works for 24 hours):\n${await origin()}/verify/${v.token}\n\nIf you did not create an account, ignore this email.`,
   });
+  if (!r.sent) console.error(`[mail] confirmation email to ${v.email} failed: ${r.error}`);
   return r.sent ? "sent" : "failed";
 }
 

@@ -62,3 +62,22 @@ export async function checkoutPaidFor(sessionId: string, clubId: string, f: type
     return false;
   }
 }
+
+// The safety net for everything else: look through Stripe's recent checkouts for a completed one that carries this club's id.
+// It means a paid club opens even if the redirect was never configured and the webhook never arrived. Needs STRIPE_SECRET_KEY.
+export async function findPaidCheckout(clubId: string, f: typeof fetch = fetch): Promise<boolean> {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return false;
+  try {
+    const res = await f("https://api.stripe.com/v1/checkout/sessions?limit=100", { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) {
+      console.error(`[billing] Stripe checkout list returned ${res.status}. Check STRIPE_SECRET_KEY has read access to Checkout Sessions, in the same mode as the payment link.`);
+      return false;
+    }
+    const body = (await res.json()) as { data?: { client_reference_id?: string; status?: string; payment_status?: string }[] };
+    return (body.data ?? []).some((o) => o.client_reference_id === clubId && o.status === "complete" && (o.payment_status === "paid" || o.payment_status === "no_payment_required"));
+  } catch (e) {
+    console.error(`[billing] Stripe lookup failed: ${(e as Error).message}`);
+    return false;
+  }
+}
