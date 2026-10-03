@@ -28,7 +28,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
   const v = await athleteToday(code, today);
   if (!v) notFound();
   const [pulse, polarLink, club] = await Promise.all([getPulse(v.athlete.club, `a_${code}`), polarEnabled() ? getPolarLink(code) : Promise.resolve(null), getClub(v.athlete.club)]);
-  const { athlete, session, checkin, readiness, proposal, status, week, rpeToday, prev } = v;
+  const { athlete, session, changed, checkin, readiness, proposal, status, week, rpeToday, prev } = v;
   const first = athlete.name.split(" ")[0];
   const preview = !process.env.JUNCTION_API_KEY && process.env.NODE_ENV !== "production";
 
@@ -178,7 +178,8 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
       {session && (
         <section className="space-y-3">
           <Eyebrow>Today’s session</Eyebrow>
-          <SessionTable planned={session.exercises} edits={proposal?.status === "approved" ? proposal.edits : []} muted={rest} pictures />
+          <SessionTable planned={session.exercises} edits={proposal?.status === "approved" ? proposal.edits : []} muted={rest} pictures tags={Object.fromEntries(Object.keys(changed).map((n) => [n, "Changed for you by your coach"]))} />
+          {Object.keys(changed).length > 0 && <p className="text-xs text-muted">Your coach has set a personal change to this session for you. It is not a decision by the app.</p>}
           {proposal?.status === "pending" && <p className="text-xs text-muted">Shown as planned. It may change once your coach decides.</p>}
         </section>
       )}

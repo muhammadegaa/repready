@@ -3,6 +3,7 @@ import { getFirestore, type DocumentData } from "firebase-admin/firestore";
 import { createHash, randomBytes } from "node:crypto";
 import type { Edit, Exercise } from "./agent/schema";
 import { cleanGroup, pickSession } from "./groups";
+import { isActive, type Override } from "./overrides";
 import { decisionCopy } from "./copy";
 
 // Hosted (Vercel): FIREBASE_SERVICE_ACCOUNT holds the service-account JSON on one line.
@@ -471,6 +472,60 @@ export async function setGroup(code: string, group: string | null): Promise<void
   await touch(clubOf(code), "coach", `a_${code}`);
 }
 
+// ---- player overrides (the coach's own standing instruction for one player and one exercise)
+const overrideRow = (id: string, d: DocumentData): Override => ({
+  id, athlete_code: d.athlete_code, exercise: d.exercise, swap_to: d.swap_to ?? null, max_sets: d.max_sets ?? null, max_reps: d.max_reps ?? null,
+  load_pct: d.load_pct ?? null, until: d.until ?? null, review_on: d.review_on ?? null, note: d.note ?? "", created_at: d.created_at, created_by: d.created_by ?? "",
+  lifted_at: d.lifted_at ?? null,
+});
+
+// Newest first, including lifted ones, so the coach can see what was in force before.
+export async function listOverrides(code: string): Promise<Override[]> {
+  const q = await col(clubOf(code), "overrides").where("athlete_code", "==", code).get();
+  return q.docs.map((d) => overrideRow(d.id, d.data())).sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 60);
+}
+
+export async function listActiveOverrides(code: string, date: string): Promise<Override[]> {
+  return (await listOverrides(code)).filter((o) => isActive(o, date));
+}
+
+// Every active override in the club, for the Today reminders.
+export async function listClubOverrides(club: string, date: string): Promise<Override[]> {
+  const q = await col(club, "overrides").where("lifted_at", "==", null).get();
+  return q.docs.map((d) => overrideRow(d.id, d.data())).filter((o) => isActive(o, date));
+}
+
+export type NewOverride = Omit<Override, "id" | "athlete_code" | "created_at" | "lifted_at">;
+
+// One active override per player and exercise: a new one lifts the one it replaces.
+export async function createOverride(code: string, v: NewOverride): Promise<string> {
+  const club = clubOf(code);
+  const now = new Date().toISOString();
+  const key = (n: string) => n.trim().toLowerCase();
+  const batch = fs.batch();
+  const same = (await listActiveOverrides(code, now.slice(0, 10))).filter((o) => key(o.exercise) === key(v.exercise));
+  same.forEach((o) => batch.update(col(club, "overrides").doc(o.id), { lifted_at: now }));
+  const ref = col(club, "overrides").doc();
+  batch.set(ref, { athlete_code: code, ...v, created_at: now, lifted_at: null });
+  await batch.commit();
+  const a = await getAthlete(code);
+  await logEvent(club, { type: "override", athlete_code: code, athlete_name: a?.name ?? null, text: `${v.created_by || "Coach"} set a plan change for ${a?.name ?? "a player"}: ${v.exercise}` });
+  await touch(club, "coach", `a_${code}`);
+  return ref.id;
+}
+
+export async function liftOverride(code: string, id: string, by: string): Promise<boolean> {
+  const club = clubOf(code);
+  const ref = col(club, "overrides").doc(id);
+  const s = await ref.get();
+  if (!s.exists || s.get("athlete_code") !== code || s.get("lifted_at")) return false;
+  await ref.update({ lifted_at: new Date().toISOString() });
+  const a = await getAthlete(code);
+  await logEvent(club, { type: "override", athlete_code: code, athlete_name: a?.name ?? null, text: `${by || "Coach"} lifted the plan change for ${a?.name ?? "a player"}: ${s.get("exercise")}` });
+  await touch(club, "coach", `a_${code}`);
+  return true;
+}
+
 // ---- athlete inputs
 export async function saveCheckin(code: string, date: string, c: Omit<CheckinRow, "availability"> & { availability?: Availability }): Promise<void> {
   const club = clubOf(code);
@@ -607,7 +662,7 @@ export async function setNotice(club: string, k: string, v: string | null): Prom
 export async function deleteAthleteData(code: string): Promise<void> {
   const club = clubOf(code);
   const a = await getAthlete(code);
-  for (const c of ["checkins", "readiness", "session_logs", "proposals", "events"]) {
+  for (const c of ["checkins", "readiness", "session_logs", "proposals", "events", "overrides"]) {
     const q = await col(club, c).where("athlete_code", "==", code).get();
     for (let i = 0; i < q.docs.length; i += 400) {
       const batch = fs.batch();

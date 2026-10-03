@@ -1,10 +1,11 @@
 import { decide } from "./agent/engine";
 import { matchDayTag } from "./fixtures";
+import { planFor } from "./plan";
 import type { Scenario } from "./agent/propose";
 import type { Exercise } from "./agent/schema";
 import { activeRules, allRules } from "./rules";
 import {
-  clubOf, getAthlete, getFixtures, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionFor, sessionsForDates,
+  clubOf, getAthlete, getFixtures, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionsForDates,
   type ProposalRow, type SessionRow,
 } from "./store";
 
@@ -21,7 +22,7 @@ function meanTarget(ex: Exercise[]): number | null {
   return t.length ? t.reduce((a, b) => a + b, 0) / t.length : null;
 }
 
-async function buildScenario(code: string, today: string, session: SessionRow, group: string | null): Promise<Scenario> {
+async function buildScenario(code: string, today: string, session: SessionRow, group: string | null, planned: SessionRow["exercises"]): Promise<Scenario> {
   const dates = Array.from({ length: 14 }, (_, i) => dayStr(today, 13 - i));
   const [checkins, logs, sessions, readiness] = await Promise.all([
     getCheckins(code, dates),
@@ -51,7 +52,7 @@ async function buildScenario(code: string, today: string, session: SessionRow, g
   });
   return {
     athlete: { age_group: "adult" },
-    planned_session: { label: session.label, week_type: session.week_type, match_day: matchDayTag(session.on_date, await getFixtures(clubOf(code))), exercises: session.exercises },
+    planned_session: { label: session.label, week_type: session.week_type, match_day: matchDayTag(session.on_date, await getFixtures(clubOf(code))), exercises: planned },
     last_14_days: days,
   };
 }
@@ -60,8 +61,9 @@ export async function runAgentFor(code: string, today: string): Promise<void> {
   const athlete = await getAthlete(code);
   if (!athlete) return;
   // The version of today's session this player gets: their group's, else the one for everyone.
-  const [session, existing] = await Promise.all([sessionFor(clubOf(code), today, athlete.group), getProposal(code, today)]);
-  if (!session) return;
+  const [plan, existing] = await Promise.all([planFor(athlete, today), getProposal(code, today)]);
+  if (!plan) return;
+  const session = plan.session;
   if (existing && (existing.status === "approved" || existing.status === "rejected")) return;
 
   const base = { athlete_code: code, athlete_name: athlete.name, session_label: session.label, on_date: today, created_at: new Date().toISOString(), decided_at: null };
@@ -69,7 +71,7 @@ export async function runAgentFor(code: string, today: string): Promise<void> {
   try {
     const active = new Set(activeRules(await allRules(clubOf(code))).map((r) => r.id));
     const ctx = { injuryFlaggedExercises: athlete.protected, clearedExercises: [] as string[] };
-    const { proposal, verdict } = decide(await buildScenario(code, today, session, athlete.group), active, ctx);
+    const { proposal, verdict } = decide(await buildScenario(code, today, session, athlete.group, plan.resolved.exercises), active, ctx);
     const dropped = verdict.rejected.map((r) => r.why);
     if (!verdict.reasonOk) {
       row = { ...base, decision: proposal.decision, edits: [], reason: null, rules_applied: [], flag: null, status: "error", error: "Agent reason contained medical language and was discarded. Planned session stands." };

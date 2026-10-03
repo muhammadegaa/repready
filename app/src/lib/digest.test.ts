@@ -3,7 +3,7 @@ import { buildDigest } from "./digest";
 import type { RosterEntry } from "./views";
 
 const entry = (name: string, status: RosterEntry["status"], checkedIn = false): RosterEntry =>
-  ({ athlete: { name } as RosterEntry["athlete"], status, checkin: checkedIn ? ({ note: "sharp pain in my knee" } as RosterEntry["checkin"]) : null, readiness: null, proposal: null, session: null, sleep7: [] });
+  ({ athlete: { name } as RosterEntry["athlete"], status, checkin: checkedIn ? ({ note: "sharp pain in my knee" } as RosterEntry["checkin"]) : null, readiness: null, proposal: null, session: null, changed: {}, sleep7: [] });
 
 describe("digest", () => {
   const roster = [entry("Ada Okafor", "needs_decision", true), entry("Ben Silva", "waiting"), entry("Cy Mensah", "on_plan", true), entry("Di Reid", "agent_error", true)];

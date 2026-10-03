@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { removeAthlete, setPlayerGroup, toggleProtected } from "@/actions/coach";
+import { addPlanOverride, liftPlanOverride, removeAthlete, setPlayerGroup, toggleProtected } from "@/actions/coach";
 import { CopyButton } from "@/components/CopyButton";
 import { Heat } from "@/components/Heat";
 import { Live } from "@/components/Live";
@@ -8,6 +8,7 @@ import { PendingButton } from "@/components/Pending";
 import { SessionTable } from "@/components/SessionTable";
 import { btnGhost, Card, Chip, Eyebrow, input } from "@/components/ui";
 import { groupLabel } from "@/lib/groups";
+import { describeOverride, isActive } from "@/lib/overrides";
 import { requirePage } from "@/lib/auth";
 import { ago, dateLabel, decisionCopy } from "@/lib/copy";
 import { todayStr } from "@/lib/run-agent";
@@ -33,10 +34,13 @@ const OUTCOME = {
 export default async function AthletePageForCoach(props: PageProps<"/coach/athletes/[code]">) {
   const { club } = await requirePage("coach");
   const { code } = await props.params;
+  const { overrideerr, overrideok } = await props.searchParams;
   const today = todayStr();
   const [d, pulse] = await Promise.all([athleteDetail(code, today), getPulse(club, "coach")]);
   if (!d || d.athlete.club !== club) notFound();
-  const { athlete, days, proposals, todaySession, exerciseNames, wearable, events } = d;
+  const { athlete, days, proposals, todaySession, changed, overrides, exerciseNames, wearable, events } = d;
+  const activeOverrides = overrides.filter((o) => isActive(o, today));
+  const pastOverrides = overrides.filter((o) => !isActive(o, today)).slice(0, 5);
   const todays = proposals.find((p) => p.on_date === today) ?? null;
   const todayDay = days[days.length - 1];
   const status = STATUS[statusOf(athlete, todaySession, todayDay.sleep !== null || todayDay.soreness !== null ? new Date(0).toISOString() : null, todays)];
@@ -77,7 +81,7 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
               </div>
               <Chip tone={OUTCOME[todays.status].tone}>{OUTCOME[todays.status].label}</Chip>
             </div>
-            <SessionTable planned={todaySession.exercises} edits={todays.status === "approved" ? todays.edits : todays.edits} />
+            <SessionTable planned={todaySession.exercises} edits={todays.edits} tags={Object.fromEntries(Object.keys(changed).map((n) => [n, "Your change for this player"]))} />
             {todays.coach_note && <p className="text-sm"><span className="text-muted">Your note:</span> {todays.coach_note}</p>}
             {todays.status === "pending" && <p className="text-sm text-muted">Decide on the <Link href="/coach" className="underline underline-offset-4">Today</Link> screen.</p>}
           </Card>
@@ -87,6 +91,70 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
       <section className="space-y-3">
         <Eyebrow>Last 14 days</Eyebrow>
         <Card className="p-5"><Heat days={days} /></Card>
+      </section>
+
+      <section id="plan-changes" className="space-y-3">
+        <Eyebrow>This player’s own plan</Eyebrow>
+        <Card className="space-y-4 p-5">
+          <p className="max-w-2xl text-sm text-muted">A change here applies to every session that includes the exercise, for this player only, until you lift it or its end date passes. The rules then work from the changed plan. The player is told it is a personal change from you, not the reason.</p>
+          {typeof overrideok === "string" && overrideok && <p className="rounded-md border border-ok/30 bg-ok-bg px-3 py-2 text-sm text-ok">{overrideok}</p>}
+          {typeof overrideerr === "string" && overrideerr && <p className="rounded-md border border-bad/30 bg-bad-bg px-3 py-2 text-sm text-bad">{overrideerr}</p>}
+          {activeOverrides.length === 0 ? (
+            <p className="text-sm text-muted">No personal changes. {athlete.name.split(" ")[0]} follows {groupLabel(athlete.group) === "Everyone" ? "the program" : `the ${groupLabel(athlete.group)} program`}.</p>
+          ) : (
+            <ul className="divide-y divide-line rounded-lg border border-line">
+              {activeOverrides.map((o) => (
+                <li key={o.id} className="flex flex-wrap items-start justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0 text-sm">
+                    <div className="font-medium">{describeOverride(o)}</div>
+                    <div className="mt-0.5 text-xs text-muted">
+                      {o.until ? `Until ${o.until}` : "Until you lift it"}{o.review_on ? ` · review ${o.review_on}` : ""} · set by {o.created_by || "staff"} {ago(o.created_at)}
+                    </div>
+                    {o.note && <div className="mt-1 text-xs text-muted">Private note: {o.note}</div>}
+                  </div>
+                  <form action={liftPlanOverride}>
+                    <input type="hidden" name="code" value={athlete.code} />
+                    <input type="hidden" name="id" value={o.id} />
+                    <PendingButton className={btnGhost} pending="Lifting…">Lift</PendingButton>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+          {pastOverrides.length > 0 && (
+            <details className="text-sm">
+              <summary className="disclosure cursor-pointer text-muted hover:text-ink">Earlier changes ({pastOverrides.length})</summary>
+              <ul className="mt-2 space-y-1 text-xs text-muted">{pastOverrides.map((o) => <li key={o.id}>{describeOverride(o)} · {o.lifted_at ? `lifted ${ago(o.lifted_at)}` : `ended ${o.until}`}</li>)}</ul>
+            </details>
+          )}
+          {exerciseNames.length === 0 ? (
+            <p className="text-sm text-muted">Import a program to choose from its exercises.</p>
+          ) : (
+            <form action={addPlanOverride} className="space-y-3 rounded-lg border border-line bg-paper p-4">
+              <input type="hidden" name="code" value={athlete.code} />
+              <div className="text-sm font-medium">Change an exercise for {athlete.name.split(" ")[0]}</div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div><label htmlFor="ov-exercise" className="block text-xs font-medium text-muted">Exercise</label>
+                  <select id="ov-exercise" name="exercise" required defaultValue="" className={`${input} mt-1`}><option value="" disabled>Choose</option>{exerciseNames.map((n) => <option key={n} value={n}>{n}</option>)}</select></div>
+                <div><label htmlFor="ov-swap" className="block text-xs font-medium text-muted">Swap to (optional)</label>
+                  <input id="ov-swap" name="swap_to" maxLength={60} placeholder="e.g. Box squat" className={`${input} mt-1`} /></div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div><label htmlFor="ov-sets" className="block text-xs font-medium text-muted">Max sets</label><input id="ov-sets" name="max_sets" type="number" min={1} max={20} className={`${input} mt-1`} /></div>
+                <div><label htmlFor="ov-reps" className="block text-xs font-medium text-muted">Max reps</label><input id="ov-reps" name="max_reps" type="number" min={1} max={30} className={`${input} mt-1`} /></div>
+                <div><label htmlFor="ov-load" className="block text-xs font-medium text-muted">Load, % of planned</label><input id="ov-load" name="load_pct" type="number" min={50} max={99} placeholder="e.g. 80" className={`${input} mt-1`} /></div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div><label htmlFor="ov-until" className="block text-xs font-medium text-muted">Ends on (optional)</label><input id="ov-until" name="until" type="date" min={today} className={`${input} mt-1`} /></div>
+                <div><label htmlFor="ov-review" className="block text-xs font-medium text-muted">Remind me to review on (optional)</label><input id="ov-review" name="review_on" type="date" min={today} className={`${input} mt-1`} /></div>
+              </div>
+              <div><label htmlFor="ov-note" className="block text-xs font-medium text-muted">Private note for staff (optional)</label>
+                <input id="ov-note" name="note" maxLength={200} className={`${input} mt-1`} /></div>
+              <p className="text-xs text-muted">Caps only reduce: a cap of 3 sets leaves a 2-set session alone. Leave a field empty to leave it as the program has it.</p>
+              <PendingButton className={btnGhost} pending="Saving…">Save change</PendingButton>
+            </form>
+          )}
+        </Card>
       </section>
 
       <section className="space-y-3">

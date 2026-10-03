@@ -37,6 +37,7 @@ export function ProposalCard({ entry, session, rules }: { entry: RosterEntry; se
               <h3 className="text-lg font-semibold tracking-tight">{copy.title}</h3>
               {p.reason && <p className="mt-1 text-[15px] leading-relaxed">{p.reason}</p>}
             </div>
+            {Object.keys(entry.changed).length > 0 && <p className="text-xs text-muted">This is {first}’s own plan: you changed {Object.keys(entry.changed).join(", ")} for them. The rules worked from that.</p>}
             <SessionTable planned={session.exercises} edits={p.edits} />
             {p.edits.length === 0 && <p className="text-sm text-muted">No edit to the session is proposed.</p>}
             {p.flag && <Notice>For you: {p.flag}</Notice>}

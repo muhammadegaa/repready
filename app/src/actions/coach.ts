@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { buildEdits, COACH_LIMITS } from "@/lib/edits";
@@ -8,10 +9,13 @@ import { deregister } from "@/lib/polar";
 import { cleanGroup, GROUP_MAX, groupLabel } from "@/lib/groups";
 import { describeReport, resolveProgram } from "@/lib/library/resolve";
 import { parseFixtures } from "@/lib/fixtures";
+import { planFor, playerExerciseNames } from "@/lib/plan";
+import { validateOverride } from "@/lib/overrides";
+import { runAgentFor, todayStr } from "@/lib/run-agent";
 import { parseProgram } from "@/lib/program";
 import { parsePlayers, POSITIONS } from "@/lib/squad";
 import {
-  approvePlayer, CODE_RE, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, resetLink, sessionFor, setFixtures, setGroup, setNotice, setProtected,
+  approvePlayer, CODE_RE, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, replaceSessions, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -155,13 +159,45 @@ export async function approveEdited(f: FormData) {
   if (!PROPOSAL_ID.test(id) || id.slice(0, 6) !== club) return;
   const [code, date] = [id.slice(0, 16), id.slice(17)];
   const a = await ownPlayer(club, code);
-  const [p, session] = await Promise.all([getProposal(code, date), a ? sessionFor(club, date, a.group) : null]);
-  if (!a || !p || !session) return back("That session no longer exists.");
-  const { edits, error } = buildEdits((k) => text(f, k), session.exercises, COACH_LIMITS);
+  const [p, plan] = await Promise.all([getProposal(code, date), a ? planFor(a, date) : null]);
+  if (!a || !p || !plan) return back("That session no longer exists.");
+  // The form's rows are the player's own plan (group version, then their overrides), the same list the proposal card showed.
+  const { edits, error } = buildEdits((k) => text(f, k), plan.resolved.exercises, COACH_LIMITS);
   if (error) return back(error);
   if (!edits.length) return back("No changes entered. Use Approve to accept the proposal as it is.");
   await decideProposal(club, id, "approved", { note: text(f, "note").slice(0, 300), edits });
   revalidatePath("/coach");
+}
+
+// A coach's standing instruction for one player and one exercise. The rules then work from the changed plan, so a proposal
+// made before the change is made again (a proposal the coach has already decided is left alone).
+export async function addPlanOverride(f: FormData) {
+  const { club, name } = await requireStaff("coach");
+  const a = await ownPlayer(club, text(f, "code"));
+  if (!a) return;
+  const today = todayStr();
+  const here = `/coach/athletes/${a.code}`;
+  const checked = validateOverride(
+    { exercise: text(f, "exercise"), swap_to: text(f, "swap_to"), max_sets: text(f, "max_sets"), max_reps: text(f, "max_reps"), load_pct: text(f, "load_pct"), until: text(f, "until"), review_on: text(f, "review_on"), note: text(f, "note") },
+    await playerExerciseNames(a, today), today,
+  );
+  if (!checked.ok) return redirect(`${here}?overrideerr=${encodeURIComponent(checked.error)}#plan-changes`);
+  await createOverride(a.code, { ...checked.value, created_by: name });
+  after(async () => { await runAgentFor(a.code, today); });
+  revalidatePath(here);
+  revalidatePath("/coach");
+  redirect(`${here}?overrideok=${encodeURIComponent(`Saved. ${a.name.split(" ")[0]} now has this change from the next session that includes ${checked.value.exercise}.`)}#plan-changes`);
+}
+
+export async function liftPlanOverride(f: FormData) {
+  const { club, name } = await requireStaff("coach");
+  const a = await ownPlayer(club, text(f, "code"));
+  const id = text(f, "id");
+  if (!a || !/^[A-Za-z0-9]{10,40}$/.test(id)) return;
+  if (await liftOverride(a.code, id, name)) after(async () => { await runAgentFor(a.code, todayStr()); });
+  revalidatePath(`/coach/athletes/${a.code}`);
+  revalidatePath("/coach");
+  redirect(`/coach/athletes/${a.code}?overrideok=${encodeURIComponent("Lifted. The player is back on the program.")}#plan-changes`);
 }
 
 export async function toggleProtected(f: FormData) {

@@ -20,7 +20,7 @@ export default async function Today(props: PageProps<"/coach">) {
   const today = todayStr();
   const { notice } = await props.searchParams;
   const [data, rules, pulse, sessionCount] = await Promise.all([coachToday(club, today), allRules(club), getPulse(club, "coach"), countSessions(club)]);
-  const { session, versions, roster, pending, events, counts, waiting } = data;
+  const { session, versions, reviews, roster, pending, events, counts, waiting } = data;
   const notIn = roster.filter((r) => r.status === "waiting");
 
   return (
@@ -46,6 +46,13 @@ export default async function Today(props: PageProps<"/coach">) {
       />
 
       {notice && <Notice>{notice}</Notice>}
+      {reviews.length > 0 && (
+        <Notice>
+          Plan changes to review: {reviews.map((o, i) => (
+            <span key={o.id}>{i ? ", " : ""}<Link href={`/coach/athletes/${o.athlete_code}#plan-changes`} className="font-medium underline underline-offset-4">{o.athlete_name} ({o.exercise})</Link></span>
+          ))}.
+        </Notice>
+      )}
       {waiting > 0 && (
         <Notice>{waiting} player{waiting === 1 ? " has" : "s have"} asked to join the squad. <Link href="/coach/squad" className="font-medium underline underline-offset-4">Confirm in Squad</Link>.</Notice>
       )}

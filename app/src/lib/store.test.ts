@@ -4,7 +4,7 @@ import {
   giveConsentTo, hasCheckin, listAthletes, listEvalRuns, listEvents, listLabels, listProposals, listProposalsFor, listRuleOverrides, listSessions,
   logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionFor, sessionsOn, setGroup,
   sessionsForDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads, createPlayers, claimLink, resetLink,
-  createPasswordReset, resetPassword, resetTokenUsable,
+  createPasswordReset, resetPassword, resetTokenUsable, createOverride, liftOverride, listOverrides, listActiveOverrides, listClubOverrides,
   getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
 } from "./store";
 
@@ -315,5 +315,35 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     expect((await getAthlete(code))?.group).toBe("Reserves");
     await setGroup(code, "Everyone");
     expect((await getAthlete(code))?.group).toBeNull();
+  });
+
+  it("keeps one active override per player and exercise, lifts them, and removes them with the player", async () => {
+    const club = `o${run}`.slice(0, 6).padEnd(6, "0");
+    const [a, b] = await createPlayers(club, [
+      { name: "Over One", shirt: null, position: "", squad: "First team" },
+      { name: "Over Two", shirt: null, position: "", squad: "First team" },
+    ]);
+    const base = { exercise: "Back squat", swap_to: null, max_sets: 3, max_reps: null, load_pct: null, until: null, review_on: "2034-04-10", note: "knee", created_by: "Coach" };
+    const first = await createOverride(a, base);
+    const second = await createOverride(a, { ...base, max_sets: 2 }); // replaces the first
+    await createOverride(a, { ...base, exercise: "Romanian deadlift", swap_to: "Hip thrust" });
+    await createOverride(b, base);
+    const active = await listActiveOverrides(a, "2034-04-01");
+    expect(active.map((o) => o.exercise).sort()).toEqual(["Back squat", "Romanian deadlift"]);
+    expect(active.find((o) => o.exercise === "Back squat")?.id).toBe(second);
+    expect((await listOverrides(a)).find((o) => o.id === first)?.lifted_at).not.toBeNull(); // kept for the record
+    expect((await listClubOverrides(club, "2034-04-01")).length).toBe(3);
+    // an end date in the past makes it inactive without lifting it
+    await createOverride(b, { ...base, exercise: "Bench press", until: "2034-03-01" });
+    expect((await listActiveOverrides(b, "2034-04-01")).map((o) => o.exercise)).toEqual(["Back squat"]);
+    // a coach cannot lift another player's override by guessing its id
+    expect(await liftOverride(b, second, "Coach")).toBe(false);
+    expect(await liftOverride(a, second, "Coach")).toBe(true);
+    expect(await liftOverride(a, second, "Coach")).toBe(false); // already lifted
+    expect((await listActiveOverrides(a, "2034-04-01")).map((o) => o.exercise)).toEqual(["Romanian deadlift"]);
+    // deleting the player deletes their overrides, and only theirs
+    await deleteAthleteData(a);
+    expect(await listOverrides(a)).toEqual([]);
+    expect((await listOverrides(b)).length).toBe(2);
   });
 });

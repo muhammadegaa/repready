@@ -5,7 +5,7 @@ import { imageForName } from "@/lib/library";
 import { Mark } from "./ui";
 
 // The session as a whiteboard: planned values stay plain, changed values are struck through and highlighted.
-export function SessionTable({ planned, edits = [], muted = false, pictures = false }: { planned: Exercise[]; edits?: Edit[]; muted?: boolean; pictures?: boolean }) {
+export function SessionTable({ planned, edits = [], muted = false, pictures = false, tags = {} }: { planned: Exercise[]; edits?: Edit[]; muted?: boolean; pictures?: boolean; tags?: Record<string, string> }) {
   const shown = applyEdits(planned, edits);
   return (
     <div className={`overflow-x-auto rounded-lg border border-line ${muted ? "opacity-60" : ""}`}>
@@ -25,7 +25,10 @@ export function SessionTable({ planned, edits = [], muted = false, pictures = fa
                 <td className="px-3 py-2.5 font-medium">
                   <div className="flex items-center gap-2.5">
                     {pictures && <Thumb name={s.name} />}
-                    <div>{s.name !== p.name ? (<><s className="mr-1.5 font-normal text-muted">{p.name}</s><Mark>{s.name}</Mark></>) : p.name}</div>
+                    <div>
+                      {s.name !== p.name ? (<><s className="mr-1.5 font-normal text-muted">{p.name}</s><Mark>{s.name}</Mark></>) : p.name}
+                      {tags[p.name] ? <div className="mt-0.5 text-[11px] font-normal text-muted">{tags[p.name]}</div> : null}
+                    </div>
                   </div>
                 </td>
                 <td className="px-3 py-2.5 font-mono tabular-nums">

@@ -160,3 +160,83 @@ test("a coach splits the squad: the group gets its own version of the session an
   await expect(page.getByRole("link", { name: /Reserve One/ })).toContainText("Reserves");
   await reserve.ctx.close(); await starter.ctx.close();
 });
+
+test("a coach changes one player's plan: the player, the rules and the coach's card all use it, and lifting puts it back", async ({ page, browser }) => {
+  await signUp(page);
+  await importProgram(page, [
+    `${today()},Lower,normal,Back squat,4,5,85% 1RM,8`,
+    `${today()},Lower,normal,Romanian deadlift,3,8,70% 1RM,7`,
+  ]);
+  await addPlayer(page, "Knee Player");
+  await addPlayer(page, "Plain Player");
+  const kneeLink = await playerLink(page, 0); // alphabetical: Knee, then Plain
+  const plainLink = await playerLink(page, 1);
+  const kneeCode = kneeLink.split("/").pop()!;
+
+  await page.goto(`/coach/athletes/${kneeCode}`);
+  await page.locator("#ov-exercise").selectOption("Back squat");
+  await page.locator("#ov-swap").fill("Box squat");
+  await page.locator("#ov-sets").fill("3");
+  await page.locator("#ov-load").fill("80");
+  await page.getByRole("button", { name: "Save change" }).click();
+  await expect(page.getByText(/Saved\. Knee now has this change/)).toBeVisible();
+  await expect(page.getByText("Back squat: swap to Box squat, max 3 sets, 80% of planned load")).toBeVisible();
+
+  // A load below 50% is stopped by the browser before it is sent (the server checks again; see the unit tests), and nothing is saved.
+  await page.locator("#ov-exercise").selectOption("Romanian deadlift");
+  await page.locator("#ov-load").fill("20");
+  await page.getByRole("button", { name: "Save change" }).click();
+  expect(await page.locator("#ov-load").evaluate((el) => (el as HTMLInputElement).validity.rangeUnderflow)).toBe(true);
+  await expect(page.getByText("Romanian deadlift: ")).toHaveCount(0);
+  await page.locator("#ov-load").fill("");
+
+  // The player with the change sees it, labelled; the other player's plan is untouched.
+  const knee = await newPhone(browser);
+  await knee.page.goto(kneeLink);
+  await agreeAndClaim(knee.page);
+  const boxRow = knee.page.locator("tr", { hasText: "Box squat" });
+  await expect(boxRow).toContainText("Changed for you by your coach");
+  await expect(boxRow).toContainText("3");
+  await expect(knee.page.locator("tr", { hasText: "Back squat" })).toHaveCount(0);
+  await expect(knee.page.getByText("Your coach has set a personal change to this session for you.")).toBeVisible();
+  const plain = await newPhone(browser);
+  await plain.page.goto(plainLink);
+  await agreeAndClaim(plain.page);
+  await expect(plain.page.locator("tr", { hasText: "Back squat" })).toBeVisible();
+  await expect(plain.page.locator("tr", { hasText: "Box squat" })).toHaveCount(0);
+  await expect(plain.page.getByText("Changed for you by your coach")).toHaveCount(0);
+
+  // High soreness makes the rules trim the main lift. They must work from the changed plan: Box squat, 3 sets of 5.
+  await knee.page.locator('input[name="sleep_h"]').fill("7");
+  await pick(knee.page, "soreness", 7);
+  await pick(knee.page, "stress", 2);
+  await knee.page.getByRole("button", { name: "Send check-in" }).click();
+  await expect(knee.page.getByText("Your coach is reviewing")).toBeVisible({ timeout: 20_000 });
+  await page.goto("/coach");
+  await expect(page.getByText("This is Knee’s own plan: you changed Box squat for them.")).toBeVisible();
+  const proposalRow = page.locator("tr", { hasText: "Box squat" }).first();
+  await expect(proposalRow).toContainText("80% of 85% 1RM"); // the load the coach set, not the program's
+  await expect(page.locator("tr", { hasText: "Back squat" })).toHaveCount(0); // no table on Today shows the unchanged lift
+
+  // A review date of today puts a reminder on Today.
+  await page.goto(`/coach/athletes/${kneeCode}`);
+  await page.locator("#ov-exercise").selectOption("Romanian deadlift");
+  await page.locator("#ov-swap").fill("Hip thrust");
+  await page.locator("#ov-review").fill(today());
+  await page.getByRole("button", { name: "Save change" }).click();
+  await expect(page.getByText(/Saved\. Knee now has this change/)).toBeVisible();
+  await page.goto("/coach");
+  await expect(page.getByText(/Plan changes to review/)).toContainText("Knee Player (Romanian deadlift)");
+
+  // Lifting puts the player back on the program.
+  await page.goto(`/coach/athletes/${kneeCode}`);
+  for (let n = 0; n < 2; n++) {
+    await page.getByRole("button", { name: "Lift", exact: true }).first().click();
+    await expect(page.getByText("Lifted. The player is back on the program.")).toBeVisible();
+  }
+  await expect(page.getByText("No personal changes.")).toBeVisible();
+  await knee.page.reload();
+  await expect(knee.page.locator("tr", { hasText: "Back squat" })).toBeVisible();
+  await expect(knee.page.locator("tr", { hasText: "Box squat" })).toHaveCount(0);
+  await knee.ctx.close(); await plain.ctx.close();
+});
