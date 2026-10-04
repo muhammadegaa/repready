@@ -43,7 +43,7 @@ export function EvalRunner({ ids, disabledReason }: { ids: string[]; disabledRea
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-4">
         <button className={btn} onClick={run} disabled={running || ids.length === 0}>
-          {running ? `Running ${done} of ${ids.length}…` : `Run evaluation on ${ids.length} labeled scenario${ids.length === 1 ? "" : "s"}`}
+          {running ? `Running ${done} of ${ids.length}…` : `Run on ${ids.length} decided scenario${ids.length === 1 ? "" : "s"}`}
         </button>
         {disabledReason && ids.length === 0 && <span className="text-sm text-muted">{disabledReason}</span>}
       </div>

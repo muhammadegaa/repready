@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { EvalRunner } from "@/components/EvalRunner";
 import { Live } from "@/components/Live";
-import { Card, Chip, Eyebrow, Notice, Stat } from "@/components/ui";
+import { Card, Chip, Eyebrow, Notice, Stat, btn } from "@/components/ui";
 import { PASS_DO_NOTHING, PASS_OVERALL } from "@/lib/agent/score";
 import { requirePage } from "@/lib/auth";
 import { ago } from "@/lib/copy";
@@ -26,6 +26,7 @@ export default async function Evaluation() {
   const passNone = last?.do_nothing_agreement == null || last.do_nothing_agreement >= PASS_DO_NOTHING;
   const MIN_LABELS = 20;
   const enough = last !== null && last.labeled >= MIN_LABELS;
+  const next = SCENARIOS.find((s) => !labeled.has(s.id));
   const ids = SCENARIOS.filter((s) => labeled.has(s.id)).map((s) => s.id);
 
   return (
@@ -33,34 +34,55 @@ export default async function Evaluation() {
       <Live scope="science" initial={pulse} />
       <header className="space-y-1">
         <h1 className="text-3xl font-semibold tracking-tight">Evaluation</h1>
-        <p className="max-w-2xl text-muted">The agent is scored against your decisions on {SCENARIOS.length} fictional players. It passes at {PASS_OVERALL}% agreement overall and {PASS_DO_NOTHING}% on the “no change” cases. Scenarios marked held out are for the final check only: do not tune the rules or prompt against them.</p>
+        <p className="max-w-2xl text-muted">This checks whether the rules make the same call you would. You decide what you would do for {SCENARIOS.length} made-up players, then the rules decide the same {SCENARIOS.length}, and the page shows how often they agree.</p>
       </header>
 
+      <Card className="space-y-4 p-5">
+        <ol className="space-y-4 text-sm">
+          <li className="flex gap-3">
+            <span className="font-mono text-muted">1</span>
+            <div className="space-y-1">
+              <p className="font-medium">Decide each scenario yourself ({labeled.size} of {SCENARIOS.length} done)</p>
+              <p className="text-muted">Open a scenario, pick what you would do as the coach, and save. Do this before you open the rule tags, so the rules do not sway you. Twenty is the minimum for a verdict.</p>
+              {next && <Link href={`/science/label/${next.id}`} className={btn}>{labeled.size === 0 ? "Start with the first scenario" : "Next undecided scenario"}</Link>}
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-muted">2</span>
+            <div className="space-y-1">
+              <p className="font-medium">Run the rules on them</p>
+              <p className="text-muted">It takes a second and costs nothing. Run it again whenever you change a rule.</p>
+              <EvalRunner ids={ids} disabledReason="Decide at least one scenario first." />
+            </div>
+          </li>
+          <li className="flex gap-3">
+            <span className="font-mono text-muted">3</span>
+            <div className="space-y-1">
+              <p className="font-medium">Read the result</p>
+              <p className="text-muted">Agreement should reach {PASS_OVERALL}%, and {PASS_DO_NOTHING}% on the “no change” cases, where you would leave the session alone. Open a ✗ row below to see where you and the rules differ, then fix the rule on the Rules page.</p>
+            </div>
+          </li>
+        </ol>
+        <p className="border-t border-line pt-3 text-xs text-muted">Held-out scenarios are the final exam. Decide them like the others, but do not change any rule because of how they score. Otherwise the final check no longer tells you anything.</p>
+      </Card>
+
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Labeled" value={`${labeled.size}/${SCENARIOS.length}`} hint="by you" />
+        <Stat label="Decided by you" value={`${labeled.size}/${SCENARIOS.length}`} hint="need 20" />
         <Stat label="Agreement" value={pct(last?.agreement ?? null)} hint={`pass at ${PASS_OVERALL}%`} />
         <Stat label="No-change cases" value={pct(last?.do_nothing_agreement ?? null)} hint={`pass at ${PASS_DO_NOTHING}%`} />
-        <Stat label="Held out" value={pct(last?.holdout_agreement ?? null)} hint="final check" />
+        <Stat label="Held out" value={pct(last?.holdout_agreement ?? null)} hint="final exam" />
       </section>
 
       {last && (
         <Card className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div className="text-sm">
             <span className="font-medium">Last run {ago(last.at)}</span>
-            <span className="text-muted"> · {last.model} · rules {last.rules_hash} · {last.labeled} scored</span>
+            <span className="text-muted"> · rules {last.rules_hash} · {last.labeled} scored</span>
           </div>
-          {!enough ? <Chip>Needs {MIN_LABELS} labels for a verdict</Chip> : passOverall && passNone ? <Chip tone="ok">Meets the bar</Chip> : <Chip tone="warn">Below the bar</Chip>}
+          {!enough ? <Chip>Decide {MIN_LABELS} scenarios for a verdict</Chip> : passOverall && passNone ? <Chip tone="ok">Meets the bar</Chip> : <Chip tone="warn">Below the bar</Chip>}
         </Card>
       )}
-      {stale && <Notice>The rules changed since that run. Run the evaluation again.</Notice>}
-
-      <section className="space-y-3">
-        <Eyebrow>Run</Eyebrow>
-        <Card className="p-5">
-          <EvalRunner ids={ids} disabledReason="Label at least one scenario first." />
-          <p className="mt-3 text-xs text-muted">Each scenario is one model call. The run takes about a minute for thirty.</p>
-        </Card>
-      </section>
+      {stale && <Notice>You changed the rules since that run, so these numbers are out of date. Run it again in step 2.</Notice>}
 
       <section className="space-y-3">
         <Eyebrow>Scenarios</Eyebrow>
@@ -73,9 +95,9 @@ export default async function Evaluation() {
                 <span className="w-10 font-mono text-xs text-muted">{s.id}</span>
                 <span className="min-w-40 flex-1 text-sm"><span className="font-medium">{s.athlete.sport}</span><span className="text-muted"> · {s.planned_session.label}</span></span>
                 {s.holdout && <Chip>Held out</Chip>}
-                <span className="w-44 text-sm">{l ? <span><span className="text-muted">You:</span> {l.decision.replace("_", " ")}</span> : <span className="text-muted">Not labeled</span>}</span>
+                <span className="w-44 text-sm">{l ? <span><span className="text-muted">You:</span> {l.decision.replace("_", " ")}</span> : <span className="text-muted">Not decided yet</span>}</span>
                 <span className="w-44 text-sm">
-                  {r ? (r.error ? <Chip tone="bad">Error</Chip> : <span className={r.agree ? "text-ok" : r.agree === false ? "text-bad" : "text-muted"}>{r.agree ? "✓" : r.agree === false ? "✗" : ""} Agent: {r.decision?.replace("_", " ")}</span>) : <span className="text-muted">Not run</span>}
+                  {r ? (r.error ? <Chip tone="bad">Error</Chip> : <span className={r.agree ? "text-ok" : r.agree === false ? "text-bad" : "text-muted"}>{r.agree ? "✓" : r.agree === false ? "✗" : ""} Rules: {r.decision?.replace("_", " ")}</span>) : <span className="text-muted">Not run</span>}
                 </span>
               </Link>
             );
@@ -89,7 +111,7 @@ export default async function Evaluation() {
           <Card className="divide-y divide-line">
             {runs.slice(1).map((r) => (
               <div key={r.id} className="flex flex-wrap justify-between gap-3 px-5 py-3 text-sm">
-                <span>{ago(r.at)} <span className="text-muted">· {r.model} · rules {r.rules_hash}</span></span>
+                <span>{ago(r.at)} <span className="text-muted">· rules {r.rules_hash}</span></span>
                 <span className="font-mono tabular-nums">{pct(r.agreement)} · no-change {pct(r.do_nothing_agreement)} · held out {pct(r.holdout_agreement)}</span>
               </div>
             ))}
