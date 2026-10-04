@@ -2,11 +2,16 @@ import { exerciseById, imageUrlFor } from "@/lib/library";
 
 // Serves a library exercise picture from our own address, so a player's phone never contacts GitHub and the picture is cached at the edge.
 // Only ids that exist in the bundled library resolve, so this cannot be used to fetch arbitrary URLs.
-export async function GET(_req: Request, ctx: RouteContext<"/api/exercise-image/[id]">) {
+// `?f=1` serves the second picture of the pair (the end of the movement); anything else serves the first.
+export async function GET(req: Request, ctx: RouteContext<"/api/exercise-image/[id]">) {
   const { id } = await ctx.params;
   const ex = exerciseById(decodeURIComponent(id));
   // football entries share the picture of their exact general twin, so look it up by the file that entry carries
-  const file = ex?.image_file;
+  let file = ex?.image_file ?? null;
+  if (file && new URL(req.url).searchParams.get("f") === "1") {
+    if (!/\/0\.jpg$/.test(file)) return new Response("Not found", { status: 404, headers: { "Cache-Control": "public, max-age=300" } });
+    file = file.replace(/\/0\.jpg$/, "/1.jpg");
+  }
   if (!ex || !file) return new Response("Not found", { status: 404, headers: { "Cache-Control": "public, max-age=300" } });
 
   // The id in the URL may be the general entry's id (what `image` points at) or any entry carrying that file.

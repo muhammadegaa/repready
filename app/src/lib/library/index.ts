@@ -23,7 +23,7 @@ export type Match =
   | { status: "suggested"; exercise: LibraryExercise }
   | { status: "none" };
 
-const norm = (s: string) =>
+export const norm = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 const tokens = (s: string) => new Set(norm(s).split(" ").filter(Boolean));
 

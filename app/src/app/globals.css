@@ -158,3 +158,13 @@ details[open] > summary.disclosure::before { content: "−"; }
 @media (prefers-reduced-motion: reduce) {
   .ring-arc, .tb-band, .tb-line, .tb-dot, .db-up, .db-down, .grow-x { animation: none !important; }
 }
+
+/* ---- Exercise sheet and the two-picture fade ---- */
+dialog.sheet { margin: auto 0 0; width: 100%; max-width: 32rem; max-height: 92vh; overflow-y: auto; border: 0; border-radius: 1.25rem 1.25rem 0 0; padding: 0; background: var(--paper); color: var(--ink); }
+@media (min-width: 640px) { dialog.sheet { margin: auto; border-radius: 1.25rem; } }
+dialog.sheet[open] { animation: sheet-in var(--dur-2) var(--ease); }
+dialog.sheet::backdrop { background: rgb(20 35 29 / 0.45); animation: fade-in var(--dur-2) ease; }
+@keyframes sheet-in { from { opacity: 0; transform: translateY(24px); } }
+.frames-b { opacity: 0; animation: frames 2.4s ease-in-out infinite; }
+@keyframes frames { 0%, 35% { opacity: 0; } 50%, 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { dialog.sheet[open], dialog.sheet::backdrop, .frames-b { animation: none !important; } }

@@ -25,6 +25,17 @@ describe("exercise picture route", () => {
     expect(String((f.mock.calls[0] as unknown[])[0])).toContain(`/${IMAGE_SOURCE_SHA}/exercises/Barbell_Full_Squat/0.jpg`);
   });
 
+  it("serves the second picture of the pair when asked, and only for a library picture", async () => {
+    const f = vi.fn(async () => new Response("jpegbytes", { headers: { "content-type": "image/jpeg" } }));
+    vi.stubGlobal("fetch", f);
+    const res = await GET(new Request("http://x/api/exercise-image/Barbell_Full_Squat?f=1"), ctx("Barbell_Full_Squat"));
+    expect(res.status).toBe(200);
+    expect(String((f.mock.calls[0] as unknown[])[0])).toContain("/Barbell_Full_Squat/1.jpg");
+    const none = await GET(new Request("http://x/api/exercise-image/nope?f=1"), ctx("nope"));
+    expect(none.status).toBe(404);
+    expect(f).toHaveBeenCalledTimes(1);
+  });
+
   it("does not cache a failed or non-image upstream answer", async () => {
     vi.stubGlobal("fetch", async () => new Response("<html>rate limited</html>", { status: 200, headers: { "content-type": "text/html" } }));
     const a = await call("Barbell_Full_Squat");

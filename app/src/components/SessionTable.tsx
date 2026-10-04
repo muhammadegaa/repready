@@ -2,6 +2,8 @@ import Image from "next/image";
 import { applyEdits } from "@/lib/agent/apply";
 import type { Edit, Exercise } from "@/lib/agent/schema";
 import { imageForName } from "@/lib/library";
+import { movementFor } from "@/lib/movement";
+import { ShowMe } from "./movement/ShowMe";
 import { Mark } from "./ui";
 
 // The session as a whiteboard: planned values stay plain, changed values are struck through and highlighted.
@@ -28,6 +30,7 @@ export function SessionTable({ planned, edits = [], muted = false, pictures = fa
                     <div>
                       {s.name !== p.name ? (<><s className="mr-1.5 font-normal text-muted">{p.name}</s><Mark>{s.name}</Mark></>) : p.name}
                       {tags[p.name] ? <div className="mt-0.5 text-[11px] font-normal text-muted">{tags[p.name]}</div> : null}
+                      {pictures && <ShowMe name={s.name} movement={movementFor(s.name)} still={imageForName(s.name)} />}
                     </div>
                   </div>
                 </td>
