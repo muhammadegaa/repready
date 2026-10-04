@@ -16,7 +16,7 @@ Groups (Starters, Reserves) get their own version of a session. One player can h
 Not a medical tool and not a diagnosis. A pain flag is shown to you with no automatic change. It does not replace your judgement.
 
 ## Your players' data
-Held in the UK (London). Players must be 18 or over and agree on their own phone before anything is stored. Their answers are seen by club staff, not by anyone else. The rules run in our own code. An outside assistant reads **only the program text you paste**, never player names or answers. You can delete a player and their data at any time. See the privacy notice for the full list of services we use.
+Held in the UK (London). Players must be 18 or over and agree on their own phone before anything is stored. Their answers are seen by club staff, not by anyone else. The rules run in our own code. An outside assistant reads **only the program text you paste and the sentences you type into the Ask bar**, with player names replaced by codes, and never player answers. You can delete a player and their data at any time. See the privacy notice for the full list of services we use.
 
 ## What we ask of the pilot club
 - A squad of 15 or more, and you checking in with the app most mornings for four weeks.

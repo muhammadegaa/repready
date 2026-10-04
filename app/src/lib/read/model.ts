@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-// One small client for asking a language model to return structured data. It never sees player data: it is used only to read a coach's
-// own program text. Failures are named so the screen can say something useful and offer the manual way instead.
+// One small client for asking a language model to return structured data. It never sees check-ins or notes: it is used only to read a coach's
+// own words (program text, a sentence typed into the Ask bar), with player names replaced by codes. Failures are named so the screen can say something useful and offer the manual way instead.
 export class ModelUnavailable extends Error {
   constructor(readonly reason: "not_configured" | "failed" | "bad_output", message: string) {
     super(message);
@@ -14,7 +14,8 @@ export type Ask = <T>(opts: AskOpts<T>) => Promise<T>;
 const TIMEOUT_MS = 50_000;
 const MAX_TOKENS = 4_000;
 
-async function once(o: AskOpts<unknown>, extra: string, f: typeof fetch): Promise<unknown> {
+// Some models refuse a forced tool call. The request is then repeated once with the choice left to the model, which still gets only this one tool.
+async function once(o: AskOpts<unknown>, extra: string, f: typeof fetch, forced = true): Promise<unknown> {
   const key = process.env.OPENROUTER_API_KEY;
   const model = process.env.OPENROUTER_MODEL;
   if (!key || !model) throw new ModelUnavailable("not_configured", "The reading assistant is not set up on this server.");
@@ -30,11 +31,17 @@ async function once(o: AskOpts<unknown>, extra: string, f: typeof fetch): Promis
         max_tokens: MAX_TOKENS,
         messages: [{ role: "system", content: o.system }, { role: "user", content: o.user + extra }],
         tools: [{ type: "function", function: { name: o.tool, description: o.description, parameters: z.toJSONSchema(o.schema) } }],
-        tool_choice: { type: "function", function: { name: o.tool } },
+        tool_choice: forced ? { type: "function", function: { name: o.tool } } : "auto",
       }),
     });
   } catch (e) {
     throw new ModelUnavailable("failed", (e as Error).name === "TimeoutError" ? "The assistant took too long to answer." : "The assistant could not be reached.");
+  }
+  if (res.status === 400 && forced) {
+    const why = await res.text().catch(() => "");
+    if (/tool_choice/i.test(why)) return once(o, extra, f, false);
+    console.error(`[model] 400 ${why.slice(0, 300)}`);
+    throw new ModelUnavailable("failed", "The assistant could not answer.");
   }
   if (!res.ok) {
     console.error(`[model] ${res.status} ${(await res.text().catch(() => "")).slice(0, 300)}`);

@@ -42,7 +42,7 @@ The coach or their organisation decides why and how athlete data is used, so the
 
 ## What exists in the product
 
-- Consent screen before the first check-in. It now says written rules decide and no outside AI service receives answers. If a model step is added, this must change before it ships.
+- Consent screen before the first check-in. It now says written rules decide and no outside AI service receives answers. If a model step is added, this must change before it ships. The Ask bar on Today (2026-10-04) sends the coach's typed sentence to the model with player names replaced by codes; check-ins, notes and proposals are not sent. The trust page and pilot offer say so. Not yet reviewed by a lawyer: the sentence is the coach's own words and may contain health detail the coach chooses to type.
 - The coach can delete an athlete and all their check-ins, session logs, device data and proposals (`Remove athlete`, coach page).
 - The club admin can delete the whole club (Staff page, by typing the club name): all players and their data, program, suggestions, staff accounts and invites. Wearable connections are closed first. No copy is kept.
 - The athlete can delete their own data from their page. Both paths deregister the athlete from Polar before deleting.

@@ -120,6 +120,15 @@ describe("the model client", () => {
     const body = JSON.parse(((f as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1] as { body: string }).body);
     expect(body.tool_choice).toEqual({ type: "function", function: { name: "t" } });
   });
+  it("repeats the call with the tool choice left to the model when the model refuses a forced one", async () => {
+    vi.stubEnv("OPENROUTER_API_KEY", "k"); vi.stubEnv("OPENROUTER_MODEL", "m");
+    const f = vi.fn().mockResolvedValueOnce(new Response('{"error":{"message":"tool_choice: type \\"tool\\" is not supported for this model"}}', { status: 400 })).mockResolvedValueOnce(reply('{"n":5}')) as unknown as typeof fetch;
+    await expect(makeAsk(f)(opts)).resolves.toEqual({ n: 5 });
+    const calls = (f as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    expect(JSON.parse((calls[1][1] as { body: string }).body).tool_choice).toBe("auto");
+    const other = vi.fn(async () => new Response("bad request", { status: 400 })) as unknown as typeof fetch;
+    await expect(makeAsk(other)(opts)).rejects.toMatchObject({ reason: "failed" });
+  });
   it("asks again once when the answer does not fit, telling the model what was wrong", async () => {
     vi.stubEnv("OPENROUTER_API_KEY", "k"); vi.stubEnv("OPENROUTER_MODEL", "m");
     const f = vi.fn().mockResolvedValueOnce(reply('{"n":"three"}')).mockResolvedValueOnce(reply('{"n":4}')) as unknown as typeof fetch;

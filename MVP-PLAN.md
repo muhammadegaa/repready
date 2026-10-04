@@ -185,3 +185,15 @@ The landing page now says "Players check in. The agent adjusts. You approve." an
 - **What was NOT tested:** a real side-on rep of a box jump, drop jump or Nordic. The only real footage was front-on, which correctly produced the "not side-on" warning. How well the figure follows a real side-on rep is unknown until you film one.
 - **Version note:** MediaPipe 1.0.1 crashed at start-up on this Mac ("Service is unavailable"), so `tools/pose-capture/requirements.txt` pins 0.10.21.
 
+
+## Ask bar: say it instead of navigating (2026-10-04)
+A box on Today. The coach types a sentence or presses a button; the app answers or shows a preview; nothing changes until Confirm.
+- **Six requests:** who needs me, why was a player flagged, who has not answered (with copyable reminders), save match minutes, a standing plan change for one player and one exercise, plan next week. Anything else is "unclear" and changes nothing.
+- **The model only names the request.** It gets the sentence with player names replaced by codes, today's date, and the program's exercise names. It never gets check-ins, notes or proposals. Answers are written from stored data in our code (`lib/ask/respond.ts`). A wrong reading shows up as a preview the coach cancels.
+- **Same limits as the forms.** Plan changes use `validateOverride` (load 50 to 99, only reductions, an exercise the player really has, dates not in the past). Confirm checks everything again on the server and does not trust what the browser sends. Minutes use the existing name matcher; a future match day is refused.
+- **Buttons skip the model** (who needs me, who has not answered, plan next week), so those work when the model is down.
+- **Tests:** `src/lib/ask/ask.test.ts` (names never reach the model; matching; every refusal; the phrase file itself), `e2e/ask.spec.ts` (fake model: answers, previews, refusals, confirm, saved; phone width). The fake does not test language understanding.
+- **Real model check:** `npx tsx --env-file=.env.local scripts/eval-ask.mts` runs 50 phrases (`src/lib/ask/phrases.ts`) against the configured model. Result on 2026-10-04 with anthropic/claude-sonnet-5.5: 50 of 50 intents, 48 of 48 parameters, no "unclear" phrase became an action. **Caution:** I wrote the phrases and the prompt, so this is a smoke test and not an accuracy figure. Real coach phrases from the pilot should replace them.
+- **Found on the way:** the configured model rejects a forced tool call ("tool_choice ... not supported"), which would also have broken the program reader. `read/model.ts` now repeats the call once with the choice left to the model.
+- **Wording changed:** the trust page, pilot offer and `PRIVACY-DRAFT.md` said the model is used in one place; it is now two, and the privacy draft says a lawyer has not reviewed that the coach's sentence may contain health detail.
+- **Not built:** replying in free text, multi-step requests, a history of what was asked, rate limiting on the Ask bar, rules or autonomy changes by sentence (deliberately refused), sending reminders (no channel yet; it copies the message).

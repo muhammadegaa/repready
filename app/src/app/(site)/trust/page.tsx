@@ -51,7 +51,7 @@ export default function Trust() {
         <Eyebrow>Where the data goes</Eyebrow>
         <Card className="space-y-2 p-6 text-[15px] leading-relaxed">
           <p><b>Check-ins and notes</b> are stored in a database in London and are seen by your club’s staff. A player sees only their own. Nothing is sold or shared.</p>
-          <p><b>The rules run in our own code.</b> A language model is used in one place only: to read the training program a coach pastes or uploads into a draft the coach checks. Before that call, every known player name is replaced with a code and put back afterwards. Check-ins, notes and health information are never sent.</p>
+          <p><b>The rules run in our own code.</b> A language model is used in two places, both for the coach’s own words: reading the training program a coach pastes or uploads into a draft the coach checks, and reading a sentence typed into the Ask bar on Today so it can be matched to something the app already does. Before either call, every known player name is replaced with a code and put back afterwards. Check-ins, notes, proposals and health information are never sent, and answers in the Ask bar are written from stored data by our own code. Anything the Ask bar would change is shown first and saved only when the coach confirms.</p>
           <p><b>Players are 18 or over,</b> agree on their own phone before anything is stored, and can delete their data from their page at any time. A club admin can delete the whole club, and we keep no copy.</p>
         </Card>
       </section>

@@ -14,9 +14,16 @@ http.createServer((req, res) => {
   req.on("data", (c) => (raw += c));
   req.on("end", () => {
     // A player's name must never arrive here. If one does, fail loudly so the test catches it.
-    if (/Adeyemi/i.test(raw)) { res.statusCode = 500; return res.end("name leaked to the model"); }
+    if (/Adeyemi|\bReid\b|\bMensah\b/i.test(raw)) { res.statusCode = 500; return res.end("name leaked to the model"); }
     let user = "";
     try { user = JSON.parse(raw).messages.find((m) => m.role === "user").content; } catch {}
+    // The Ask bar: a test puts the reading it wants after FAKE_ASK:, and the fake "understands" the sentence as exactly that.
+    const asked = user.match(/FAKE_ASK:(\{.*\})/);
+    if (asked) {
+      const none = { intent: "unclear", player: null, exercise: null, max_sets: null, max_reps: null, load_pct: null, swap_to: null, until: null, review_on: null, date: null, minutes: null };
+      res.setHeader("Content-Type", "application/json");
+      return res.end(JSON.stringify({ choices: [{ message: { tool_calls: [{ function: { arguments: JSON.stringify({ ...none, ...JSON.parse(asked[1]) }) } }] } }] }));
+    }
     // Tests that need an exact program put it in the pasted text after FAKE_PROGRAM:, and the fake "reads" it back.
     const exact = user.match(/^FAKE_PROGRAM:(.+)$/m);
     if (exact) {

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AskBar } from "@/components/AskBar";
 import { approveRoutine, confirmPlayer, takeBack } from "@/actions/coach";
 import { draftNextWeek } from "@/actions/program";
 import { PendingButton } from "@/components/Pending";
@@ -53,6 +54,8 @@ export default async function Today(props: PageProps<"/coach">) {
           <Link href="/coach/program" className="text-sm font-medium underline underline-offset-4">No session today. Open the program</Link>
         )}
       </header>
+
+      <AskBar />
 
       <GetStarted
         name={name}
