@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { bones, interpolate, phaseAt } from "./pose";
+import { BODY, bones, interpolate, phaseAt } from "./pose";
 import { MOVEMENTS, movementFor } from "./index";
 import { JOINTS } from "./types";
 
 describe("movement data", () => {
-  it("has the three exercises, each with a unique id", () => {
-    expect(MOVEMENTS.map((m) => m.id).sort()).toEqual(["box-jump", "drop-jump", "nordic-hamstring-curl"]);
+  it("has the three first exercises, each with a unique id", () => {
+    expect(MOVEMENTS.map((m) => m.id)).toEqual(expect.arrayContaining(["box-jump", "drop-jump", "nordic-hamstring-curl"]));
     expect(new Set(MOVEMENTS.map((m) => m.id)).size).toBe(MOVEMENTS.length);
   });
 
@@ -43,18 +43,55 @@ describe("movement data", () => {
 
 describe("interpolation", () => {
   const m = MOVEMENTS.find((x) => x.id === "box-jump")!;
+  const near = (a: [number, number], b: [number, number], d = 0.6) => Math.hypot(a[0] - b[0], a[1] - b[1]) < d;
+
   it("returns a keyframe's own pose at its time and holds the ends", () => {
-    expect(interpolate(m.keyframes, 0)).toEqual(m.keyframes[0].pose);
-    expect(interpolate(m.keyframes, m.keyframes[2].t)).toEqual(m.keyframes[2].pose);
-    expect(interpolate(m.keyframes, -1)).toEqual(m.keyframes[0].pose);
+    for (const k of m.keyframes) { const p = interpolate(m.keyframes, k.t); for (const j of JOINTS) expect(near(p[j], k.pose[j]), `${j} at ${k.t}`).toBe(true); }
+    const start = interpolate(m.keyframes, -1);
+    for (const j of JOINTS) expect(near(start[j], m.keyframes[0].pose[j])).toBe(true);
     expect(interpolate(m.keyframes, 5)).toEqual(m.keyframes[m.keyframes.length - 1].pose);
   });
-  it("is halfway between two keyframes at the middle of their span, whatever the easing", () => {
-    const a = m.keyframes[1], b = m.keyframes[2];
-    const p = interpolate(m.keyframes, (a.t + b.t) / 2);
-    expect(p.hip[0]).toBeCloseTo((a.pose.hip[0] + b.pose.hip[0]) / 2, 5);
-    expect(p.hip[1]).toBeCloseTo((a.pose.hip[1] + b.pose.hip[1]) / 2, 5);
+
+  it("moves smoothly: no joint jumps between neighbouring instants", () => {
+    for (const mv of MOVEMENTS) {
+      let prev = interpolate(mv.keyframes, 0);
+      for (let t = 0.004; t <= 1; t += 0.004) {
+        const p = interpolate(mv.keyframes, t);
+        // Fast, not instant: a joint may travel up to 1,200 scene units a second at the speed the figure plays, and no more.
+        const limit = 1200 * 0.004 * (mv.durationMs / 1000);
+        for (const j of JOINTS) expect(Math.hypot(p[j][0] - prev[j][0], p[j][1] - prev[j][1]), `${mv.id} ${j} at ${t.toFixed(3)}`).toBeLessThan(limit);
+        prev = p;
+      }
+    }
   });
+
+  it("keeps the bones their true length at every instant, not only at keyframes", () => {
+    for (const mv of MOVEMENTS) for (let t = 0; t <= 1; t += 0.023) {
+      const b = bones(interpolate(mv.keyframes, t));
+      expect(Math.abs(b.torso - BODY.torso)).toBeLessThan(0.6);
+      expect(Math.abs(b.thigh - BODY.thigh)).toBeLessThan(0.6);
+      expect(Math.abs(b.shin - BODY.shin)).toBeLessThan(0.6);
+    }
+  });
+
+  it("does not overshoot the poses it passes through", () => {
+    for (const mv of MOVEMENTS) {
+      const lo = (j: (typeof JOINTS)[number], c: 0 | 1) => Math.min(...mv.keyframes.map((k) => k.pose[j][c]));
+      const hi = (j: (typeof JOINTS)[number], c: 0 | 1) => Math.max(...mv.keyframes.map((k) => k.pose[j][c]));
+      for (let t = 0; t <= 1; t += 0.02) {
+        const p = interpolate(mv.keyframes, t);
+        for (const j of ["hip", "neck", "head"] as const) for (const c of [0, 1] as const) { expect(p[j][c]).toBeGreaterThan(lo(j, c) - 6); expect(p[j][c]).toBeLessThan(hi(j, c) + 6); }
+      }
+    }
+  });
+
+  it("keeps a planted foot where it is between two planted keyframes", () => {
+    const stand = { hip: [100, 205], knee: [100, 253], ankle: [100, 300], toe: [117, 300], neck: [100, 143], head: [100, 121], elbow: [96, 170], wrist: [96, 200] } as never;
+    const squat = { hip: [88, 232], knee: [124, 258], ankle: [100, 300], toe: [117, 300], neck: [124, 182], head: [136, 164], elbow: [110, 206], wrist: [100, 228] } as never;
+    const kf = [{ t: 0, pose: stand, contact: true }, { t: 1, pose: squat, contact: true }];
+    for (const t of [0.2, 0.5, 0.8]) { const p = interpolate(kf, t); expect(Math.hypot(p.ankle[0] - 100, p.ankle[1] - 300)).toBeLessThan(0.6); }
+  });
+
   it("names the phase at a time", () => {
     expect(phaseAt(m.phases, 0)).toBe("Load");
     expect(phaseAt(m.phases, 0.3)).toBe("Jump");

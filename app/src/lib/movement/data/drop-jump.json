@@ -53,7 +53,8 @@
      104.0,
      148.8
     ]
-   }
+   },
+   "contact": true
   },
   {
    "t": 0.16,
@@ -127,7 +128,8 @@
      230.6,
      163.3
     ]
-   }
+   },
+   "contact": true
   },
   {
    "t": 0.4,
@@ -164,7 +166,8 @@
      249.7,
      213.1
     ]
-   }
+   },
+   "contact": true
   },
   {
    "t": 0.62,
@@ -238,7 +241,8 @@
      195.7,
      204.1
     ]
-   }
+   },
+   "contact": true
   },
   {
    "t": 1,
@@ -275,7 +279,8 @@
      195.7,
      204.1
     ]
-   }
+   },
+   "contact": true
   }
  ],
  "phases": [
@@ -310,5 +315,6 @@
   "Ground contact as short as possible",
   "Rebound straight up"
  ],
- "reviewed": false
+ "reviewed": false,
+ "source": "hand-placed"
 }

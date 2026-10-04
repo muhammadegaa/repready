@@ -1,7 +1,8 @@
 export const JOINTS = ["hip", "knee", "ankle", "toe", "neck", "head", "elbow", "wrist"] as const;
 export type Joint = (typeof JOINTS)[number];
 export type Pose = Record<Joint, [number, number]>;
-export type Keyframe = { t: number; pose: Pose };
+// `contact` marks a keyframe where the foot is planted on the floor or box, so the feet stay put between two such keyframes.
+export type Keyframe = { t: number; pose: Pose; contact?: boolean };
 
 // One exercise as a short run of poses seen from the side. Drawn by components/movement/MovementFigure.
 export type Movement = {
@@ -14,4 +15,5 @@ export type Movement = {
   phases: { label: string; from: number; to: number }[];
   cues: string[];
   reviewed: boolean; // false until a sports scientist has checked the technique and the cues
+  source?: "hand-placed" | "captured"; // hand-placed poses are a sketch; captured ones come from a filmed rep and still need that review
 };

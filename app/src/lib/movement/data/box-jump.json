@@ -52,7 +52,8 @@
      136.0,
      208.8
     ]
-   }
+   },
+   "contact": true
   },
   {
    "t": 0.16,
@@ -89,7 +90,8 @@
      104.3,
      217.0
     ]
-   }
+   },
+   "contact": true
   },
   {
    "t": 0.3,
@@ -126,7 +128,8 @@
      197.3,
      84.6
     ]
-   }
+   },
+   "contact": true
   },
   {
    "t": 0.46,
@@ -200,7 +203,8 @@
      403.4,
      125.7
     ]
-   }
+   },
+   "contact": true
   },
   {
    "t": 0.78,
@@ -237,7 +241,8 @@
      336.0,
      148.8
     ]
-   }
+   },
+   "contact": true
   },
   {
    "t": 1,
@@ -274,7 +279,8 @@
      336.0,
      148.8
     ]
-   }
+   },
+   "contact": true
   }
  ],
  "phases": [
@@ -304,5 +310,6 @@
   "Land softly on the whole foot",
   "Stand tall before stepping down"
  ],
- "reviewed": false
+ "reviewed": false,
+ "source": "hand-placed"
 }
