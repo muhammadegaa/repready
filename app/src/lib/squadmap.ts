@@ -41,7 +41,8 @@ const SCORE: Record<Level, number | null> = { none: null, building: null, usual:
 // "worse" when the last three answers sit clearly above the three before; "quiet" when nothing has been answered for three days.
 export function trendOf(cells: Cell[]): "worse" | "better" | "steady" | "quiet" {
   const last3 = cells.slice(-3);
-  if (last3.every((c) => c.level === "none")) return "quiet";
+  // Quiet means someone who used to answer and has stopped. A player who has never answered is new, not quiet.
+  if (last3.every((c) => c.level === "none")) return cells.slice(0, -3).some((c) => c.level !== "none") ? "quiet" : "steady";
   const nums = (cs: Cell[]) => cs.map((c) => SCORE[c.level]).filter((x): x is number => x !== null);
   const recent = nums(last3), before = nums(cells.slice(-6, -3));
   if (recent.length < 2 || before.length < 2) return "steady";

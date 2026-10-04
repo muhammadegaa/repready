@@ -38,7 +38,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         </form>
       )}
       <main className="flex-1 py-8">{children}</main>
-      <footer className="border-t border-line py-6 text-xs text-muted">RepReady · Session adjustments for football performance staff. Players 18 and over. Not medical advice.</footer>
+      <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-line py-6 text-xs text-muted"><span>RepReady · Session adjustments for football performance staff. Players 18 and over. Not medical advice.</span><a href="/trust" className="underline underline-offset-4 hover:text-ink">What it does and never does</a></footer>
     </div>
   );
 }

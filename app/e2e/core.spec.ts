@@ -449,3 +449,18 @@ test("routine suggestions are approved together, everything else stays with the 
   await expect(page.getByText("Not enough history yet").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Let the agent handle it" })).toHaveCount(0);
 });
+
+test("Today points out who is trending down, does not call new players quiet, and the trust page says what it never does", async ({ page }) => {
+  await signUp(page);
+  await page.goto("/coach/squad");
+  await page.getByRole("button", { name: "Load a sample squad" }).click();
+  await expect(page.getByText(/Sample squad loaded/).first()).toBeVisible();
+  await page.goto("/coach");
+  await expect(page.getByText("Worth a look")).toBeVisible();
+  await expect(page.getByText("Trending down")).toBeVisible();
+  await expect(page.getByText("Novak")).toBeVisible(); // never opened his link: still in the squad, but not listed as quiet
+  await expect(page.getByText("no answers for three days")).toHaveCount(0);
+  await page.goto("/trust");
+  await expect(page.getByRole("heading", { name: /What RepReady does, and what it never does/ })).toBeVisible();
+  await expect(page.getByText("Raises sets, reps or load above the plan.")).toBeVisible();
+});

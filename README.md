@@ -1,6 +1,6 @@
 # RepReady
 
-Session adjustments for strength and conditioning coaches. Athletes check in; an agent proposes one edit to the planned session with the rule behind it; the coach approves, edits or rejects; the athlete sees only what the coach sends.
+Session adjustments for strength and conditioning coaches. Athletes check in; an agent proposes one edit to the planned session with the rule behind it; the coach approves, edits or rejects (or hands routine trims to the agent once a rule has earned it); the athlete sees only what the coach sends.
 
 Three views share one record and update live:
 

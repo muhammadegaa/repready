@@ -14,7 +14,7 @@ import { isRoutine } from "@/lib/autonomy";
 import { allRules } from "@/lib/rules";
 import { todayStr } from "@/lib/run-agent";
 import { countSessions, getPulse } from "@/lib/store";
-import { coachToday, STATUS } from "@/lib/views";
+import { coachToday, squadMap, STATUS } from "@/lib/views";
 
 export const metadata = { title: "Today" };
 export const dynamic = "force-dynamic";
@@ -25,6 +25,8 @@ export default async function Today(props: PageProps<"/coach">) {
   const { notice } = await props.searchParams;
   const [data, rules, pulse, sessionCount] = await Promise.all([coachToday(club, today), allRules(club), getPulse(club, "coach"), countSessions(club)]);
   const { session, versions, reviews, roster, pending, events, counts, waiting } = data;
+  // Quiet watching: who is drifting down or has gone silent. Described, never acted on.
+  const watch = roster.length ? (await squadMap(club, today)).rows.filter((r) => r.trend === "worse" || r.trend === "quiet") : [];
   const notIn = roster.filter((r) => r.status === "waiting");
   const hasSample = roster.some((r) => r.athlete.sample);
   const nudge = waiting > 0 ? "waiting" : reviews.length > 0 ? "reviews" : data.matchToLog ? "minutes" : data.nextWeekOffer ? "nextweek" : null;
@@ -137,6 +139,21 @@ export default async function Today(props: PageProps<"/coach">) {
                     <PendingButton className="text-sm text-muted underline underline-offset-4" pending="Taking back…">Take it back</PendingButton>
                   </form>
                 ))}
+              </Card>
+            </section>
+          )}
+
+          {watch.length > 0 && (
+            <section className="space-y-3">
+              <Eyebrow>Worth a look</Eyebrow>
+              <Card className="divide-y divide-line">
+                {watch.map((r) => (
+                  <Link key={r.athlete.code} href={`/coach/athletes/${r.athlete.code}`} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm transition hover:bg-paper">
+                    <span><b>{r.athlete.name}</b> <span className="text-muted">· {r.trend === "worse" ? "the last three days are clearly worse than the three before" : "no answers for three days"}</span></span>
+                    <Chip tone={r.trend === "worse" ? "warn" : "neutral"}>{r.trend === "worse" ? "Trending down" : "Quiet"}</Chip>
+                  </Link>
+                ))}
+                <div className="px-5 py-2.5 text-xs text-muted">Against each player’s own usual. See everyone on the <Link href="/coach/map" className="underline underline-offset-4">squad map</Link>.</div>
               </Card>
             </section>
           )}

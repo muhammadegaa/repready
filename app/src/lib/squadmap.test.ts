@@ -31,6 +31,7 @@ describe("trendOf", () => {
     const worse = cellsFor([...steady, a(7.5, 3, 3), a(7.5, 3, 3), a(7.5, 3, 3), a(5, 8, 8), a(5, 8, 8), a(5, 8, 8)]);
     expect(trendOf(worse)).toBe("worse");
     expect(trendOf(cellsFor([...steady, null, null, null]))).toBe("quiet");
+    expect(trendOf(cellsFor([null, null, null, null, null, null, null, null]))).toBe("steady"); // never answered: new, not quiet
     expect(trendOf(cellsFor(steady))).toBe("steady");
   });
 });

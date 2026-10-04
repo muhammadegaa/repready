@@ -19,7 +19,7 @@ This is health information. We use it for one purpose: to help your club's staff
 
 ## How it is used
 
-Fixed, written rules read your numbers. They are not an AI service, and no outside AI service receives your answers. A rule can suggest a small change to your session, such as one set fewer. Pain, illness or "can't train" answers are flagged to staff and never change your session on their own. A member of staff approves or rejects every suggestion, and you only see what they send.
+Fixed, written rules read your numbers. They are not an AI service, and no outside AI service receives your answers. A rule can suggest a small change to your session, such as one set fewer. Pain, illness or "can't train" answers are flagged to staff and never change your session on their own. A member of staff approves or rejects each suggestion, or has told the system to apply routine small reductions for them, which they can take back. You only see the session your staff have approved.
 
 ## Who sees it
 

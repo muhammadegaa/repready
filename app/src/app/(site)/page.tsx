@@ -28,7 +28,7 @@ const control = [
 ];
 
 const faqs = [
-  ["Does it replace the coach?", "No. Nothing reaches a player until a member of staff approves it."],
+  ["Does it replace the coach?", "No. Your staff decide. By default every change waits for their approval; a coach can choose to hand routine small trims to the agent once they have earned it, with every one listed and undoable. Pain and illness always go to a person."],
   ["Who sets the rules?", "A fixed set of ten rules, edited by your sports scientist with a citation on each. The rules are scored against their own decisions on 30 test players before you rely on them. That review has not been done yet."],
   ["Which devices work?", "Polar sleep and HRV sync is built and in testing. Other devices are not connected. Without a device, players type their sleep."],
   ["What about academy players?", "Players aged 18 and over only, for now."],
@@ -44,7 +44,7 @@ export default function Landing() {
             Adjust each player’s session from their daily check-in.
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">
-            Players fill in sleep, soreness and stress on their phone. RepReady proposes one change to the planned session, with the reason. Your staff approve it before the player sees anything.
+            Players fill in sleep, soreness and stress on their phone. RepReady proposes one change to the planned session, with the reason. Your staff approve it before the player sees anything, unless they have chosen to hand routine trims to the agent.
           </p>
           <div id="pilot" className="mt-8 space-y-2">
             <LeadForm id="hero" />
