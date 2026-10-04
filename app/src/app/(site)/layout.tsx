@@ -2,6 +2,7 @@ import { resendVerification, signOutAction } from "@/actions/auth";
 import { Brand } from "@/components/Brand";
 import { Nav } from "@/components/Nav";
 import { getSession, homeFor } from "@/lib/auth";
+import { roleLabel } from "@/lib/copy";
 import { requireEmailConfirmation } from "@/lib/mail";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
@@ -22,9 +23,10 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         {s && <div className="order-3 w-full sm:order-none sm:w-auto"><Nav links={links} more={more} /></div>}
         {s ? (
           <form action={signOutAction} className="ml-auto flex items-center gap-3">
-            <span className="hidden text-right text-xs leading-tight text-muted sm:block">
-              <span className="block font-medium text-ink">{s.clubName}</span>
-              {s.name}
+            <span className="text-right text-xs leading-tight text-muted">
+              <span className="hidden font-medium text-ink sm:block">{s.clubName}</span>
+              <span className="hidden sm:block">{s.name}</span>
+              <span className="block font-medium text-brand-ink" data-testid="role">{s.admin ? "Admin · " : ""}{roleLabel(s.roles)}</span>
             </span>
             <button className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-paper">Sign out</button>
           </form>

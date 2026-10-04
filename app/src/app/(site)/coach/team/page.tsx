@@ -5,13 +5,11 @@ import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
 import { btn, btnGhost, Card, Chip, Eyebrow, input } from "@/components/ui";
 import { requirePage } from "@/lib/auth";
-import { ago } from "@/lib/copy";
-import { getPulse, listOpenStaffInvites, listStaff, STAFF_INVITE_DAYS, type StaffRole } from "@/lib/store";
+import { ago, roleLabel } from "@/lib/copy";
+import { getPulse, listOpenStaffInvites, listStaff, STAFF_INVITE_DAYS } from "@/lib/store";
 
 export const metadata = { title: "Staff" };
 export const dynamic = "force-dynamic";
-
-const roleLabel = (roles: StaffRole[]) => (roles.length === 2 ? "Coach and sports scientist" : roles[0] === "scientist" ? "Sports scientist" : "Coach");
 
 export default async function Team(props: PageProps<"/coach/team">) {
   const { deleteerr } = await props.searchParams;

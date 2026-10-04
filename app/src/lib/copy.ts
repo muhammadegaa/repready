@@ -1,3 +1,7 @@
+import type { StaffRole } from "./store";
+
+export const roleLabel = (roles: StaffRole[]) => (roles.length === 2 ? "Coach and sports scientist" : roles[0] === "scientist" ? "Sports scientist" : "Coach");
+
 export const DECISION: Record<string, { title: string; approve: string; athlete: string }> = {
   reduce: { title: "Reduce today's volume", approve: "Approve", athlete: "Your coach adjusted today's session." },
   swap: { title: "Swap an exercise", approve: "Approve", athlete: "Your coach swapped an exercise in today's session." },
