@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { dayStr, runAgentFor, todayStr } from "../src/lib/run-agent";
+import { createPlayers, decideProposal, giveConsentTo, saveCheckin, saveProposal, setAutonomy, setFixtures } from "../src/lib/store";
 import { addPlayer, agreeAndClaim, importProgram, newPhone, PASSWORD, pick, playerLink, signUp, squadLink, today, uniq } from "./helpers";
 
 test("a new coach lands on a checklist that updates as they set up", async ({ page }) => {
@@ -501,4 +503,70 @@ test("repeated wrong passwords lock sign-in for a while, and pages carry securit
   expect(h["x-frame-options"]).toBe("DENY");
   expect(h["x-content-type-options"]).toBe("nosniff");
   expect(h["referrer-policy"]).toBe("same-origin");
+});
+
+// The whole point of the three-tab layout: a normal morning is finished on Today and the coach never has to open another page.
+// The morning's data (check-ins, an earned rule, yesterday's match) is written the way the players and the cron would; every coach action below is a click on /coach.
+test("a normal day is done from Today alone: confirm a joiner, say who played, approve the routine trims, and see what the agent handled", async ({ page, browser }) => {
+  await signUp(page);
+  await page.goto("/coach/squad?view=people");
+  await page.getByRole("button", { name: "Load a sample squad" }).click();
+  await expect(page.getByText(/Sample squad loaded/).first()).toBeVisible();
+  const club = (await playerLink(page)).split("/").pop()!.slice(0, 6);
+
+  const day = todayStr();
+  // A real player whose rule R1 has earned the coach's trust: nine of ten earlier suggestions approved as proposed, then handed over.
+  const [rae] = await createPlayers(club, [{ name: "Rae Delegate", shirt: 14, position: "Midfielder", squad: "First team" }]);
+  await giveConsentTo(rae);
+  for (let i = 2; i <= 11; i++) {
+    const d = dayStr(day, i);
+    await saveProposal({ athlete_code: rae, athlete_name: "Rae Delegate", session_label: "Lower strength", on_date: d, decision: "reduce", edits: [{ kind: "set_sets", exercise: "Back squat", to: 3 }], reason: "r", rules_applied: ["R1"], flag: null, status: "pending", error: null, created_at: `${d}T07:00:00.000Z`, decided_at: null });
+    await decideProposal(club, `${rae}_${d}`, i === 11 ? "rejected" : "approved", { by: "coach" });
+  }
+  await setAutonomy(club, { delegated: ["R1"], paused: false });
+  await saveCheckin(rae, dayStr(day, 1), { sleep_h: 5, soreness: 3, stress: 3, note: null });
+  await saveCheckin(rae, day, { sleep_h: 5.2, soreness: 3, stress: 3, note: null });
+  await runAgentFor(rae, day);
+  await setFixtures(club, [dayStr(day, 1)]); // a match yesterday
+
+  // A new player has used the squad link this morning.
+  const join = await squadLink(page);
+  const phone = await newPhone(browser);
+  await phone.page.goto(join);
+  await phone.page.locator("#name").fill("Dee Joiner");
+  await phone.page.locator('input[name="adult"]').check();
+  await phone.page.getByRole("button", { name: "Join the squad" }).click();
+  await phone.page.waitForURL(/\/a\//);
+  await phone.ctx.close();
+
+  const stillOnToday = () => expect(page).toHaveURL(/\/coach(\?.*)?$/);
+  await page.goto("/coach");
+
+  // 1. The joiner is confirmed inline.
+  await expect(page.getByText("1 player has asked to join")).toBeVisible();
+  await page.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect(page.getByText("1 player has asked to join")).toHaveCount(0);
+  await stillOnToday();
+
+  // 2. Yesterday's match: who played, read, checked and saved without leaving.
+  await expect(page.getByText(/There was a match on/)).toBeVisible();
+  await page.locator("#today_minutes_text").fill("Rae Delegate 90");
+  await page.getByRole("button", { name: "Read minutes" }).click();
+  await page.getByRole("button", { name: "Save minutes" }).click();
+  await expect(page.getByText(/There was a match on/)).toHaveCount(0);
+  await stillOnToday();
+
+  // 3. The routine suggestions are approved together; the pain note still waits for the coach.
+  await expect(page.getByText("2 routine suggestions, all the same kind")).toBeVisible();
+  await page.getByRole("button", { name: "Approve these 2" }).click();
+  await expect(page.getByText("2 routine suggestions, all the same kind")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Check before training" })).toBeVisible();
+  await expect(page.getByLabel("Summary")).toContainText(/Adjusted\s*3/); // the two approved trims and the one the agent applied
+  await stillOnToday();
+
+  // 4. What the agent did on its own is listed, with a way back.
+  await expect(page.getByText("Handled for you (1)")).toBeVisible();
+  await expect(page.getByText("Rae Delegate").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Take it back" })).toBeVisible();
+  await stillOnToday();
 });
