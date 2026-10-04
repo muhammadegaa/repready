@@ -85,7 +85,7 @@ export default async function Label(props: PageProps<"/science/label/[id]">) {
 
         <section className="min-w-0 space-y-3">
           <Eyebrow>Your label</Eyebrow>
-          <Card className="p-5"><LabelForm key={label?.labeled_at ?? "new"} id={s.id} planned={s.planned_session.exercises} label={label} rules={activeRules(rules)} /></Card>
+          <Card className="p-5"><LabelForm key={s.id} id={s.id} planned={s.planned_session.exercises} label={label} rules={activeRules(rules)} /></Card>
         </section>
       </div>
     </div>

@@ -59,7 +59,7 @@ export default async function Evaluation() {
             <span className="font-mono text-muted">3</span>
             <div className="space-y-1">
               <p className="font-medium">Read the result</p>
-              <p className="text-muted">Agreement should reach {PASS_OVERALL}%, and {PASS_DO_NOTHING}% on the “no change” cases, where you would leave the session alone. Open a ✗ row below to see where you and the rules differ, then fix the rule on the Rules page.</p>
+              <p className="text-muted">Agreement should reach {PASS_OVERALL}%, and {PASS_DO_NOTHING}% on the “no change” cases, where you would leave the session alone. Open a ✗ row below to see where you and the rules differ. On the Rules page, Delete switches a rule off, which changes the result. A threshold change needs a code change, so write it down and raise it with us.</p>
             </div>
           </li>
         </ol>
