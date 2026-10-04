@@ -80,3 +80,52 @@ summary.disclosure::before {
   font-family: var(--font-mono), monospace; font-size: 0.8rem; line-height: 1; flex: none;
 }
 details[open] > summary.disclosure::before { content: "−"; }
+
+/* ---- Landing: three beats. One-shot animations that end on their natural state, so reduced motion simply shows the end. ---- */
+.font-display { font-family: var(--font-display), var(--font-geist-sans), system-ui, sans-serif; font-weight: 800; font-stretch: 72%; font-variation-settings: "wdth" 72; letter-spacing: -0.01em; }
+.beats { --ease: cubic-bezier(0.2, 0.7, 0.2, 1); transition: opacity 0.5s ease; }
+.beats-out { opacity: 0; }
+.beat-col { animation: beatUp 0.8s var(--ease) both; animation-delay: var(--col, 0s); }
+@keyframes beatUp { from { opacity: 0; transform: translateY(16px); } }
+
+.tile { background: var(--surface); border: 1px solid var(--line); }
+.tile-wait { background: #eef0ea; }
+.tile-need { border-color: #c9962b; }
+.tile-dot { background: var(--ok); }
+.tile-need .tile-dot { background: var(--warn); }
+.tile-wait .tile-dot { background: #b3bbb5; }
+.tile-in, .tile-need { animation: tileFlip 0.55s var(--ease) both; animation-delay: var(--d); }
+.tile-need { animation: tileFlip 0.55s var(--ease) both var(--d), tileAmber 0.6s ease both 4.6s; }
+.tile-in .tile-dot, .tile-need .tile-dot { animation: dotFlip 0.55s var(--ease) both; animation-delay: var(--d); }
+.tile-need .tile-dot { animation: dotFlip 0.55s var(--ease) both var(--d), dotAmber 0.6s ease both 4.6s; }
+@keyframes tileFlip { from { background: #eef0ea; transform: scale(1); } 55% { transform: scale(1.07); } to { background: var(--surface); transform: none; } }
+@keyframes tileAmber { from { border-color: var(--line); } }
+@keyframes dotFlip { from { background: #b3bbb5; } 55% { transform: scale(1.8); } to { transform: none; } }
+@keyframes dotAmber { from { background: var(--ok); } }
+
+.b2-card { animation: dimUp 0.7s ease 4.8s both; }
+@keyframes dimUp { from { opacity: 0.28; filter: saturate(0.3); } }
+.chg { background: var(--marker); color: var(--marker-ink); }
+.chg-1 { animation: wipe 0.6s var(--ease) 5.4s both; }
+.chg-2 { animation: wipe 0.6s var(--ease) 6.1s both; }
+@keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+
+.ap-btn { animation: apRing 1s ease-out 7.4s 2 both, apPress 0.4s ease 9.6s both; }
+.ap-sent { opacity: 0; animation: apSent 0.45s var(--ease) 9.85s both; }
+.ap-note-a { animation: noteOut 0.3s ease 9.7s both; }
+.ap-note-b { opacity: 0; animation: noteIn 0.4s ease 10s both; }
+@keyframes apRing { from { box-shadow: 0 0 0 0 rgb(15 107 79 / 0.4); } to { box-shadow: 0 0 0 14px rgb(15 107 79 / 0); } }
+@keyframes apPress { 0% { transform: none; opacity: 1; } 40% { transform: scale(0.95); opacity: 1; } 100% { transform: scale(1); opacity: 0; } }
+@keyframes apSent { from { opacity: 0; transform: scale(0.9); } 60% { transform: scale(1.04); } to { opacity: 1; transform: none; } }
+@keyframes noteOut { to { opacity: 0; } }
+@keyframes noteIn { to { opacity: 1; } }
+
+.pill-field { transition: border-color 0.25s, box-shadow 0.25s; }
+.pill-field:focus-within { border-color: var(--brand); box-shadow: 0 0 0 4px rgb(15 107 79 / 0.14); }
+.press { transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1), filter 0.2s; }
+.press:hover { transform: translateY(-1px); filter: brightness(1.07); }
+.press:active { transform: scale(0.97); filter: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .beats, .beats *, .press { animation: none !important; transition: none !important; }
+}
