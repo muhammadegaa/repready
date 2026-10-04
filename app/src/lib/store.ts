@@ -205,6 +205,18 @@ export async function createPasswordReset(email: string): Promise<{ token: strin
   return { token, staff };
 }
 
+// ---- sign-in attempt limits (see lib/login-guard.ts): one small document per hashed key
+import type { Guard } from "./login-guard";
+export async function getGuard(key: string): Promise<Guard | null> {
+  const s = await fs.collection("login_guard").doc(createHash("sha256").update(key).digest("hex").slice(0, 32)).get();
+  return s.exists ? (s.data() as Guard) : null;
+}
+export async function setGuard(key: string, g: Guard | null): Promise<void> {
+  const ref = fs.collection("login_guard").doc(createHash("sha256").update(key).digest("hex").slice(0, 32));
+  if (g === null) await ref.delete().catch(() => undefined);
+  else await ref.set(g);
+}
+
 // ---- confirming an email address: a link sent to it, good for a day, worth nothing to anyone but its owner
 const VERIFY_HOURS = 24;
 export async function createEmailVerification(staffId: string): Promise<{ token: string; email: string } | "throttled" | "done" | null> {

@@ -479,3 +479,24 @@ test("the person running the pilot sees every club, how far it has got and what 
   await expect(page.getByText("Next:").first()).toBeVisible();
   await expect(page.getByText(/Waitlist/)).toBeVisible();
 });
+
+test("repeated wrong passwords lock sign-in for a while, and pages carry security headers", async ({ page, request }) => {
+  const email = `guess-${uniq()}@e2e.test`;
+  await page.goto("/signin");
+  for (let i = 0; i < 8; i++) {
+    await page.locator("#email").fill(email);
+    await page.locator("#password").fill(`wrong-password-${i}`);
+    await page.locator("form button").first().click();
+    await expect(page.locator("#email")).toHaveValue(""); // the page reloaded with the answer; the same message each time, so wait for the reset
+    await expect(page.getByText("That email and password did not match.")).toBeVisible();
+  }
+  await page.locator("#email").fill(email);
+  await page.locator("#password").fill("another-wrong-one");
+  await page.locator("form button").first().click();
+  await expect(page.getByText(/Too many attempts/)).toBeVisible();
+
+  const h = (await request.get("/signin")).headers();
+  expect(h["x-frame-options"]).toBe("DENY");
+  expect(h["x-content-type-options"]).toBe("nosniff");
+  expect(h["referrer-policy"]).toBe("same-origin");
+});

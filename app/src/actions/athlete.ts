@@ -40,7 +40,10 @@ export async function joinSquad(f: FormData) {
 
 export async function giveConsent(f: FormData) {
   const code = text(f, "code");
-  if (f.get("agree") !== "yes" || !(await getAthlete(code))) return;
+  const existing = await getAthlete(code);
+  if (f.get("agree") !== "yes" || !existing) return;
+  // First agreement is made on the phone that will own the link. Agreeing to an update needs that phone, not just the link.
+  if (existing.consented_at) await requirePlayer(code);
   await giveConsentTo(code);
   await claimThisDevice(code); // the phone that agrees to the terms owns the link
   revalidatePath(`/a/${code}`);

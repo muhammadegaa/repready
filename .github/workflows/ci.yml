@@ -19,6 +19,8 @@ jobs:
           cache-dependency-path: app/package-lock.json
       # A clean, lockfile-exact install: catches a dependency that is used but missing from package.json or the lockfile.
       - run: npm ci
+      - name: Dependency audit (high and critical only)
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
       - run: npm test
       - run: npm run build

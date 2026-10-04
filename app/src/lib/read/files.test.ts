@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { fileToText, MAX_FILE_BYTES } from "./files";
+import { zipTooBig, fileToText, MAX_FILE_BYTES } from "./files";
 
 const bytes = (s: string) => new TextEncoder().encode(s);
 
@@ -29,5 +29,31 @@ describe("reading files", () => {
     expect(await fileToText("a.csv", bytes("   \n  "))).toMatchObject({ error: "That file is empty." });
     expect(await fileToText("big.csv", new Uint8Array(MAX_FILE_BYTES + 1))).toMatchObject({ error: expect.stringMatching(/2 MB/) });
     expect(await fileToText("bad.xlsx", bytes("this is not a zip"))).toMatchObject({ error: expect.stringMatching(/could not open/) });
+  });
+});
+
+describe("zipTooBig", () => {
+  // One central-directory entry that declares `size` bytes once unpacked, wrapped in an end-of-directory record.
+  const zip = (size: number) => {
+    const cd = new DataView(new ArrayBuffer(46));
+    cd.setUint32(0, 0x02014b50, true);
+    cd.setUint32(24, size, true);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);
+    end.setUint16(10, 1, true);
+    end.setUint32(12, 46, true);
+    end.setUint32(16, 0, true);
+    const out = new Uint8Array(46 + 22);
+    out.set(new Uint8Array(cd.buffer), 0);
+    out.set(new Uint8Array(end.buffer), 46);
+    return out;
+  };
+  it("rejects a small file that declares a huge unpacked size, and accepts an ordinary one", () => {
+    expect(zipTooBig(zip(2_000_000_000))).toBe(true);
+    expect(zipTooBig(zip(50_000))).toBe(false);
+  });
+  it("lets the real spreadsheet fixture through", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(zipTooBig(new Uint8Array(readFileSync(new URL("./fixtures/week.xlsx", import.meta.url))))).toBe(false);
   });
 });

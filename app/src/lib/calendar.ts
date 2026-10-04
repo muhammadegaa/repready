@@ -1,4 +1,5 @@
-import { lookup } from "node:dns/promises";
+import { lookup as dnsLookup } from "node:dns/promises";
+import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
 
 // A club calendar link (Google, Outlook, Apple, TeamSnap, SportMonks exports all give an .ics URL) becomes match dates.
@@ -58,20 +59,54 @@ export function cleanCalendarUrl(raw: string): URL | null {
 
 const MAX_BYTES = 2 * 1024 * 1024;
 
-export async function fetchCalendar(raw: string, f: typeof fetch = fetch): Promise<{ events: CalEvent[] } | { error: string }> {
+// The address is resolved inside the connection itself and checked there, so a name that answers with a public address first and a
+// private one a moment later cannot slip past a check made earlier.
+function guardedLookup(hostname: string, options: { all?: boolean }, cb: (err: Error | null, address?: unknown, family?: number) => void) {
+  dnsLookup(hostname, { all: true }).then(
+    (addrs) => {
+      if (!addrs.length || addrs.some((a) => isPrivateIp(a.address))) return cb(new Error("not a public address"));
+      if (options?.all) cb(null, addrs);
+      else cb(null, addrs[0].address, addrs[0].family);
+    },
+    (e) => cb(e as Error),
+  );
+}
+
+function getPublic(u: URL): Promise<{ status: number; text: string }> {
+  return new Promise((resolve, reject) => {
+    const req = httpsRequest(
+      { protocol: "https:", hostname: u.hostname, port: 443, path: u.pathname + u.search, method: "GET", lookup: guardedLookup as never, timeout: 10_000, headers: { Accept: "text/calendar, text/plain, */*" } },
+      (res) => {
+        const chunks: Buffer[] = [];
+        let size = 0;
+        res.on("data", (c: Buffer) => { size += c.length; if (size > MAX_BYTES) { req.destroy(); reject(new Error("too large")); } else chunks.push(c); });
+        res.on("end", () => resolve({ status: res.statusCode ?? 0, text: Buffer.concat(chunks).toString("utf8") }));
+        res.on("error", reject);
+      },
+    );
+    req.on("timeout", () => req.destroy(Object.assign(new Error("timeout"), { name: "TimeoutError" })));
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+export async function fetchCalendar(raw: string, f?: typeof fetch): Promise<{ events: CalEvent[] } | { error: string }> {
   const u = cleanCalendarUrl(raw);
   if (!u) return { error: "That does not look like a calendar link. It should start with https:// or webcal:// and end in .ics or be a share link from your calendar." };
   try {
-    if (f === fetch) {
-      const addrs = await lookup(u.hostname, { all: true });
-      if (!addrs.length || addrs.some((a) => isPrivateIp(a.address))) return { error: "That address is not a public website, so it cannot be a calendar link." };
-    }
-    const res = await f(u, { redirect: "error", signal: AbortSignal.timeout(10_000), headers: { Accept: "text/calendar, text/plain, */*" } });
-    if (!res.ok) return { error: `The calendar did not open (it answered ${res.status}). Check the link is the public or secret address of the calendar.` };
-    const text = (await res.text()).slice(0, MAX_BYTES);
+    let status: number, text: string;
+    if (f) {
+      const res = await f(u, { redirect: "error", signal: AbortSignal.timeout(10_000) });
+      status = res.ok ? 200 : res.status;
+      text = res.ok ? (await res.text()).slice(0, MAX_BYTES) : "";
+    } else ({ status, text } = await getPublic(u));
+    if (status < 200 || status >= 300) return { error: `The calendar did not open (it answered ${status}). Check the link is the public or secret address of the calendar.` };
     if (!/BEGIN:VCALENDAR/i.test(text)) return { error: "That link did not give a calendar. Look for “Secret address in iCal format” or “Export” in your calendar settings." };
     return { events: parseIcs(text) };
   } catch (e) {
-    return { error: (e as Error).name === "TimeoutError" ? "The calendar took too long to answer." : "The calendar could not be reached." };
+    const m = (e as Error).message;
+    if ((e as Error).name === "TimeoutError" || m === "timeout") return { error: "The calendar took too long to answer." };
+    if (m === "not a public address") return { error: "That address is not a public website, so it cannot be a calendar link." };
+    return { error: "The calendar could not be reached." };
   }
 }

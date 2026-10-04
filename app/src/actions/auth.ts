@@ -3,8 +3,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { checkPassword, getSession, hashPassword, homeFor, PASSWORD_MIN, signOut, startSession } from "@/lib/auth";
+import { afterFailure, FRESH, isLocked, LIMIT_EMAIL, LIMIT_IP, minutesLeft } from "@/lib/login-guard";
 import { requireEmailConfirmation, sendMail } from "@/lib/mail";
-import { acceptStaffInvite, createClubWithOwner, createEmailVerification, createPasswordReset, getStaffByEmail, resetPassword } from "@/lib/store";
+import { acceptStaffInvite, createClubWithOwner, createEmailVerification, createPasswordReset, getGuard, getStaffByEmail, resetPassword, setGuard } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
@@ -21,9 +22,21 @@ function accountFields(f: FormData, path: string) {
 }
 
 export async function signIn(f: FormData) {
-  const staff = await getStaffByEmail(text(f, "email"));
+  const email = text(f, "email").toLowerCase();
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  const keys = [{ k: `email:${email}`, limit: LIMIT_EMAIL }, { k: `ip:${ip}`, limit: LIMIT_IP }];
+  const now = Date.now();
+  const states = await Promise.all(keys.map(async (x) => ({ ...x, g: (await getGuard(x.k)) ?? FRESH })));
+  const locked = states.find((x) => isLocked(x.g, now));
+  if (locked) fail("/signin", `Too many attempts. Try again in ${minutesLeft(locked.g, now)} minute${minutesLeft(locked.g, now) === 1 ? "" : "s"}, or reset your password.`);
+
+  const staff = await getStaffByEmail(email);
   const ok = checkPassword(String(f.get("password") ?? ""), staff?.pw ?? null);
-  if (!staff || !ok) fail("/signin", "That email and password did not match.");
+  if (!staff || !ok) {
+    await Promise.all(states.map((x) => setGuard(x.k, afterFailure(x.g, now, x.limit))));
+    fail("/signin", "That email and password did not match.");
+  }
+  await setGuard(`email:${email}`, null);
   await startSession(staff!);
   redirect(homeFor(staff!));
 }
