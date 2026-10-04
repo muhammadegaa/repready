@@ -129,3 +129,16 @@ details[open] > summary.disclosure::before { content: "−"; }
 @media (prefers-reduced-motion: reduce) {
   .beats, .beats *, .press { animation: none !important; transition: none !important; }
 }
+
+
+/* ---- Motion system. Tokens, then a few utilities. Transform and opacity only; everything respects reduced motion. ---- */
+:root { --dur-1: 150ms; --dur-2: 300ms; --dur-3: 600ms; --ease: cubic-bezier(0.2, 0.7, 0.2, 1); --stagger: 60ms; }
+.reveal { animation: reveal var(--dur-3) var(--ease) both; animation-delay: calc(var(--i, 0) * var(--stagger)); }
+@keyframes reveal { from { opacity: 0; transform: translateY(10px); } }
+.leaving { opacity: 0; transform: scale(0.98) translateY(-4px); transition: opacity var(--dur-2) var(--ease), transform var(--dur-2) var(--ease); pointer-events: none; }
+.skeleton { background: var(--line); border-radius: 8px; animation: skel 1.4s ease-in-out infinite; }
+@keyframes skel { 50% { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) {
+  .reveal, .skeleton { animation: none !important; }
+  .leaving { transition: none !important; }
+}

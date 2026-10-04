@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
 export const btn =
-  "inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-medium text-on-brand shadow-sm transition hover:bg-brand-strong disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2 text-sm font-medium text-on-brand shadow-sm transition active:scale-[0.98] hover:bg-brand-strong disabled:opacity-50";
 export const btnGhost =
-  "inline-flex items-center justify-center gap-2 rounded-md border border-line-strong bg-surface px-4 py-2 text-sm font-medium transition hover:bg-paper disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-md border border-line-strong bg-surface px-4 py-2 text-sm font-medium transition active:scale-[0.98] hover:bg-paper disabled:opacity-50";
 export const input =
   "w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-sm placeholder:text-muted";
 

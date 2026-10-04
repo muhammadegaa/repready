@@ -6,12 +6,14 @@ import { CopyButton } from "@/components/CopyButton";
 import { MinutesFlow, parseMinutesPreview } from "@/components/MinutesFlow";
 import { GetStarted } from "@/components/GetStarted";
 import { Live } from "@/components/Live";
+import { CountUp, LeaveOnSubmit } from "@/components/motion";
 import { ProposalCard } from "@/components/ProposalCard";
 import { Spark } from "@/components/Spark";
 import { btn, btnGhost, Card, Chip, Eyebrow, Notice, Stat } from "@/components/ui";
 import { requirePage } from "@/lib/auth";
 import { ago, dateLabel } from "@/lib/copy";
 import { isRoutine } from "@/lib/autonomy";
+import { revealStyle } from "@/lib/motion";
 import { allRules } from "@/lib/rules";
 import { todayStr } from "@/lib/run-agent";
 import { countSessions, getNotice, getPulse } from "@/lib/store";
@@ -104,10 +106,10 @@ export default async function Today(props: PageProps<"/coach">) {
       )}
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Summary">
-        <Stat label="Players" value={counts.athletes} />
-        <Stat label="Checked in" value={`${counts.checkedIn}/${counts.athletes}`} hint={counts.athletes === 0 ? "Add players in Squad" : undefined} />
-        <Stat label="Need you" value={counts.needsDecision} tone={counts.needsDecision ? "warn" : undefined} />
-        <Stat label="Adjusted" value={counts.adjusted} />
+        <Stat label="Players" value={<CountUp value={counts.athletes} />} />
+        <Stat label="Checked in" value={<><CountUp value={counts.checkedIn} />/{counts.athletes}</>} hint={counts.athletes === 0 ? "Add players in Squad" : undefined} />
+        <Stat label="Need you" value={<CountUp value={counts.needsDecision} />} tone={counts.needsDecision ? "warn" : undefined} />
+        <Stat label="Adjusted" value={<CountUp value={counts.adjusted} />} />
       </section>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -122,7 +124,7 @@ export default async function Today(props: PageProps<"/coach">) {
             ) : (
               <>
                 {routine.length >= 2 && (
-                  <Card className="space-y-3 border-brand/30 bg-brand-soft/50 p-5">
+                  <LeaveOnSubmit><Card className="space-y-3 border-brand/30 bg-brand-soft/50 p-5">
                     <div>
                       <h3 className="font-semibold">{routine.length} routine suggestions, all the same kind</h3>
                       <p className="mt-0.5 text-sm text-muted">Small volume trims, nothing flagged, nothing the limits had to change. Look them over, then approve them together. Anything else stays below for you.</p>
@@ -131,9 +133,9 @@ export default async function Today(props: PageProps<"/coach">) {
                       {routine.map((e) => <li key={e.proposal!.id}><b>{e.athlete.name}</b> <span className="text-muted">· {e.proposal!.reason}</span></li>)}
                     </ul>
                     <form action={approveRoutine}><PendingButton className={btn} pending="Approving…">Approve these {routine.length}</PendingButton></form>
-                  </Card>
+                  </Card></LeaveOnSubmit>
                 )}
-                {pending.map((e) => e.session && <ProposalCard key={e.proposal!.id} entry={e} session={e.session} rules={rules} />)}
+                {pending.map((e, i) => e.session && <div key={e.proposal!.id} className="reveal" style={revealStyle(i)}><LeaveOnSubmit><ProposalCard entry={e} session={e.session} rules={rules} /></LeaveOnSubmit></div>)}
               </>
             )}
           </section>
@@ -143,14 +145,14 @@ export default async function Today(props: PageProps<"/coach">) {
               <Eyebrow>Handled for you ({handled.length})</Eyebrow>
               <Card className="divide-y divide-line">
                 {handled.map((e) => (
-                  <form key={e.proposal!.id} action={takeBack} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
+                  <LeaveOnSubmit key={e.proposal!.id}><form action={takeBack} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
                     <input type="hidden" name="id" value={e.proposal!.id} />
                     <div className="min-w-0 text-sm">
                       <b>{e.athlete.name}</b> <span className="text-muted">· {e.proposal!.reason}</span>
                       <div className="text-xs text-muted">Applied under your standing instruction for {e.proposal!.rules_applied.join(", ")}.</div>
                     </div>
                     <PendingButton className="text-sm text-muted underline underline-offset-4" pending="Taking back…">Take it back</PendingButton>
-                  </form>
+                  </form></LeaveOnSubmit>
                 ))}
               </Card>
             </section>
@@ -179,11 +181,11 @@ export default async function Today(props: PageProps<"/coach">) {
               </Card>
             ) : (
               <Card className="divide-y divide-line">
-                {roster.map((e) => {
+                {roster.map((e, i) => {
                   const st = STATUS[e.status];
                   const c = e.checkin;
                   return (
-                    <Link key={e.athlete.code} href={`/coach/athletes/${e.athlete.code}`} className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3.5 transition hover:bg-paper">
+                    <Link key={e.athlete.code} href={`/coach/athletes/${e.athlete.code}`} style={revealStyle(i)} className="reveal flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3.5 transition hover:bg-paper">
                       <div className="min-w-32 flex-1">
                         <div className="font-medium">{e.athlete.shirt ? <span className="mr-2 font-mono text-muted">{e.athlete.shirt}</span> : null}{e.athlete.name}{e.athlete.position ? <span className="ml-2 text-xs font-normal text-muted">{e.athlete.position}</span> : null}{e.athlete.group ? <span className="ml-2 align-middle"><Chip tone="neutral">{e.athlete.group}</Chip></span> : null}{e.athlete.sample ? <span className="ml-2 align-middle"><Chip tone="warn">Sample</Chip></span> : null}</div>
                         <div className="text-xs text-muted">
@@ -233,8 +235,8 @@ export default async function Today(props: PageProps<"/coach">) {
             <Eyebrow>Activity</Eyebrow>
             <Card className="divide-y divide-line">
               {events.length === 0 && <p className="px-4 py-4 text-sm text-muted">Nothing yet.</p>}
-              {events.map((ev) => (
-                <div key={ev.id} className="px-4 py-2.5">
+              {events.map((ev, i) => (
+                <div key={ev.id} style={revealStyle(i)} className="reveal px-4 py-2.5">
                   <p className="text-sm leading-snug">{ev.text}</p>
                   <p className="mt-0.5 font-mono text-[11px] text-muted">{ago(ev.at)}</p>
                 </div>
