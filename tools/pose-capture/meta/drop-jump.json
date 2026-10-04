@@ -1,0 +1,39 @@
+{
+ "id": "drop-jump",
+ "name": "Drop jump",
+ "names": [
+  "drop jump",
+  "drop jumps",
+  "depth jump"
+ ],
+ "cues": [
+  "Step off the box, do not jump off",
+  "Ground contact as short as possible",
+  "Rebound straight up"
+ ],
+ "scene": "box-initial",
+ "phases": [
+  {
+   "label": "Step off",
+   "from": 0
+  },
+  {
+   "label": "Fall",
+   "from": 0.2
+  },
+  {
+   "label": "Contact. Short",
+   "from": 0.36
+  },
+  {
+   "label": "Jump",
+   "from": 0.5
+  },
+  {
+   "label": "Land soft",
+   "from": 0.72
+  }
+ ],
+ "side": "auto",
+ "travel": "auto"
+}

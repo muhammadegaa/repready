@@ -1,0 +1,4 @@
+# MediaPipe 1.0.1 crashes at start-up on macOS ("Service is unavailable"); 0.10.21 is the version this was built and tested with.
+mediapipe==0.10.21
+opencv-python-headless
+numpy<2.3

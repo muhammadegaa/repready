@@ -44,7 +44,7 @@ Honest data only: charts draw what is stored. Load and minutes charts wait until
 
 ### Recommendation
 A small renderer draws a figure from joint positions and plays keyframes. It is on-brand, tiny (a few KB per exercise), works offline, lets the player slow it down (0.25x, 0.5x, 1x), pause and scrub, and shows each phase by name ("Load", "Jump", "Land soft"). A phase label and a cue line are the only words.
-- **Capture:** film one clean side-view rep per exercise on a phone. An offline script runs MediaPipe Pose (Apache-2.0, 33 landmarks), smooths it, and picks 6 to 8 keyframes into a JSON file. A person adjusts the poses if the extraction is off.
+- **Capture (built 2026-10-04, see `tools/pose-capture/README.md`):** film one clean side-view rep per exercise on a phone. A script runs MediaPipe Pose (Apache-2.0, 33 landmarks), smooths it, and picks up to 10 keyframes into a JSON file, with a review page where a person checks each one against the video.
 - **Components:** `MovementFigure` (requestAnimationFrame, keyframes JSON, controls) and a static pose strip for reduced motion and print.
 - **Where it shows:** the player's session view and the coach's program review, for any exercise that has a figure; stills stay for the rest.
 - **Content:** start with the football-specific ones the free library lacks (Nordic hamstring curl, Copenhagen adduction) plus box jump and drop jump, then the main lifts.

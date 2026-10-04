@@ -1,0 +1,32 @@
+{
+ "id": "nordic-hamstring-curl",
+ "name": "Nordic hamstring curl",
+ "names": [
+  "nordic hamstring curl",
+  "nordic",
+  "nordics",
+  "nordic ham curl"
+ ],
+ "cues": [
+  "Keep the body in one straight line",
+  "Lower as slowly as you can",
+  "Catch with your hands and push back"
+ ],
+ "scene": "pad",
+ "phases": [
+  {
+   "label": "Hold the hips straight",
+   "from": 0
+  },
+  {
+   "label": "Lower slowly",
+   "from": 0.22
+  },
+  {
+   "label": "Catch and push back",
+   "from": 0.7
+  }
+ ],
+ "side": "auto",
+ "travel": "auto"
+}

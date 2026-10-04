@@ -1,0 +1,34 @@
+{
+ "id": "box-jump",
+ "name": "Box jump",
+ "names": [
+  "box jump",
+  "box jumps"
+ ],
+ "cues": [
+  "Load: hips back, arms behind",
+  "Land softly on the whole foot",
+  "Stand tall before stepping down"
+ ],
+ "scene": "box-final",
+ "phases": [
+  {
+   "label": "Load",
+   "from": 0
+  },
+  {
+   "label": "Jump",
+   "from": 0.2
+  },
+  {
+   "label": "Land soft",
+   "from": 0.46
+  },
+  {
+   "label": "Stand tall",
+   "from": 0.68
+  }
+ ],
+ "side": "auto",
+ "travel": "auto"
+}
