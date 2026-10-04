@@ -158,3 +158,10 @@ Four rules now take the club's own number instead of a fixed one (R1 sleep, R2 e
 - Screenshots: `docs/screenshots/navigation/` (README there).
 - The live test checklist now describes the three tabs and More, the inline joiner and minutes jobs, the old addresses redirecting, and a "normal morning from Today alone" section.
 
+## Landing page: three beats (2026-10-04)
+The landing page now says "Players check in. The agent adjusts. You approve." and shows each beat as the agent doing it: squad tiles turn from not-in to in (18 of 24, three amber for the coach), the proposal's numbers change with a wipe, then Approve becomes Sent. One email field replaces club plus email (the club is asked in the reply). The paragraph, how-it-works list, control list and FAQ are gone from the page; three short limits and links to `/trust` and sign-up remain. Chosen from three directions on a design canvas; before and after screenshots in `docs/screenshots/landing/`.
+- **Motion:** one-shot CSS animations that end on the natural state, replayed every 14 seconds by `components/landing/Beats.tsx` (fade, restart, play), paused while the tab is hidden. Reduced motion: nothing animates; the proposal shows finished but not yet approved. Transform and opacity only, plus hover, press and focus feedback on the form.
+- **Tests:** `e2e/landing.spec.ts`: the three beats and one heading, the form (bad email refused, good email thanked), phone fit, the sequence reaching "Sent", and reduced motion.
+- **Dropped from the page, still true on `/trust`:** the FAQ answers (who sets the rules, devices, academy players). The rules not yet being reviewed by a sports scientist is stated on `/trust`; check that it still is before sending the page to anyone.
+- **Not done:** photography, a sound or video asset, a pricing line (price is still undecided), a second call to action lower down.
+

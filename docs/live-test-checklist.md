@@ -10,6 +10,11 @@ Use two devices: your laptop (coach) and your phone (player). Use a fresh club n
 - [ ] Optional: `RESEND_API_KEY` + a verified `MAIL_FROM` (email), `COMPED_CLUBS` (a free club)
 - [ ] Latest deployment is Ready (green) and is the branch you expect
 
+## 0 The landing page (two minutes)
+- [ ] Open the home page on your laptop and your phone. The three beats play: squad tiles turn in, the proposal's numbers change, Approve becomes Sent, then it replays. Nothing is cut off on the phone.
+- [ ] Turn on Reduce Motion in your system settings and reload: nothing animates and the page still makes sense.
+- [ ] Type a wrong email, then a real one, in Request a pilot. Check `/admin` shows the request.
+
 ## 1 Coach: first run
 - [ ] Sign up with a new club. You land on "One step left" (payment gate).
 - [ ] Pay with the Stripe test card `4242 4242 4242 4242`. You come back to the app and go straight to Today. Note how long it took.
