@@ -433,6 +433,24 @@ test("next week starts as a copy of this week, with match days pointed out, and 
   await expect(page.getByText(/Saved 1 session/)).toBeVisible();
 });
 
+test("a week drafted from Today is checked and saved, and the coach lands back on Today", async ({ page }) => {
+  const now = new Date();
+  const dow = now.getUTCDay();
+  test.skip(!(dow === 0 || dow >= 4), "Today offers next week only from Thursday to Sunday");
+  await signUp(page);
+  const nextMon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + (((8 - dow) % 7) || 7)));
+  const lastWeekDay = new Date(nextMon.getTime() - 3 * 86_400_000).toISOString().slice(0, 10);
+  await importProgram(page, [`${lastWeekDay},Lower,normal,Back squat,4,5,85%,8`]);
+  await page.goto("/coach");
+  await page.getByRole("button", { name: "Draft next week" }).click();
+  await page.waitForURL(/\/coach\/program\/review\//);
+  await expect(page.getByRole("link", { name: "← Today" })).toBeVisible();
+  await page.getByRole("button", { name: "Use this program" }).click();
+  await page.waitForURL(/\/coach(\?.*)?$/);
+  await expect(page.getByText(/Saved 1 session/)).toBeVisible();
+  await expect(page.getByText("Next week has no sessions yet.")).toHaveCount(0);
+});
+
 test("routine suggestions are approved together, everything else stays with the coach, and the autonomy controls explain themselves", async ({ page }) => {
   await signUp(page);
   await page.goto("/coach/squad?view=people");

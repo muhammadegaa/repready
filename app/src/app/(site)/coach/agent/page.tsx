@@ -29,7 +29,7 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
   );
 }
 
-export default async function Results(props: PageProps<"/coach/agent">) {
+export default async function Agent(props: PageProps<"/coach/agent">) {
   const { autoerr } = await props.searchParams;
   const { club } = await requirePage("coach");
   const from = addDays(todayStr(), -(DAYS - 1));

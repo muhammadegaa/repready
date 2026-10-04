@@ -96,6 +96,7 @@ export default async function Today(props: PageProps<"/coach">) {
       {nudge === "nextweek" && (
         <Notice tone="ok">
           <form action={draftNextWeek} className="flex flex-wrap items-center justify-between gap-3">
+            <input type="hidden" name="from" value="today" />
             <span>Next week has no sessions yet. Start it from this week?</span>
             <PendingButton className="font-medium underline underline-offset-4" pending="Drafting…">Draft next week</PendingButton>
           </form>

@@ -114,22 +114,26 @@ export async function applyDraft(f: FormData) {
   revalidatePath("/coach");
   revalidatePath("/coach/program");
   const note = describeReport(report);
-  redirect(`/coach/program?applied=${encodeURIComponent(`Saved ${sessions.length} session${sessions.length === 1 ? "" : "s"} for ${from} to ${to}.${note ? ` ${note}` : ""}`)}`);
+  const saved = `Saved ${sessions.length} session${sessions.length === 1 ? "" : "s"} for ${from} to ${to}.${note ? ` ${note}` : ""}`;
+  // A week started from Today goes back to Today; one started in Program stays in Program.
+  redirect(d.origin === "today" ? `/coach?notice=${encodeURIComponent(saved)}` : `/coach/program?applied=${encodeURIComponent(saved)}`);
 }
 
 export async function discardDraft(f: FormData) {
   const { club } = await requireStaff("coach");
   const id = text(f, "id");
-  if (await open(club, id)) await closeDraft(club, id, "discarded");
-  redirect("/coach/program");
+  const d = await open(club, id);
+  if (d) await closeDraft(club, id, "discarded");
+  redirect(d?.origin === "today" ? "/coach" : "/coach/program");
 }
 
 // Next week starts as a copy of this week. The coach corrects it in the same review screen as a pasted program.
-export async function draftNextWeek() {
+export async function draftNextWeek(f?: FormData) {
   const { club, name } = await requireStaff("coach");
+  const origin = f && text(f, "from") === "today" ? "today" : null;
   const target = nextMonday(todayStr());
   const draft = carryForward(await listSessions(club, addDays(target, -7), 100), target, await getFixtures(club));
   if (!draft) return back("/coach/program", "readerr", "There is nothing in the week before to copy. Tell me next week's program instead.");
-  const id = await createDraft(club, name, draft);
+  const id = await createDraft(club, name, draft, origin);
   redirect(`/coach/program/review/${id}`);
 }

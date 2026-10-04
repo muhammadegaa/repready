@@ -30,7 +30,9 @@ export default async function Review({ params, searchParams }: PageProps<"/coach
   return (
     <div className="space-y-8">
       <header>
-        <Link href="/coach/program" className="text-sm text-muted hover:text-ink">← Program</Link>
+        {d.origin === "today"
+          ? <Link href="/coach" className="text-sm text-muted hover:text-ink">← Today</Link>
+          : <Link href="/coach/program" className="text-sm text-muted hover:text-ink">← Program</Link>}
         <h1 className="mt-3 text-3xl font-semibold tracking-tight">Check your program</h1>
         <p className="mt-1 max-w-2xl text-muted">This is what I read. Nothing has reached your players yet. Fix anything that is wrong, then use it.</p>
       </header>

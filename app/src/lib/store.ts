@@ -625,12 +625,13 @@ export async function deleteSampleSessions(club: string): Promise<number> {
 }
 
 // ---- drafts: what the assistant read from the coach's own words, held until the coach confirms
-export type DraftRow = { id: string; status: "open" | "applied" | "discarded"; created_at: string; created_by: string; revisions: number; program: ProgramDraft };
+// `origin` is where the coach started the draft, so the review can send them back there when it is done.
+export type DraftRow = { id: string; status: "open" | "applied" | "discarded"; created_at: string; created_by: string; revisions: number; program: ProgramDraft; origin: "today" | null };
 const DRAFT_ID = /^[A-Za-z0-9]{10,40}$/;
 
-export async function createDraft(club: string, by: string, program: ProgramDraft): Promise<string> {
+export async function createDraft(club: string, by: string, program: ProgramDraft, origin: "today" | null = null): Promise<string> {
   const ref = col(club, "drafts").doc();
-  await ref.set({ kind: "program", status: "open", created_at: new Date().toISOString(), created_by: by, revisions: 0, program });
+  await ref.set({ kind: "program", status: "open", created_at: new Date().toISOString(), created_by: by, revisions: 0, program, origin });
   return ref.id;
 }
 
@@ -639,7 +640,7 @@ export async function getDraft(club: string, id: string): Promise<DraftRow | nul
   const s = await col(club, "drafts").doc(id).get();
   if (!s.exists) return null;
   const d = s.data()!;
-  return { id, status: d.status, created_at: d.created_at, created_by: d.created_by ?? "", revisions: d.revisions ?? 0, program: d.program as ProgramDraft };
+  return { id, status: d.status, created_at: d.created_at, created_by: d.created_by ?? "", revisions: d.revisions ?? 0, program: d.program as ProgramDraft, origin: d.origin === "today" ? "today" : null };
 }
 
 export async function saveDraft(club: string, id: string, program: ProgramDraft, revisions: number): Promise<void> {
