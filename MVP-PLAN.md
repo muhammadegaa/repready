@@ -144,3 +144,8 @@ Consent is versioned (`lib/consent.ts`, version 2 adds "a coach may hand routine
 
 ## Rule tuning, bounded and coach-approved (2026-10-04)
 Four rules now take the club's own number instead of a fixed one (R1 sleep, R2 effort overshoot, R3 soreness, R4 stress), each with a default (unchanged behaviour), a safe range and a step (`lib/agent/thresholds.ts`). The rule text a coach reads carries the club's number. Results → "Tuning the rules": when a rule has had at least 8 of the coach's decisions since it last changed, with the plan kept for 6 in 10 or more (only suggestions where that rule was the whole reason, and never the agent's own), the agent offers to loosen it one step ("fire a little less often"). Yes applies it, Not now snoozes 14 days, "Back to standard" resets. The server recomputes the suggestion before applying, so a forged form cannot set any other number. The hard limits are not tunable. Only loosening is ever offered; tightening is left to the scientist's judgement.
+
+## Navigation: Today does its own jobs
+- Tabs are now Today, Squad, Program, plus More (Agent, Staff; Rules and Evaluation for scientists).
+- Results became Agent (`/coach/agent`); the map is a view inside Squad (`/coach/squad?view=map`, default once there is data).
+- Today handles joiners and match minutes inline, so a normal day does not need another tab.

@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { confirmMinutes, discardMinutes, readMinutesAction, removeCalendarAction, saveCalendarAction, saveFixtureList } from "@/actions/coach";
+import { removeCalendarAction, saveCalendarAction, saveFixtureList } from "@/actions/coach";
 import { draftNextWeek, readProgramAction } from "@/actions/program";
 import { Live } from "@/components/Live";
+import { MinutesFlow, parseMinutesPreview } from "@/components/MinutesFlow";
 import { PendingButton } from "@/components/Pending";
 import { SessionTable } from "@/components/SessionTable";
 import { btn, btnGhost, Card, Chip, Eyebrow, input } from "@/components/ui";
@@ -30,7 +31,7 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
   const target = nextMonday(today);
   const canCopy = (await listSessions(club, addDays(target, -7), 100)).some((x) => !x.sample && x.on_date < target);
   const lastMatch = asked ?? [...fixtures].filter((d) => d <= today).pop() ?? addDays(today, -1);
-  const preview = (() => { try { return JSON.parse(minutesPreview ?? "") as { date: string; rows: { code: string; name: string; minutes: number }[]; unmatched: string[] }; } catch { return null; } })();
+  const preview = parseMinutesPreview(minutesPreview);
 
   return (
     <div className="space-y-8">
@@ -131,32 +132,8 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
       </section>
       <section id="minutes" className="space-y-3">
         <Eyebrow>Match minutes</Eyebrow>
-        <Card className="space-y-3 p-5">
-          {minutesError && <div className="rounded-md border border-warn/30 bg-warn-bg p-3 text-sm text-warn">{minutesError}</div>}
-          {preview ? (
-            <div className="space-y-3">
-              <p className="text-sm">I matched {preview.rows.length} player{preview.rows.length === 1 ? "" : "s"} for {dateLabel(preview.date)}. Check them, then save.</p>
-              <ul className="max-h-64 divide-y divide-line overflow-auto rounded-md border border-line text-sm">
-                {preview.rows.map((r) => <li key={r.code} className="flex justify-between gap-3 px-3 py-1.5"><span className="font-medium">{r.name}</span><span className="tabular-nums text-muted">{r.minutes} min</span></li>)}
-              </ul>
-              {preview.unmatched.length > 0 && <p className="text-sm text-muted">Not matched to a single player, so left out: {preview.unmatched.map((l) => `“${l}”`).join(", ")}</p>}
-              <div className="flex gap-3">
-                <form action={confirmMinutes}><PendingButton className={btn} pending="Saving…">Save minutes</PendingButton></form>
-                <form action={discardMinutes}><PendingButton className="text-sm text-muted underline underline-offset-4" pending="…">Start again</PendingButton></form>
-              </div>
-            </div>
-          ) : (
-            <form action={readMinutesAction} className="space-y-3">
-              <p className="text-sm text-muted">After a match, jot who played and for how long, one per line: “Ola Adeyemi 90”, “Ortiz 65”, “Sam DNP”. It shows on each player&apos;s page next to how they check in. It does not change anyone&apos;s session.</p>
-              <div>
-                <label htmlFor="minutes_date" className="block text-sm font-medium">Match date</label>
-                <input id="minutes_date" name="date" type="date" max={today} defaultValue={lastMatch} className={`${input} mt-1 max-w-48`} />
-              </div>
-              <label htmlFor="minutes_text" className="sr-only">Minutes played</label>
-              <textarea id="minutes_text" name="minutes" rows={5} className={input} placeholder={"Ola Adeyemi 90\nOrtiz 65\nSam DNP"} />
-              <PendingButton className={btn} pending="Reading…">Read minutes</PendingButton>
-            </form>
-          )}
+        <Card className="p-5">
+          <MinutesFlow preview={preview} error={minutesError} back="/coach/program" date={lastMatch} today={today} id="minutes" />
         </Card>
       </section>
     </div>

@@ -35,7 +35,7 @@ export async function importProgram(page: Page, rows: string[]) {
 }
 
 export async function addPlayer(page: Page, name: string) {
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   await page.locator("#p-name").fill(name);
   await page.getByRole("button", { name: "Add player", exact: true }).click();
   await expect(page.getByText(`Added ${name}.`)).toBeVisible();
@@ -43,7 +43,7 @@ export async function addPlayer(page: Page, name: string) {
 
 // The personal link of the nth player listed on the Squad page, read from its WhatsApp share link.
 export async function playerLink(page: Page, index = 0): Promise<string> {
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   const hrefs = await page.locator('section#players a:has-text("Send on WhatsApp")').evaluateAll((els) => els.map((e) => (e as HTMLAnchorElement).href));
   const m = decodeURIComponent(hrefs[index]).match(/https?:\/\/[^\s]+\/a\/[0-9a-f]+/);
   if (!m) throw new Error("no player link found");
@@ -51,7 +51,7 @@ export async function playerLink(page: Page, index = 0): Promise<string> {
 }
 
 export async function squadLink(page: Page): Promise<string> {
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   const href = await page.locator('a:has-text("Send on WhatsApp")').first().evaluate((e) => (e as HTMLAnchorElement).href);
   const m = decodeURIComponent(href).match(/https?:\/\/[^\s]+\/join\/[0-9a-f]+/);
   if (!m) throw new Error("no squad link found");

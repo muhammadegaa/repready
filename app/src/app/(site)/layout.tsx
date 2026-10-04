@@ -6,18 +6,20 @@ import { requireEmailConfirmation } from "@/lib/mail";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const s = await getSession();
-  const links = s
-    ? [
-        ...(s.access && s.roles.includes("coach") ? [{ href: "/coach", label: "Today" }, { href: "/coach/squad", label: "Squad" }, { href: "/coach/map", label: "Map" }, { href: "/coach/program", label: "Program" }, { href: "/coach/results", label: "Results" }, { href: "/coach/team", label: "Staff" }] : []),
-        ...(s.access && s.roles.includes("scientist") ? [{ href: "/science", label: "Rules" }, { href: "/science/evaluation", label: "Evaluation" }] : []),
-      ]
-    : [];
+  const coach = Boolean(s?.access && s.roles.includes("coach"));
+  const scientist = Boolean(s?.access && s.roles.includes("scientist"));
+  // A coach sees three places and a menu. Someone who is only a scientist has no Today, so the science pages are their navigation.
+  const links = !s ? [] : coach ? [{ href: "/coach", label: "Today" }, { href: "/coach/squad", label: "Squad" }, { href: "/coach/program", label: "Program" }] : scientist ? [{ href: "/science", label: "Rules" }, { href: "/science/evaluation", label: "Evaluation" }] : [];
+  const more = !s || !coach ? [] : [
+    { links: [{ href: "/coach/agent", label: "Agent" }, { href: "/coach/team", label: "Staff" }] },
+    ...(scientist ? [{ title: "Science", links: [{ href: "/science", label: "Rules" }, { href: "/science/evaluation", label: "Evaluation" }] }] : []),
+  ];
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6">
       <header className="flex items-center justify-between gap-4 border-b border-line py-3.5">
         <div className="flex items-center gap-6">
           <Brand href={s ? homeFor(s) : "/"} />
-          {s && <Nav links={links} />}
+          {s && <Nav links={links} more={more} />}
         </div>
         {s ? (
           <form action={signOutAction} className="flex items-center gap-3">

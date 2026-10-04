@@ -91,6 +91,7 @@ export async function coachToday(club: string, today: string) {
   const decided = recent.filter((p) => p.status === "approved" || p.status === "rejected");
   return {
     session, matchToLog, nextWeekOffer, versions: todays.length, reviews: overrides.filter((o) => o.review_on !== null && o.review_on <= today).map((o) => ({ ...o, athlete_name: athletes.find((a) => a.code === o.athlete_code)?.name ?? "A player" })), roster, pending, events, decided, waiting: everyone.length - athletes.length,
+    joiners: everyone.filter((a) => !a.approved),
     counts: {
       athletes: athletes.length,
       checkedIn: roster.filter((r) => r.checkin).length,

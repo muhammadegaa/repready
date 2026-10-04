@@ -159,6 +159,7 @@ export async function confirmPlayer(f: FormData) {
   if (!a) return;
   await approvePlayer(a.code);
   revalidatePath("/coach/squad");
+  revalidatePath("/coach");
 }
 
 export async function removeAthlete(f: FormData) {
@@ -247,6 +248,9 @@ export async function toggleProtected(f: FormData) {
   revalidatePath(`/coach/athletes/${a.code}`);
 }
 
+// Where a minutes form returns the coach: Today when it was filled in there, otherwise Program. Nothing else is accepted.
+const minutesBack = (f: FormData) => (text(f, "back") === "/coach" ? "/coach" : "/coach/program#minutes");
+
 // Match minutes: a coach jots who played; names are matched in our own code, shown for a check, then saved.
 const isoDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && new Date(`${s}T00:00:00Z`).toISOString().startsWith(s);
 
@@ -265,10 +269,11 @@ export async function readMinutesAction(f: FormData) {
     }
   }
   revalidatePath("/coach/program");
-  redirect("/coach/program#minutes");
+  revalidatePath("/coach");
+  redirect(minutesBack(f));
 }
 
-export async function confirmMinutes() {
+export async function confirmMinutes(f: FormData) {
   const { club } = await requireStaff("coach");
   const stored = await getNotice(club, "minutes_preview");
   await setNotice(club, "minutes_preview", null);
@@ -279,13 +284,15 @@ export async function confirmMinutes() {
     if (isoDate(d.date) && rows.length) await saveMinutes(club, d.date, rows);
   } catch { /* nothing valid was waiting */ }
   revalidatePath("/coach");
-  redirect("/coach/program?applied=" + encodeURIComponent("Match minutes saved."));
+  const msg = encodeURIComponent("Match minutes saved.");
+  redirect(minutesBack(f) === "/coach" ? `/coach?notice=${msg}` : `/coach/program?applied=${msg}`);
 }
 
-export async function discardMinutes() {
+export async function discardMinutes(f: FormData) {
   const { club } = await requireStaff("coach");
   await setNotice(club, "minutes_preview", null);
-  redirect("/coach/program#minutes");
+  revalidatePath("/coach");
+  redirect(minutesBack(f));
 }
 
 // A club calendar link keeps the fixtures up to date by itself. It is read now, to show the coach what was taken, and again each morning.
@@ -328,24 +335,24 @@ export async function setDelegation(f: FormData) {
   const on = text(f, "on") === "yes";
   const a = await getAutonomy(club);
   const ids = (await allRules(club)).map((r) => r.id);
-  if (!ids.includes(rule)) return redirect("/coach/results#autonomy");
+  if (!ids.includes(rule)) return redirect("/coach/agent#autonomy");
   if (on) {
     const stat = ruleStats(await listProposals(club, 500), todayStr(), ids).find((s) => s.rule === rule);
-    if (!stat?.eligible) return redirect(`/coach/results?autoerr=${encodeURIComponent("That rule has not earned this yet. It needs at least 8 of your decisions in the last 28 days, with 9 in 10 approved as proposed.")}#autonomy`);
+    if (!stat?.eligible) return redirect(`/coach/agent?autoerr=${encodeURIComponent("That rule has not earned this yet. It needs at least 8 of your decisions in the last 28 days, with 9 in 10 approved as proposed.")}#autonomy`);
     await setAutonomy(club, { ...a, delegated: [...new Set([...a.delegated, rule])] });
   } else {
     await setAutonomy(club, { ...a, delegated: a.delegated.filter((r) => r !== rule) });
   }
-  revalidatePath("/coach/results");
-  redirect("/coach/results#autonomy");
+  revalidatePath("/coach/agent");
+  redirect("/coach/agent#autonomy");
 }
 
 export async function setAutopilotPaused(f: FormData) {
   const { club } = await requireStaff("coach");
   const a = await getAutonomy(club);
   await setAutonomy(club, { ...a, paused: text(f, "paused") === "yes" });
-  revalidatePath("/coach/results");
-  redirect("/coach/results#autonomy");
+  revalidatePath("/coach/agent");
+  redirect("/coach/agent#autonomy");
 }
 
 export async function takeBack(f: FormData) {
@@ -375,8 +382,8 @@ export async function applyTuning(f: FormData) {
     const s = suggestions(await listProposals(club, 500), (await getTuning(club)).thresholds, todayStr(), await getTuning(club)).find((x) => x.key === key);
     if (s) await setThreshold(club, key, s.to, name);
   }
-  revalidatePath("/coach/results");
-  redirect("/coach/results#rules");
+  revalidatePath("/coach/agent");
+  redirect("/coach/agent#rules");
 }
 
 export async function dismissTuning(f: FormData) {
@@ -387,14 +394,14 @@ export async function dismissTuning(f: FormData) {
     until.setUTCDate(until.getUTCDate() + 14);
     await snoozeThreshold(club, key, until.toISOString().slice(0, 10));
   }
-  revalidatePath("/coach/results");
-  redirect("/coach/results#rules");
+  revalidatePath("/coach/agent");
+  redirect("/coach/agent#rules");
 }
 
 export async function resetTuning(f: FormData) {
   const { club, name } = await requireStaff("coach");
   const key = tkey(f);
   if (key) await setThreshold(club, key, null, name);
-  revalidatePath("/coach/results");
-  redirect("/coach/results#rules");
+  revalidatePath("/coach/agent");
+  redirect("/coach/agent#rules");
 }

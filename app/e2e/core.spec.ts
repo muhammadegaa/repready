@@ -15,7 +15,7 @@ test("a new coach lands on a checklist that updates as they set up", async ({ pa
 
 test("a coach pastes a squad, checks what was read, and then adds it; unreadable lines are listed, not fatal", async ({ page }) => {
   await signUp(page);
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   await page.locator("#list").fill("Player\tPos\tNo\tGroup\nJ. Mensah\tCB\t5\tStarters\nL. Ortiz\tST\t9\tReserves\nBad Row\tGK\tabc");
   await page.getByRole("button", { name: "Read my squad" }).click();
   await expect(page.getByText("I found 2 players")).toBeVisible();
@@ -36,7 +36,7 @@ test("a player joins by the squad link and the coach confirms them", async ({ pa
   await phone.page.locator('input[name="adult"]').check();
   await phone.page.getByRole("button", { name: "Join the squad" }).click();
   await phone.page.waitForURL(/\/a\//);
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   await expect(page.getByText("Waiting for you")).toBeVisible();
   await page.getByRole("button", { name: "Confirm player" }).click();
   await expect(page.getByText("Waiting for you")).toHaveCount(0);
@@ -128,7 +128,7 @@ test("a coach splits the squad: the group gets its own version of the session an
 
   await addPlayer(page, "Reserve One");
   await addPlayer(page, "Starter One");
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   await page.getByLabel("Select Reserve One").check();
   await page.locator("#group").fill("Reserves");
   await page.getByRole("button", { name: "Set group for ticked players" }).click();
@@ -255,7 +255,7 @@ test("a new coach loads a sample squad, tries a player's phone, and removes it a
   await expect(page.getByText("Sample").first()).toBeVisible();
 
   // Try a player's phone: Reid is in Reserves, has a standing plan change, and has not checked in.
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   await expect(page.getByText(/6 fictional players are mixed into this squad/)).toBeVisible();
   const href = await page.getByRole("link", { name: "Try as this player" }).first().getAttribute("href");
   const phone = await newPhone(browser);
@@ -274,7 +274,7 @@ test("a new coach loads a sample squad, tries a player's phone, and removes it a
   await page.getByLabel("Remove the sample squad").check();
   await page.getByRole("button", { name: "Remove sample squad" }).click();
   await expect(page.getByText(/Removed the sample squad \(6 players\)/)).toBeVisible();
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   await expect(page.getByText("Mensah")).toHaveCount(0);
   await expect(page.getByText("No players yet.")).toBeVisible();
   await page.goto("/coach");
@@ -317,8 +317,9 @@ test("fixtures are read as a coach writes them", async ({ page }) => {
 
 test("results show an empty state for a new club", async ({ page }) => {
   await signUp(page);
-  await page.getByRole("link", { name: "Results" }).first().click();
-  await expect(page.getByRole("heading", { name: "Results" })).toBeVisible();
+  await page.getByRole("button", { name: /More/ }).click();
+  await page.getByRole("menuitem", { name: "Agent" }).first().click();
+  await expect(page.getByRole("heading", { name: "Agent", exact: true })).toBeVisible();
   await expect(page.getByText("Sample players are not counted.")).toBeVisible();
 });
 
@@ -358,7 +359,7 @@ test("a coach jots match minutes, checks the matches, and they show on the playe
   await expect(page.getByText(/Not matched to a single player/)).toBeVisible();
   await page.getByRole("button", { name: "Save minutes" }).click();
   await expect(page.getByText("Match minutes saved.")).toBeVisible();
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   await page.getByRole("link", { name: "Open", exact: true }).first().click(); // alphabetical: Ola first
   await expect(page.getByText("Match minutes, last 14 days")).toBeVisible();
   await expect(page.getByText("Total 90 min")).toBeVisible();
@@ -373,9 +374,7 @@ test("the day after a match the coach is asked who played, and the question goes
   await page.getByRole("button", { name: "Save fixtures" }).click();
   await page.goto("/coach");
   await expect(page.getByText(/There was a match on/)).toBeVisible();
-  await page.getByRole("link", { name: "Add minutes" }).click();
-  await expect(page.locator("#minutes_date")).toHaveValue(yesterday);
-  await page.locator("#minutes_text").fill("Ola Adeyemi 90");
+  await page.locator("#today_minutes_text").fill("Ola Adeyemi 90");
   await page.getByRole("button", { name: "Read minutes" }).click();
   await page.getByRole("button", { name: "Save minutes" }).click();
   await page.goto("/coach");
@@ -392,13 +391,13 @@ test("a calendar link that is not a calendar is refused with a reason", async ({
 
 test("the squad map shows every player against their own usual and links through to each player", async ({ page }) => {
   await signUp(page);
-  await page.goto("/coach/map");
-  await expect(page.getByText("Add players in Squad and the map fills in")).toBeVisible();
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=map");
+  await expect(page.getByText(/No players yet/)).toBeVisible();
+  await page.goto("/coach/squad?view=people");
   await page.getByRole("button", { name: "Load a sample squad" }).click();
   await expect(page.getByText(/Sample squad loaded/).first()).toBeVisible();
-  await page.goto("/coach/map");
-  await expect(page.getByRole("heading", { name: "Squad map" })).toBeVisible();
+  await page.goto("/coach/squad?view=map");
+  await expect(page.getByRole("tab", { name: "Map" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByText(/outside their usual today/)).toBeVisible();
   await expect(page.getByRole("link", { name: /Mensah/ })).toBeVisible();
   await expect(page.getByText("Starters", { exact: true })).toBeVisible();
@@ -434,7 +433,7 @@ test("next week starts as a copy of this week, with match days pointed out, and 
 
 test("routine suggestions are approved together, everything else stays with the coach, and the autonomy controls explain themselves", async ({ page }) => {
   await signUp(page);
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   await page.getByRole("button", { name: "Load a sample squad" }).click();
   await expect(page.getByText(/Sample squad loaded/).first()).toBeVisible();
   await page.goto("/coach");
@@ -443,7 +442,7 @@ test("routine suggestions are approved together, everything else stays with the 
   await expect(page.getByText("2 routine suggestions, all the same kind")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Check before training" })).toBeVisible(); // the pain note still waits for the coach
 
-  await page.goto("/coach/results");
+  await page.goto("/coach/agent");
   await expect(page.getByText("How much the agent does for you")).toBeVisible();
   await expect(page.getByText("Never automatic").first()).toBeVisible();
   await expect(page.getByText("Not enough history yet").first()).toBeVisible();
@@ -455,7 +454,7 @@ test("routine suggestions are approved together, everything else stays with the 
 
 test("Today points out who is trending down, does not call new players quiet, and the trust page says what it never does", async ({ page }) => {
   await signUp(page);
-  await page.goto("/coach/squad");
+  await page.goto("/coach/squad?view=people");
   await page.getByRole("button", { name: "Load a sample squad" }).click();
   await expect(page.getByText(/Sample squad loaded/).first()).toBeVisible();
   await page.goto("/coach");

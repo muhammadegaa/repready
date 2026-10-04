@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { approveRoutine, takeBack } from "@/actions/coach";
+import { approveRoutine, confirmPlayer, takeBack } from "@/actions/coach";
 import { draftNextWeek } from "@/actions/program";
 import { PendingButton } from "@/components/Pending";
 import { CopyButton } from "@/components/CopyButton";
+import { MinutesFlow, parseMinutesPreview } from "@/components/MinutesFlow";
 import { GetStarted } from "@/components/GetStarted";
 import { Live } from "@/components/Live";
 import { ProposalCard } from "@/components/ProposalCard";
@@ -13,7 +14,7 @@ import { ago, dateLabel } from "@/lib/copy";
 import { isRoutine } from "@/lib/autonomy";
 import { allRules } from "@/lib/rules";
 import { todayStr } from "@/lib/run-agent";
-import { countSessions, getPulse } from "@/lib/store";
+import { countSessions, getNotice, getPulse } from "@/lib/store";
 import { coachToday, squadMap, STATUS } from "@/lib/views";
 
 export const metadata = { title: "Today" };
@@ -23,7 +24,7 @@ export default async function Today(props: PageProps<"/coach">) {
   const { club, name } = await requirePage("coach");
   const today = todayStr();
   const { notice } = await props.searchParams;
-  const [data, rules, pulse, sessionCount] = await Promise.all([coachToday(club, today), allRules(club), getPulse(club, "coach"), countSessions(club)]);
+  const [data, rules, pulse, sessionCount, minutesRaw, minutesError] = await Promise.all([coachToday(club, today), allRules(club), getPulse(club, "coach"), countSessions(club), getNotice(club, "minutes_preview"), getNotice(club, "minutes")]);
   const { session, versions, reviews, roster, pending, events, counts, waiting } = data;
   // Quiet watching: who is drifting down or has gone silent. Described, never acted on.
   const watch = roster.length ? (await squadMap(club, today)).rows.filter((r) => r.trend === "worse" || r.trend === "quiet") : [];
@@ -64,7 +65,20 @@ export default async function Today(props: PageProps<"/coach">) {
       {notice && <Notice>{notice}</Notice>}
       {/* One thing at a time: the most useful next step, not a stack of banners. */}
       {nudge === "waiting" && (
-        <Notice>{waiting} player{waiting === 1 ? " has" : "s have"} asked to join the squad. <Link href="/coach/squad" className="font-medium underline underline-offset-4">Confirm in Squad</Link>.</Notice>
+        <Card className="space-y-3 border-brand/30 bg-brand-soft/50 p-5">
+          <div>
+            <h3 className="font-semibold">{waiting} player{waiting === 1 ? " has" : "s have"} asked to join</h3>
+            <p className="mt-0.5 text-sm text-muted">They used your squad link. Confirm the ones you know. Anyone else you can remove in Squad.</p>
+          </div>
+          <ul className="divide-y divide-line rounded-md border border-line bg-surface text-sm">
+            {data.joiners.map((j) => (
+              <li key={j.code} className="flex flex-wrap items-center justify-between gap-3 px-3 py-2">
+                <span><b>{j.name}</b>{j.position ? <span className="text-muted"> · {j.position}</span> : null}{j.shirt ? <span className="text-muted"> · #{j.shirt}</span> : null}</span>
+                <form action={confirmPlayer}><input type="hidden" name="code" value={j.code} /><PendingButton className={btn} pending="Confirming…">Confirm</PendingButton></form>
+              </li>
+            ))}
+          </ul>
+        </Card>
       )}
       {nudge === "reviews" && (
         <Notice>
@@ -74,12 +88,10 @@ export default async function Today(props: PageProps<"/coach">) {
         </Notice>
       )}
       {nudge === "minutes" && data.matchToLog && (
-        <Notice tone="ok">
-          <span className="flex flex-wrap items-center justify-between gap-3">
-            <span>There was a match on {dateLabel(data.matchToLog)}. Who played?</span>
-            <Link href={`/coach/program?matchdate=${data.matchToLog}#minutes`} className="font-medium underline underline-offset-4">Add minutes</Link>
-          </span>
-        </Notice>
+        <Card className="space-y-3 border-brand/30 bg-brand-soft/50 p-5">
+          <h3 className="font-semibold">There was a match on {dateLabel(data.matchToLog)}. Who played?</h3>
+          <MinutesFlow preview={parseMinutesPreview(minutesRaw)} error={minutesError} back="/coach" date={data.matchToLog} today={today} dateLocked id="today_minutes" />
+        </Card>
       )}
       {nudge === "nextweek" && (
         <Notice tone="ok">
@@ -153,7 +165,7 @@ export default async function Today(props: PageProps<"/coach">) {
                     <Chip tone={r.trend === "worse" ? "warn" : "neutral"}>{r.trend === "worse" ? "Trending down" : "Quiet"}</Chip>
                   </Link>
                 ))}
-                <div className="px-5 py-2.5 text-xs text-muted">Against each player’s own usual. See everyone on the <Link href="/coach/map" className="underline underline-offset-4">squad map</Link>.</div>
+                <div className="px-5 py-2.5 text-xs text-muted">Against each player’s own usual. See everyone on the <Link href="/coach/squad?view=map" className="underline underline-offset-4">squad map</Link>.</div>
               </Card>
             </section>
           )}

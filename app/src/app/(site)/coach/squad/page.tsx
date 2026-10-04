@@ -5,12 +5,14 @@ import { addPlayer, confirmPlayer, confirmSquad, discardSquadPreview, readSquadA
 import { rotateSquadLink } from "@/actions/club";
 import { CopyButton } from "@/components/CopyButton";
 import { Live } from "@/components/Live";
+import { SquadMapView } from "@/components/SquadMapView";
 import { PendingButton } from "@/components/Pending";
 import { btn, btnGhost, Card, Chip, Eyebrow, input, Notice } from "@/components/ui";
 import { requirePage } from "@/lib/auth";
 import { groupLabel, groupNames } from "@/lib/groups";
+import { dayStr, todayStr } from "@/lib/run-agent";
 import { inviteMessage, POSITIONS, squadMessage, storedPlayers } from "@/lib/squad";
-import { getNotice, getPulse, listAthletes, squadInvite, type AthleteRow } from "@/lib/store";
+import { checkinCodesSince, getNotice, getPulse, listAthletes, squadInvite, type AthleteRow } from "@/lib/store";
 
 export const metadata = { title: "Squad" };
 export const dynamic = "force-dynamic";
@@ -23,12 +25,15 @@ function status(a: AthleteRow): { label: string; tone: "neutral" | "warn" | "ok"
 
 export default async function Squad(props: PageProps<"/coach/squad">) {
   const { club, clubName, admin } = await requirePage("coach");
-  const { added, grouped, grouperr } = await props.searchParams;
+  const { added, grouped, grouperr, view: viewParam } = await props.searchParams;
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
-  const [all, notice, previewRaw, pulse, joinToken] = await Promise.all([listAthletes(club), getNotice(club, "squad"), getNotice(club, "squad_preview"), getPulse(club, "coach"), squadInvite(club)]);
+  const [all, notice, previewRaw, pulse, joinToken, recent] = await Promise.all([listAthletes(club), getNotice(club, "squad"), getNotice(club, "squad_preview"), getPulse(club, "coach"), squadInvite(club), checkinCodesSince(club, dayStr(todayStr(), 13))]);
   const preview = storedPlayers(previewRaw);
   const skipped: string[] = (() => { try { return (JSON.parse(previewRaw ?? "") as { skipped?: string[] }).skipped ?? []; } catch { return []; } })();
+  // The map opens first once there is something to see: at least three players and some answers in the last two weeks.
+  const hasData = all.filter((p) => p.approved).length >= 3 && recent.length > 0;
+  const view = viewParam === "map" || viewParam === "people" ? viewParam : hasData ? "map" : "people";
   const waiting = all.filter((p) => !p.approved);
   const players = all.filter((p) => p.approved);
   const joinPath = `/join/${joinToken}`;
@@ -56,6 +61,16 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
       {typeof grouped === "string" && grouped && <Notice tone="ok">{grouped}</Notice>}
       {typeof grouperr === "string" && grouperr && <Notice tone="bad">{grouperr}</Notice>}
 
+      <div role="tablist" aria-label="Squad view" className="inline-flex rounded-lg border border-line bg-surface p-1 text-sm">
+        {[{ k: "map", label: "Map" }, { k: "people", label: "People and links" }].map((t) => (
+          <Link key={t.k} role="tab" aria-selected={view === t.k} href={`/coach/squad?view=${t.k}`} className={`rounded-md px-3 py-1.5 font-medium transition ${view === t.k ? "bg-brand-soft text-brand-ink" : "text-muted hover:text-ink"}`}>{t.label}</Link>
+        ))}
+      </div>
+
+      {view === "map" ? (
+        players.length === 0 ? <Card className="px-5 py-6 text-sm text-muted">No players yet. Open People and links to add your squad, and the map fills in as they check in.</Card> : <SquadMapView club={club} today={todayStr()} />
+      ) : (
+      <>
       <Card className="space-y-3 p-5">
         <Eyebrow>Squad link</Eyebrow>
         <p className="max-w-2xl text-sm text-muted">One link for the whole squad. Post it in the team group chat. Each player adds their own name, shirt number and position on their phone, then you confirm them below before they can check in.</p>
@@ -231,6 +246,8 @@ export default async function Squad(props: PageProps<"/coach/squad">) {
           </Card>
         )}
       </section>
+      </>
+      )}
     </div>
   );
 }
