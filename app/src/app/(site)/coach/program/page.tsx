@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { removeCalendarAction, saveCalendarAction, saveFixtureList } from "@/actions/coach";
 import { draftNextWeek, readProgramAction } from "@/actions/program";
+import { WeekStrip } from "@/components/charts/WeekStrip";
 import { Live } from "@/components/Live";
 import { MinutesFlow, parseMinutesPreview } from "@/components/MinutesFlow";
 import { PendingButton } from "@/components/Pending";
@@ -9,6 +10,7 @@ import { btn, btnGhost, Card, Chip, Eyebrow, input } from "@/components/ui";
 import { nextMonday } from "@/lib/read/carry";
 import { addDays, defaultWeekStart } from "@/lib/read/program";
 import { requirePage } from "@/lib/auth";
+import { weekDates } from "@/lib/charts";
 import { ago, dateLabel } from "@/lib/copy";
 import { matchDayTag } from "@/lib/fixtures";
 import { groupLabel } from "@/lib/groups";
@@ -27,6 +29,12 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
   const { club } = await requirePage("coach");
   const today = todayStr();
   const [sessions, fixtureError, minutesError, minutesPreview, fixtures, manualFixtures, calendar, pulse] = await Promise.all([listSessions(club, today, 60), getNotice(club, "fixtures"), getNotice(club, "minutes"), getNotice(club, "minutes_preview"), getFixtures(club), getManualFixtures(club), getCalendarLink(club), getPulse(club, "coach")]);
+  const week = weekDates(today);
+  const weekSessions = (await listSessions(club, week[0], 30)).filter((s) => s.on_date <= week[6]);
+  const weekDays = week.map((date, i) => ({
+    date, label: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i], md: matchDayTag(date, fixtures), match: fixtures.includes(date),
+    sessions: weekSessions.filter((s) => s.on_date === date).length, today: date === today,
+  }));
   const asked = typeof q.matchdate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(q.matchdate) ? q.matchdate : null;
   const target = nextMonday(today);
   const canCopy = (await listSessions(club, addDays(target, -7), 100)).some((x) => !x.sample && x.on_date < target);
@@ -71,6 +79,14 @@ export default async function Program({ searchParams }: PageProps<"/coach/progra
             <p className="text-xs text-muted">An outside assistant reads only the program you give it here. Leave out players’ names and any health information.</p>
             <PendingButton className={btn} pending="Reading…">Read my program</PendingButton>
           </form>
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <Eyebrow>This week</Eyebrow>
+        <Card className="space-y-2 p-4">
+          <WeekStrip days={weekDays} />
+          <p className="text-xs text-muted">Gym days, the match, and each day’s distance from it (MD-2 is two days before). Several versions on one day are the groups.</p>
         </Card>
       </section>
 

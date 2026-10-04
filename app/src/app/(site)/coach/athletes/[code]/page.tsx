@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { askAlwaysAction, addPlanOverride, liftPlanOverride, removeAthlete, setPlayerGroup, toggleProtected } from "@/actions/coach";
 import { CopyButton } from "@/components/CopyButton";
+import { DeltaBars, TrendBand } from "@/components/charts/TrendBand";
 import { Heat } from "@/components/Heat";
 import { Live } from "@/components/Live";
 import { PendingButton } from "@/components/Pending";
@@ -107,7 +108,16 @@ export default async function AthletePageForCoach(props: PageProps<"/coach/athle
 
       <section className="space-y-3">
         <Eyebrow>Last 14 days</Eyebrow>
-        <Card className="p-5"><Heat days={days} /></Card>
+        <Card className="space-y-6 p-5">
+          <div className="grid gap-x-8 gap-y-6 md:grid-cols-2">
+            <TrendBand title="Sleep" unit=" h" values={days.map((d) => d.sleep)} days={days.map((d) => d.date)} domain={[4, 10]} room={0.5} worse="lower" decimals={1} />
+            <TrendBand title="Soreness" unit="/10" values={days.map((d) => d.soreness)} days={days.map((d) => d.date)} domain={[0, 10]} room={1} worse="higher" />
+            <TrendBand title="Stress" unit="/10" values={days.map((d) => d.stress)} days={days.map((d) => d.date)} domain={[0, 10]} room={1} worse="higher" />
+            <DeltaBars title="Effort against the plan" values={days.map((d) => d.rpeDelta)} days={days.map((d) => d.date)} />
+          </div>
+          <p className="text-xs text-muted">The shaded band is {athlete.name.split(" ")[0]}’s own usual range from the days before today. Orange dots are outside it in the direction that matters.</p>
+          <div className="border-t border-line pt-5"><Heat days={days} /></div>
+        </Card>
       </section>
 
       <section id="plan-changes" className="space-y-3">

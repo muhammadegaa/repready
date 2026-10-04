@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { applyTuning, dismissTuning, resetTuning, setAutopilotPaused, setDelegation } from "@/actions/coach";
+import { Ladder, OutcomeBar, RecordBar } from "@/components/charts/Ladder";
+import { Ring } from "@/components/charts/Ring";
 import { PendingButton } from "@/components/Pending";
 import { btn, btnGhost, Card, Chip, Eyebrow } from "@/components/ui";
 import { MIN_DECISIONS, MIN_RATE, NEVER_AUTOMATIC, ruleStats, WINDOW_DAYS } from "@/lib/autonomy";
@@ -60,11 +62,18 @@ export default async function Agent(props: PageProps<"/coach/agent">) {
           <section className="space-y-3">
             <Eyebrow>Do players answer?</Eyebrow>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Stat label="Check-in rate" value={pct(r.checkinRate)} note={`${r.checkins} answers out of ${r.possible} possible (${r.players} players × ${r.days} days)`} />
+              <Card className="flex items-center gap-4 p-4">
+                <Ring value={Math.round((r.checkinRate ?? 0) * 100)} max={100} display={pct(r.checkinRate)} size={72} label={`Check-in rate ${pct(r.checkinRate)}`} />
+                <div>
+                  <div className="text-sm">Check-in rate</div>
+                  <div className="mt-0.5 text-xs text-muted">{`${r.checkins} answers out of ${r.possible} possible (${r.players} players × ${r.days} days)`}</div>
+                </div>
+              </Card>
             </div>
           </section>
           <section className="space-y-3">
             <Eyebrow>Do you act on the suggestions?</Eyebrow>
+            <Card className="p-4"><OutcomeBar approved={r.approved} kept={r.keptPlan} waiting={r.pending} /></Card>
             <div className="grid gap-4 sm:grid-cols-4">
               <Stat label="Suggestions made" value={String(r.suggestions)} note={r.pending ? `${r.pending} still waiting for you` : undefined} />
               <Stat label="Approved" value={String(r.approved)} note={r.changedByCoach ? `${r.changedByCoach} with your own changes` : undefined} />
@@ -106,12 +115,7 @@ export default async function Agent(props: PageProps<"/coach/agent">) {
       <section id="autonomy" className="space-y-3">
         <Eyebrow>How much the agent does for you</Eyebrow>
         <Card className="space-y-4 p-5">
-          <ol className="space-y-1.5 text-sm">
-            <li><b>1 · Suggest.</b> The agent proposes, you decide. Always on.</li>
-            <li><b>2 · Approve together.</b> Routine trims are grouped on Today so you can approve them in one tap.</li>
-            <li><b>3 · Handle it.</b> For a rule you choose, the agent applies routine trims itself and shows them under “Handled for you”, each one with a button to take it back.</li>
-            <li className="text-muted"><b>Never automatic:</b> pain or illness notes, rest, “can’t train”, swaps, anything raised, anything the limits had to change, and any player you mark “always ask me”.</li>
-          </ol>
+          <Ladder handing={autonomy.delegated} />
           {typeof autoerr === "string" && <p className="rounded-md border border-warn/30 bg-warn-bg p-3 text-sm text-warn">{autoerr}</p>}
           <p className="text-sm text-muted">A rule can be handed over once it has earned it: at least {MIN_DECISIONS} of your decisions in the last {WINDOW_DAYS} days, with {Math.round(MIN_RATE * 100)} in 100 approved exactly as proposed.</p>
           <div className="divide-y divide-line rounded-md border border-line">
@@ -126,6 +130,7 @@ export default async function Agent(props: PageProps<"/coach/agent">) {
                     <div className="text-xs text-muted">
                       {never ? "Always comes to you." : st.decided === 0 ? "No decisions yet." : `${st.decided} decided, ${st.asProposed} approved as proposed (${Math.round((st.rate ?? 0) * 100)}%).`}
                     </div>
+                    {!never && st.decided > 0 && <RecordBar decided={st.decided} asProposed={st.asProposed} need={MIN_RATE} />}
                   </div>
                   {never ? <Chip tone="neutral">Never automatic</Chip> : on ? (
                     <form action={setDelegation} className="flex items-center gap-2"><Chip tone="ok">Agent handles it</Chip><input type="hidden" name="rule" value={r.id} /><input type="hidden" name="on" value="no" /><PendingButton className="text-sm text-muted underline underline-offset-4" pending="…">Stop</PendingButton></form>

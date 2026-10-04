@@ -142,3 +142,21 @@ details[open] > summary.disclosure::before { content: "−"; }
   .reveal, .skeleton { animation: none !important; }
   .leaving { transition: none !important; }
 }
+
+/* ---- Charts: each draws itself in once, in the order you would read it. The base styles are the finished picture. ---- */
+.ring-arc { animation: ring-in 1.1s var(--ease) 0.15s both; }
+@keyframes ring-in { from { stroke-dashoffset: var(--from); } }
+.tb-band { animation: fade-in 0.7s ease both; }
+@keyframes fade-in { from { opacity: 0; } }
+.tb-line { stroke-dasharray: 1; stroke-dashoffset: 0; animation: tb-draw 1.2s var(--ease) 0.25s both; }
+@keyframes tb-draw { from { stroke-dashoffset: 1; } }
+.tb-dot { transform-box: fill-box; transform-origin: center; animation: pop 0.35s var(--ease) both; animation-delay: calc(0.8s + var(--i, 0) * 40ms); }
+@keyframes pop { from { transform: scale(0); opacity: 0; } }
+.db-up { transform-box: fill-box; transform-origin: 50% 100%; animation: grow-y 0.5s var(--ease) both; animation-delay: calc(0.3s + var(--i, 0) * 30ms); }
+.db-down { transform-box: fill-box; transform-origin: 50% 0; animation: grow-y 0.5s var(--ease) both; animation-delay: calc(0.3s + var(--i, 0) * 30ms); }
+@keyframes grow-y { from { transform: scaleY(0); } }
+.grow-x { transform-origin: left center; animation: grow-x 0.9s var(--ease) 0.3s both; }
+@keyframes grow-x { from { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .ring-arc, .tb-band, .tb-line, .tb-dot, .db-up, .db-down, .grow-x { animation: none !important; }
+}

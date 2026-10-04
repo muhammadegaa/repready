@@ -6,6 +6,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { MinutesFlow, parseMinutesPreview } from "@/components/MinutesFlow";
 import { GetStarted } from "@/components/GetStarted";
 import { Live } from "@/components/Live";
+import { RingStat } from "@/components/charts/Ring";
 import { CountUp, LeaveOnSubmit } from "@/components/motion";
 import { ProposalCard } from "@/components/ProposalCard";
 import { Spark } from "@/components/Spark";
@@ -107,7 +108,7 @@ export default async function Today(props: PageProps<"/coach">) {
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Summary">
         <Stat label="Players" value={<CountUp value={counts.athletes} />} />
-        <Stat label="Checked in" value={<><CountUp value={counts.checkedIn} />/{counts.athletes}</>} hint={counts.athletes === 0 ? "Add players in Squad" : undefined} />
+        <RingStat label="Checked in" value={counts.checkedIn} max={counts.athletes} valueNode={<><CountUp value={counts.checkedIn} />/{counts.athletes}</>} hint={counts.athletes === 0 ? "Add players in Squad" : undefined} />
         <Stat label="Need you" value={<CountUp value={counts.needsDecision} />} tone={counts.needsDecision ? "warn" : undefined} />
         <Stat label="Adjusted" value={<CountUp value={counts.adjusted} />} />
       </section>
