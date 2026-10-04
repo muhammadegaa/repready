@@ -14,7 +14,8 @@ Use two devices: your laptop (coach) and your phone (player). Use a fresh club n
 - [ ] Sign up with a new club. You land on "One step left" (payment gate).
 - [ ] Pay with the Stripe test card `4242 4242 4242 4242`. You come back to the app and go straight to Today. Note how long it took.
 - [ ] Today shows the 4-step checklist. Nothing looks broken or confusing.
-- [ ] Load the sample squad, look at Today, Squad, Map, Results. Remove the sample squad.
+- [ ] The top bar shows three tabs (Today, Squad, Program) and a More menu holding Agent and Staff. Open More: it closes on Escape and on a click elsewhere.
+- [ ] Load the sample squad from Squad, then look at Today, Squad (the Map view and the People and links view), and More → Agent. Remove the sample squad.
 
 ## 2 Coach: your real program (the biggest unknown)
 - [ ] Paste a real week of your own program into Program (text, then try a spreadsheet). Press Read my program.
@@ -32,10 +33,16 @@ Use two devices: your laptop (coach) and your phone (player). Use a fresh club n
 - [ ] Open the same player link on a second device. It must refuse (one phone per link).
 
 ## 4 The agent doing its job
-- [ ] Squad map: players you made look worse show up, squares make sense against "their own usual".
-- [ ] Draft next week (Thursday to Sunday, or Program → Start from this week). Dates and match days look right.
-- [ ] Log match minutes the day after a fixture.
-- [ ] Results page shows the check-in rate and your decisions.
+- [ ] Squad → Map: it opens on the map once at least three players have answers. Players you made look worse show up, and the squares make sense against "their own usual". The old addresses `/coach/map` and `/coach/results` still land on Squad (map) and Agent.
+- [ ] Draft next week. From Thursday to Sunday Today offers it: press Draft next week, check the dates and match days, press Use this program. You land back on Today with "Saved N sessions". On other days use Program → Start from this week, which returns to Program.
+- [ ] The day after a fixture, Today asks who played. Type the names, press Read minutes, check the matches, press Save minutes. You stay on Today and the question goes.
+- [ ] A player uses the squad link on their phone. Today shows "1 player has asked to join" with a Confirm button. Confirm them without leaving Today.
+- [ ] More → Agent shows the check-in rate, your decisions, how much the agent does for you, and the rule tuning.
+
+## 4b A normal morning from Today alone
+- [ ] With players checked in, run the morning without opening another tab: confirm joiners, say who played, approve the routine suggestions together ("Approve these N"), deal with anything flagged. Count how many pages you opened. The answer should be one.
+- [ ] If you have handed a rule to the agent (More → Agent), what it did shows under "Handled for you" on Today with "Take it back".
+- [ ] If you invited a sports scientist, they see Rules and Evaluation under More. A coach without that role does not.
 
 ## 5 Things that must not work
 - [ ] Open `/admin` while signed in as a normal club account: not found. As your admin email: the pilot view.

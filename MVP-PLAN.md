@@ -149,3 +149,12 @@ Four rules now take the club's own number instead of a fixed one (R1 sleep, R2 e
 - Tabs are now Today, Squad, Program, plus More (Agent, Staff; Rules and Evaluation for scientists).
 - Results became Agent (`/coach/agent`); the map is a view inside Squad (`/coach/squad?view=map`, default once there is data).
 - Today handles joiners and match minutes inline, so a normal day does not need another tab.
+
+## Navigation proof (2026-10-04)
+- **A normal morning from Today alone** is now an e2e test: confirm a joiner, say who played, approve the routine trims together, and see what the agent handled ("Handled for you"), with the address staying on `/coach` throughout. The morning's data is written the way players and the cron would write it; every coach action is a click. The check that approving really trims is the Adjusted counter (two approved plus one handled).
+- **Draft next week from Today** returns to Today. The draft remembers where it started (`origin`), so the review says "← Today", Use this program lands on Today with "Saved N sessions", and Discard returns to Today. Started from Program, it stays in Program. The browser test for it only runs Thursday to Sunday, the days Today offers it.
+- **Phone header bug found by the screenshots and fixed:** the tabs, More menu and Sign out did not fit 390 pixels (More was cut off). Tabs now take their own row on small screens and the menu opens inside the screen. Regression test added and shown to fail on the old layout.
+- Back links already said Today; the only exception is the review of a program started in Program, which goes back to Program. Page and function names match the new names.
+- Screenshots: `docs/screenshots/navigation/` (README there).
+- The live test checklist now describes the three tabs and More, the inline joiner and minutes jobs, the old addresses redirecting, and a "normal morning from Today alone" section.
+
