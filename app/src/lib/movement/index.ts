@@ -1,10 +1,8 @@
 import { matchExercise, norm } from "../library";
-import boxJump from "./data/box-jump.json";
-import dropJump from "./data/drop-jump.json";
-import nordic from "./data/nordic-hamstring-curl.json";
+import { ALL } from "./data";
 import type { Movement } from "./types";
 
-export const MOVEMENTS = [boxJump, dropJump, nordic] as unknown as Movement[];
+export const MOVEMENTS: Movement[] = ALL;
 
 const byId = new Map(MOVEMENTS.map((m) => [m.id, m]));
 const byName = new Map(MOVEMENTS.flatMap((m) => [m.name, ...m.names].map((n) => [norm(n), m] as const)));
