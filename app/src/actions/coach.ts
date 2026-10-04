@@ -12,6 +12,8 @@ import { readFixtureDates } from "@/lib/fixtures";
 import { planFor, playerExerciseNames } from "@/lib/plan";
 import { validateOverride } from "@/lib/overrides";
 import { runAgentFor, todayStr } from "@/lib/run-agent";
+import { KEYS, type TKey } from "@/lib/agent/thresholds";
+import { suggestions } from "@/lib/tuning";
 import { isRoutine, ruleStats } from "@/lib/autonomy";
 import { allRules } from "@/lib/rules";
 import { cleanCalendarUrl } from "@/lib/calendar";
@@ -20,7 +22,7 @@ import { readMinutes } from "@/lib/minutes";
 import { fileToText } from "@/lib/read/files";
 import { POSITIONS, readSquad, storedPlayers } from "@/lib/squad";
 import {
-  approvePlayer, CODE_RE, getAutonomy, listProposals, setAskAlways, setAutonomy, undoDelegated, saveCalendarLink, getNotice, listAthletes, saveMinutes, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
+  approvePlayer, CODE_RE, getTuning, setThreshold, snoozeThreshold, getAutonomy, listProposals, setAskAlways, setAutonomy, undoDelegated, saveCalendarLink, getNotice, listAthletes, saveMinutes, createPlayers, decideProposal, deleteAthleteData, getAthlete, getProposal, resetLink, createOverride, liftOverride, setFixtures, setGroup, setNotice, setProtected,
 } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
@@ -360,4 +362,39 @@ export async function askAlwaysAction(f: FormData) {
   if (a) await setAskAlways(a.code, text(f, "on") === "yes");
   revalidatePath(`/coach/athletes/${text(f, "code")}`);
   redirect(`/coach/athletes/${text(f, "code")}`);
+}
+
+// ---- tuning a rule's number, from a suggestion the coach chose to accept
+const tkey = (f: FormData): TKey | null => (KEYS.includes(text(f, "key") as TKey) ? (text(f, "key") as TKey) : null);
+
+export async function applyTuning(f: FormData) {
+  const { club, name } = await requireStaff("coach");
+  const key = tkey(f);
+  if (key) {
+    // Worked out again here from the coach's record, so a stale or forged form cannot set any other number.
+    const s = suggestions(await listProposals(club, 500), (await getTuning(club)).thresholds, todayStr(), await getTuning(club)).find((x) => x.key === key);
+    if (s) await setThreshold(club, key, s.to, name);
+  }
+  revalidatePath("/coach/results");
+  redirect("/coach/results#rules");
+}
+
+export async function dismissTuning(f: FormData) {
+  const { club } = await requireStaff("coach");
+  const key = tkey(f);
+  if (key) {
+    const until = new Date(`${todayStr()}T00:00:00Z`);
+    until.setUTCDate(until.getUTCDate() + 14);
+    await snoozeThreshold(club, key, until.toISOString().slice(0, 10));
+  }
+  revalidatePath("/coach/results");
+  redirect("/coach/results#rules");
+}
+
+export async function resetTuning(f: FormData) {
+  const { club, name } = await requireStaff("coach");
+  const key = tkey(f);
+  if (key) await setThreshold(club, key, null, name);
+  revalidatePath("/coach/results");
+  redirect("/coach/results#rules");
 }

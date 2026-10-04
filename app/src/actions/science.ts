@@ -7,7 +7,7 @@ import { agrees, summarize } from "@/lib/agent/score";
 import { AGENT_LIMITS, buildEdits } from "@/lib/edits";
 import { activeRules, allRules, rulesHash } from "@/lib/rules";
 import { scenarioById, SCENARIOS } from "@/lib/scenarios";
-import { listLabels, saveEvalRun, saveLabel, saveRule, type EvalResult, type RuleRow } from "@/lib/store";
+import { getTuning, listLabels, saveEvalRun, saveLabel, saveRule, type EvalResult, type RuleRow } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const DECISIONS = ["none", "reduce", "swap", "rest", "flag_only", "increase"];
@@ -72,6 +72,8 @@ export async function runScenario(id: string): Promise<EvalResult> {
     const { proposal, verdict } = decide(
       { athlete: s.athlete, planned_session: s.planned_session, last_14_days: s.last_14_days },
       new Set(activeRules(rules).map((r) => r.id)),
+      undefined,
+      (await getTuning(club)).thresholds,
     );
     const agree = label ? agrees({ decision: label.decision, edits: label.edits }, { decision: proposal.decision, edits: verdict.accepted }, s.planned_session.exercises) : null;
     return { ...base, decision: proposal.decision, edits: verdict.accepted, reason: proposal.reason, error: null, agree };

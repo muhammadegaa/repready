@@ -448,6 +448,9 @@ test("routine suggestions are approved together, everything else stays with the 
   await expect(page.getByText("Never automatic").first()).toBeVisible();
   await expect(page.getByText("Not enough history yet").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Let the agent handle it" })).toHaveCount(0);
+  await expect(page.getByText("Tuning the rules")).toBeVisible();
+  await expect(page.getByText("No suggestions right now.")).toBeVisible();
+  await expect(page.getByText(/Fires on sleep below/)).toBeVisible();
 });
 
 test("Today points out who is trending down, does not call new players quiet, and the trust page says what it never does", async ({ page }) => {

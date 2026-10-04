@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { getFirestore } from "firebase-admin/firestore";
+import { allRules } from "./rules";
 import { dayStr, runAgentFor, todayStr } from "./run-agent";
 import {
-  createClubWithOwner, createPlayers, decideProposal, getAthlete, getAutonomy, giveConsentTo, getProposal, listProposals, replaceSessions, saveCheckin, saveProposal, setAskAlways, setAutonomy, undoDelegated,
+  createClubWithOwner, createPlayers, decideProposal, getTuning, setThreshold, getAthlete, getAutonomy, giveConsentTo, getProposal, listProposals, replaceSessions, saveCheckin, saveProposal, setAskAlways, setAutonomy, undoDelegated,
 } from "./store";
 
 // Needs the Firestore emulator: npm run test:emulator
@@ -89,5 +90,23 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("the autonomy ladder (Fire
     expect((await getProposal(code, today))?.status).toBe("pending");
     expect((await getAutonomy(id)).delegated).toContain("R7"); // stored, but ignored
     expect((await listProposals(id, 50)).some((p) => p.decided_by === "delegated" && p.on_date === today)).toBe(false);
+  });
+
+  it("a rule's number is the club's own: a looser sleep threshold stops the rule firing, is kept inside the safe range, and shows in the rule's text", async () => {
+    const { id, code } = await club("Tune FC");
+    await saveCheckin(code, dayStr(today, 1), { sleep_h: 5.8, soreness: 3, stress: 3, note: null });
+    await saveCheckin(code, today, { sleep_h: 5.8, soreness: 3, stress: 3, note: null });
+    await runAgentFor(code, today);
+    expect((await getProposal(code, today))?.rules_applied).toEqual(["R1"]); // standard threshold: sleep below 6 fires
+
+    expect(await setThreshold(id, "R1_sleep", 5.5, "Coach")).toBe(true);
+    await runAgentFor(code, today);
+    expect((await getProposal(code, today))?.status).toBe("no_change"); // 5.8 is no longer below the line
+    expect((await allRules(id)).find((r) => r.id === "R1")?.trigger).toContain("below 5.5");
+
+    await setThreshold(id, "R1_sleep", 2, "Coach"); // far outside the safe range
+    expect((await getTuning(id)).thresholds.R1_sleep).toBe(5);
+    await setThreshold(id, "R1_sleep", null, "Coach");
+    expect((await getTuning(id)).thresholds.R1_sleep).toBe(6);
   });
 });

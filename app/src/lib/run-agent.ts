@@ -7,7 +7,7 @@ import { mayAutoApply, ruleStats } from "./autonomy";
 import { CONSENT_VERSION } from "./consent";
 import { activeRules, allRules } from "./rules";
 import {
-  clubOf, decideProposal, getAthlete, getAutonomy, getFixtures, listProposals, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionsForDates,
+  clubOf, decideProposal, getAthlete, getAutonomy, getTuning, getFixtures, listProposals, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionsForDates,
   type ProposalRow, type SessionRow,
 } from "./store";
 
@@ -73,7 +73,7 @@ export async function runAgentFor(code: string, today: string): Promise<void> {
   try {
     const active = new Set(activeRules(await allRules(clubOf(code))).map((r) => r.id));
     const ctx = { injuryFlaggedExercises: athlete.protected, clearedExercises: [] as string[] };
-    const { proposal, verdict } = decide(await buildScenario(code, today, session, athlete.group, plan.resolved.exercises), active, ctx);
+    const { proposal, verdict } = decide(await buildScenario(code, today, session, athlete.group, plan.resolved.exercises), active, ctx, (await getTuning(clubOf(code))).thresholds);
     const dropped = verdict.rejected.map((r) => r.why);
     if (!verdict.reasonOk) {
       row = { ...base, decision: proposal.decision, edits: [], reason: null, rules_applied: [], flag: null, status: "error", error: "Agent reason contained medical language and was discarded. Planned session stands." };

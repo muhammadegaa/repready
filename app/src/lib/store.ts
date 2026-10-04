@@ -793,6 +793,30 @@ export async function decideProposal(
   return d;
 }
 
+// ---- rule thresholds (see lib/agent/thresholds.ts): the club's own numbers for four rules, with when they changed and any snooze
+import { clamp, KEYS, readThresholds, type Thresholds, type TKey } from "./agent/thresholds";
+export type Tuning = { thresholds: Thresholds; changed_at: Record<string, string>; snoozed_until: Record<string, string> };
+export async function getTuning(club: string): Promise<Tuning> {
+  const t = (await fs.collection("clubs").doc(club).get()).data()?.tuning;
+  return { thresholds: readThresholds(t?.values), changed_at: t?.changed_at ?? {}, snoozed_until: t?.snoozed_until ?? {} };
+}
+export async function setThreshold(club: string, key: TKey, value: number | null, by: string): Promise<boolean> {
+  if (!KEYS.includes(key)) return false;
+  const cur = await getTuning(club);
+  const next = value === null ? readThresholds({})[key] : clamp(key, value);
+  const ref = fs.collection("clubs").doc(club);
+  await ref.set({ tuning: { values: { ...cur.thresholds, [key]: next }, changed_at: { ...cur.changed_at, [key]: new Date().toISOString() }, snoozed_until: cur.snoozed_until } }, { merge: true });
+  await logEvent(club, { type: "rule_tuning", athlete_code: null, athlete_name: null, text: `${by} set ${key.replace("_", " ")} to ${next}${value === null ? " (the default)" : ""}` });
+  await touch(club, "coach", "science");
+  return true;
+}
+export async function snoozeThreshold(club: string, key: TKey, until: string): Promise<void> {
+  if (!KEYS.includes(key)) return;
+  const cur = await getTuning(club);
+  await fs.collection("clubs").doc(club).set({ tuning: { values: cur.thresholds, changed_at: cur.changed_at, snoozed_until: { ...cur.snoozed_until, [key]: until } } }, { merge: true });
+  await touch(club, "coach");
+}
+
 // Takes back something the agent applied under a standing instruction: the player's plan stands again, and it does not count as a coach decision.
 export async function undoDelegated(club: string, id: string): Promise<boolean> {
   if (clubOf(id) !== club) return false;

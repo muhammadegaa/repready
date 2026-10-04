@@ -1,6 +1,7 @@
 import { enforceLimits, type LimitContext, type Verdict } from "./limits";
 import type { Edit, Exercise, Proposal } from "./schema";
 import type { Scenario } from "./propose";
+import { DEFAULTS, type Thresholds } from "./thresholds";
 
 type Day = {
   day: number;
@@ -18,7 +19,7 @@ const PAIN = /\b(pain\w*|injur\w*|sharp|spasm\w*|twinge|pulled|strain\w*|sprain\
 export type Finding = { rule: string; why: string };
 
 // Which rules fire, from the numbers alone. Rules the scientist deleted are skipped.
-export function evaluate(s: Scenario, active: Set<string>): Finding[] {
+export function evaluate(s: Scenario, active: Set<string>, t: Thresholds = DEFAULTS): Finding[] {
   const days = (s.last_14_days as Day[]).slice().sort((a, b) => a.day - b.day);
   const today = days.find((d) => d.day === 0);
   const on = (id: string, why: string, out: Finding[]) => active.has(id) && out.push({ rule: id, why });
@@ -40,19 +41,19 @@ export function evaluate(s: Scenario, active: Set<string>): Finding[] {
   }
 
   const sleeps = days.filter((d) => d.sleep_h != null).slice(-2);
-  if (sleeps.length === 2 && sleeps.every((d) => d.sleep_h! < 6)) {
+  if (sleeps.length === 2 && sleeps.every((d) => d.sleep_h! < t.R1_sleep)) {
     on("R1", `Slept ${sleeps[0].sleep_h} h and ${sleeps[1].sleep_h} h on the last two nights.`, out);
   }
 
   const deltas = days.filter((d) => d.session?.completed && d.session.rpe_delta != null).slice(-4).map((d) => d.session!.rpe_delta!);
-  const over = deltas.filter((x) => x >= 2).length;
+  const over = deltas.filter((x) => x >= t.R2_over).length;
   const under = deltas.filter((x) => x <= -2).length;
-  if (over >= 3) on("R2", `Effort ran 2 or more above target in ${over} of the last ${deltas.length} sessions.`, out);
+  if (over >= 3) on("R2", `Effort ran ${t.R2_over} or more above target in ${over} of the last ${deltas.length} sessions.`, out);
 
   const sore = today?.soreness?.overall;
-  if (sore != null && sore >= 7) on("R3", `Soreness reported at ${sore}/10.`, out);
+  if (sore != null && sore >= t.R3_soreness) on("R3", `Soreness reported at ${sore}/10.`, out);
 
-  if ((today?.stress ?? 0) >= 8 && today?.sleep_h != null && today.sleep_h < 6.5) {
+  if ((today?.stress ?? 0) >= t.R4_stress && today?.sleep_h != null && today.sleep_h < 6.5) {
     on("R4", `Stress ${today.stress}/10 with ${today.sleep_h} h sleep.`, out);
   }
 
@@ -81,8 +82,8 @@ const NOTE_FLAG: Record<string, string> = {
 export type Result = { proposal: Proposal; verdict: Verdict; corrected: boolean };
 
 // Rules decide. No model is involved: a quiet morning costs nothing and a model outage cannot stop the morning.
-export function decide(s: Scenario, active: Set<string>, ctx: LimitContext = { injuryFlaggedExercises: [], clearedExercises: [] }): Result {
-  const findings = evaluate(s, active);
+export function decide(s: Scenario, active: Set<string>, ctx: LimitContext = { injuryFlaggedExercises: [], clearedExercises: [] }, t: Thresholds = DEFAULTS): Result {
+  const findings = evaluate(s, active, t);
   const planned = s.planned_session.exercises;
   const ids = findings.map((f) => f.rule);
   const reason = findings.map((f) => f.why).join(" ");

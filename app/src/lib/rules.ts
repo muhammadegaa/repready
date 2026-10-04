@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import bundled from "./agent/rules.json";
-import { listRuleOverrides, type RuleRow } from "./store";
+import { triggerText } from "./agent/thresholds";
+import { getTuning, listRuleOverrides, type RuleRow } from "./store";
 
 export type Rule = {
   id: string;
@@ -26,8 +27,10 @@ const base: Rule[] = bundled.rules.map((r) => ({
 
 // Every rule, with the scientist's saved edits replacing the bundled text.
 export async function allRules(club: string): Promise<Rule[]> {
-  const saved = new Map((await listRuleOverrides(club)).map((r) => [r.id, r]));
-  return base.map((r) => saved.get(r.id) ?? r);
+  const [overrides, tuning] = await Promise.all([listRuleOverrides(club), getTuning(club)]);
+  const saved = new Map(overrides.map((r) => [r.id, r]));
+  // The sentence a coach reads under "Rule applied" carries the club's own number, unless a scientist rewrote the rule's text.
+  return base.map((r) => saved.get(r.id) ?? { ...r, trigger: triggerText(r.id, tuning.thresholds) ?? r.trigger });
 }
 
 export const activeRules = (rules: Rule[]) => rules.filter((r) => r.keep !== "delete");

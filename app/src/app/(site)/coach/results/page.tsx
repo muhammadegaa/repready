@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { setAutopilotPaused, setDelegation } from "@/actions/coach";
+import { applyTuning, dismissTuning, resetTuning, setAutopilotPaused, setDelegation } from "@/actions/coach";
 import { PendingButton } from "@/components/Pending";
 import { btn, btnGhost, Card, Chip, Eyebrow } from "@/components/ui";
 import { MIN_DECISIONS, MIN_RATE, NEVER_AUTOMATIC, ruleStats, WINDOW_DAYS } from "@/lib/autonomy";
+import { DEFAULTS, KEYS, TUNABLE } from "@/lib/agent/thresholds";
+import { suggestions } from "@/lib/tuning";
 import { CONSENT_VERSION } from "@/lib/consent";
 import { allRules } from "@/lib/rules";
 import { requirePage } from "@/lib/auth";
 import { summarise } from "@/lib/results";
 import { addDays } from "@/lib/read/program";
 import { todayStr } from "@/lib/run-agent";
-import { checkinCodesSince, getAutonomy, listAthletes, listProposals } from "@/lib/store";
+import { checkinCodesSince, getAutonomy, getTuning, listAthletes, listProposals } from "@/lib/store";
 
 export const metadata = { title: "Results" };
 export const dynamic = "force-dynamic";
@@ -31,7 +33,9 @@ export default async function Results(props: PageProps<"/coach/results">) {
   const { autoerr } = await props.searchParams;
   const { club } = await requirePage("coach");
   const from = addDays(todayStr(), -(DAYS - 1));
-  const [athletes, codes, proposals, rules, autonomy] = await Promise.all([listAthletes(club), checkinCodesSince(club, from), listProposals(club, 500), allRules(club), getAutonomy(club)]);
+  const [athletes, codes, proposals, rules, autonomy, tuning] = await Promise.all([listAthletes(club), checkinCodesSince(club, from), listProposals(club, 500), allRules(club), getAutonomy(club), getTuning(club)]);
+  const realProposals = proposals.filter((p) => !athletes.find((a) => a.code === p.athlete_code)?.sample);
+  const tips = suggestions(realProposals, tuning.thresholds, todayStr(), tuning);
   const stats = ruleStats(proposals.filter((p) => !athletes.find((a) => a.code === p.athlete_code)?.sample), todayStr(), rules.map((r) => r.id));
   // Fictional sample players never count towards a club's own numbers.
   const real = new Set(athletes.filter((a) => a.approved && !a.sample).map((a) => a.code));
@@ -70,6 +74,34 @@ export default async function Results(props: PageProps<"/coach/results">) {
           </section>
         </>
       )}
+
+      <section id="rules" className="space-y-3">
+        <Eyebrow>Tuning the rules</Eyebrow>
+        <Card className="space-y-4 p-5">
+          <p className="max-w-2xl text-sm text-muted">If you keep the plan for most of a rule&apos;s suggestions, the agent offers to fire that rule a little less often, one small step at a time. Nothing changes until you say yes. The hard limits (never raise load, never cut more than a quarter, pain and illness always come to you) are not part of this.</p>
+          {tips.length === 0 ? (
+            <p className="text-sm">No suggestions right now. They appear when a rule has had at least 8 of your decisions and you kept the plan for most.</p>
+          ) : tips.map((t) => (
+            <div key={t.key} className="space-y-2 rounded-md border border-brand/30 bg-brand-soft/50 p-4">
+              <p className="text-sm">{t.text}</p>
+              <div className="flex gap-3">
+                <form action={applyTuning}><input type="hidden" name="key" value={t.key} /><PendingButton className={btn} pending="Saving…">Yes, change it</PendingButton></form>
+                <form action={dismissTuning}><input type="hidden" name="key" value={t.key} /><PendingButton className="text-sm text-muted underline underline-offset-4" pending="…">Not now</PendingButton></form>
+              </div>
+            </div>
+          ))}
+          <ul className="divide-y divide-line rounded-md border border-line text-sm">
+            {KEYS.map((k) => (
+              <li key={k} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+                <span><span className="mr-2 font-mono text-xs text-muted">{TUNABLE[k].rule}</span>Fires on {TUNABLE[k].label} <b>{tuning.thresholds[k]}{TUNABLE[k].unit}</b>{tuning.thresholds[k] !== DEFAULTS[k] ? <span className="text-muted"> (standard {DEFAULTS[k]}{TUNABLE[k].unit})</span> : null}</span>
+                {tuning.thresholds[k] !== DEFAULTS[k] && (
+                  <form action={resetTuning}><input type="hidden" name="key" value={k} /><PendingButton className="text-sm text-muted underline underline-offset-4" pending="…">Back to standard</PendingButton></form>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </section>
 
       <section id="autonomy" className="space-y-3">
         <Eyebrow>How much the agent does for you</Eyebrow>
