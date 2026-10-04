@@ -85,3 +85,7 @@ export const homeFor = (s: Pick<Session, "roles">) => (s.roles.includes("coach")
 export async function signOut(): Promise<void> {
   (await cookies()).delete(COOKIE);
 }
+
+// The people who run the pilot (not club staff) are listed by email in PLATFORM_ADMIN_EMAILS. Empty means nobody.
+export const isPlatformAdmin = (email: string) =>
+  (process.env.PLATFORM_ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean).includes(email.trim().toLowerCase());

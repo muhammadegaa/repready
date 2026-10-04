@@ -138,3 +138,6 @@ Palette **B, pitch and chalk**: chalk-white page, deep pitch-green actions and a
 
 ## Re-consent for the autonomy wording (2026-10-04)
 Consent is versioned (`lib/consent.ts`, version 2 adds "a coach may hand routine small reductions to the agent"). New players agree to version 2. A player on version 1 sees a short "small update" card on their page once any rule is handed over, can keep checking in as normal, and until they agree the agent never auto-applies anything for them (their suggestions come to the coach). Results shows the coach how many players have not yet agreed. Tested against the emulator.
+
+## Pilot health view (2026-10-04)
+`/admin`, for the people listed in `PLATFORM_ADMIN_EMAILS` (404 for everyone else): every club with four milestones (program confirmed, players agreed on their own phones, half the squad checking in over 7 days, coach deciding most days), the next milestone, and signals to act on (not subscribed, no program after a week, coach set up and nobody joined, no check-ins in 7 days, suggestions piling up). Also the waitlist (it was stored but never shown). Sample players and sessions never count. Set `PLATFORM_ADMIN_EMAILS` in Vercel to your own sign-in email.

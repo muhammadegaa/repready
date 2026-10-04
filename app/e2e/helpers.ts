@@ -4,8 +4,8 @@ export const PASSWORD = "e2e-password-123";
 export const today = () => new Date().toISOString().slice(0, 10);
 export const uniq = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
-export async function signUp(page: Page, club = `E2E FC ${uniq()}`) {
-  const email = `coach-${uniq()}@e2e.test`;
+export async function signUp(page: Page, club = `E2E FC ${uniq()}`, emailOverride?: string) {
+  const email = emailOverride ?? `coach-${uniq()}@e2e.test`;
   await page.goto("/signup");
   await page.locator("#club").fill(club);
   await page.locator("#name").fill("Alex Coach");

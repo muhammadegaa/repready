@@ -464,3 +464,18 @@ test("Today points out who is trending down, does not call new players quiet, an
   await expect(page.getByRole("heading", { name: /What RepReady does, and what it never does/ })).toBeVisible();
   await expect(page.getByText("Raises sets, reps or load above the plan.")).toBeVisible();
 });
+
+test("the pilot health view is invisible to club staff", async ({ page }) => {
+  await signUp(page);
+  const res = await page.goto("/admin");
+  expect(res?.status()).toBe(404);
+});
+
+test("the person running the pilot sees every club, how far it has got and what to look at", async ({ page }) => {
+  await signUp(page, `Watched FC ${uniq()}`, "pilot-admin@e2e.test");
+  await page.goto("/admin");
+  await expect(page.getByRole("heading", { name: "Pilot health" })).toBeVisible();
+  await expect(page.getByText("Program confirmed").first()).toBeVisible();
+  await expect(page.getByText("Next:").first()).toBeVisible();
+  await expect(page.getByText(/Waitlist/)).toBeVisible();
+});
