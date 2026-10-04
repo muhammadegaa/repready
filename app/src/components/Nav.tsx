@@ -37,7 +37,7 @@ export function Nav({ links, more = [] }: { links: NavLink[]; more?: Group[] }) 
             More <span aria-hidden className="text-[10px]">▾</span>
           </button>
           {open && (
-            <div role="menu" className="absolute left-0 top-full z-20 mt-2 min-w-52 rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+            <div role="menu" className="absolute right-0 top-full z-20 mt-2 min-w-52 rounded-xl border border-line bg-surface p-1.5 shadow-lg sm:left-0 sm:right-auto">
               {more.map((g, i) => (
                 <div key={g.title ?? i} className={i ? "mt-1 border-t border-line pt-1" : ""}>
                   {g.title && <div className="px-3 pb-1 pt-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-muted">{g.title}</div>}

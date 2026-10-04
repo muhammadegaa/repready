@@ -588,3 +588,23 @@ test("a normal day is done from Today alone: confirm a joiner, say who played, a
   await expect(page.getByRole("button", { name: "Take it back" })).toBeVisible();
   await stillOnToday();
 });
+
+test("on a phone the header fits, and the More menu opens inside the screen", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signUp(page);
+  const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+  expect(await fits()).toBe(true);
+  await expect(page.getByRole("link", { name: "Today", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+  await page.getByRole("button", { name: /More/ }).click();
+  const menu = page.getByRole("menu");
+  await expect(menu).toBeVisible();
+  const box = (await menu.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await expect(page.getByRole("menuitem", { name: "Agent" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Staff" })).toBeVisible();
+  expect(await fits()).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(menu).toHaveCount(0);
+});

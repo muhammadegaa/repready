@@ -16,13 +16,12 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   ];
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 sm:px-6">
-      <header className="flex items-center justify-between gap-4 border-b border-line py-3.5">
-        <div className="flex items-center gap-6">
-          <Brand href={s ? homeFor(s) : "/"} />
-          {s && <Nav links={links} more={more} />}
-        </div>
+      {/* On a phone the tabs take their own row under the brand and Sign out, so nothing is pushed off the screen. */}
+      <header className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-line py-3.5">
+        <Brand href={s ? homeFor(s) : "/"} />
+        {s && <div className="order-3 w-full sm:order-none sm:w-auto"><Nav links={links} more={more} /></div>}
         {s ? (
-          <form action={signOutAction} className="flex items-center gap-3">
+          <form action={signOutAction} className="ml-auto flex items-center gap-3">
             <span className="hidden text-right text-xs leading-tight text-muted sm:block">
               <span className="block font-medium text-ink">{s.clubName}</span>
               {s.name}
@@ -30,7 +29,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
             <button className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-paper">Sign out</button>
           </form>
         ) : (
-          <a href="/signin" className="rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-paper">Sign in</a>
+          <a href="/signin" className="ml-auto rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-paper">Sign in</a>
         )}
       </header>
       {s && requireEmailConfirmation() && !s.verified && (
