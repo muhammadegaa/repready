@@ -6,6 +6,7 @@ import { cleanGroup, pickSession } from "./groups";
 import { isActive, type Override } from "./overrides";
 import type { ProgramDraft } from "./read/program";
 import { decisionCopy } from "./copy";
+import { CONSENT_VERSION } from "./consent";
 
 // Hosted (Vercel): FIREBASE_SERVICE_ACCOUNT holds the service-account JSON on one line.
 // Local with the emulator: no credential is needed, only FIRESTORE_EMULATOR_HOST.
@@ -35,6 +36,7 @@ export type AthleteRow = {
   protected: string[];
   group: string | null; // the coach's group for this player; null means Everyone
   sample: boolean; // fictional player created by the sample squad, removable in one click
+  consent_version: number; // 0 not agreed; see lib/consent.ts
   ask_always: boolean; // the coach wants every suggestion for this player to come to them, whatever is delegated
   created_at: string;
 };
@@ -95,6 +97,7 @@ const athlete = (code: string, d: DocumentData): AthleteRow => ({
   protected: d.protected ?? [],
   group: cleanGroup(d.group),
   sample: d.sample === true,
+  consent_version: typeof d.consent_version === "number" ? d.consent_version : d.consented_at ? 1 : 0,
   ask_always: d.ask_always === true,
   created_at: d.created_at ?? "",
 });
@@ -362,7 +365,7 @@ export async function createPlayers(club: string, players: NewPlayerInput[], opt
       approved: opts.approved ?? true, joined_via: opts.via ?? "staff",
       group: cleanGroup(p.group), sample: opts.sample === true,
       // Only sample players start already agreed; a real player always agrees themselves, on their own phone.
-      consented_at: opts.sample && p.consented ? now : null, device_token: null, claimed_at: null, protected: [],
+      consented_at: opts.sample && p.consented ? now : null, consent_version: opts.sample && p.consented ? CONSENT_VERSION : 0, device_token: null, claimed_at: null, protected: [],
       created_at: new Date(Date.parse(now) + i).toISOString(),
     });
   });
@@ -424,15 +427,21 @@ export async function giveConsentTo(code: string): Promise<void> {
   const club = clubOf(code);
   const ref = col(club, "athletes").doc(code);
   let name: string | null = null;
+  let updated = false;
   await fs.runTransaction(async (t) => {
     const s = await t.get(ref);
-    if (s.exists && !s.get("consented_at")) {
-      t.update(ref, { consented_at: new Date().toISOString() });
+    if (!s.exists) return;
+    if (!s.get("consented_at")) {
+      t.update(ref, { consented_at: new Date().toISOString(), consent_version: CONSENT_VERSION });
       name = s.get("name");
+    } else if ((s.get("consent_version") ?? 1) < CONSENT_VERSION) {
+      t.update(ref, { consent_version: CONSENT_VERSION, consent_updated_at: new Date().toISOString() });
+      name = s.get("name");
+      updated = true;
     }
   });
   if (name) {
-    await logEvent(club, { type: "consent", athlete_code: code, athlete_name: name, text: `${name} agreed to the data terms` });
+    await logEvent(club, { type: "consent", athlete_code: code, athlete_name: name, text: updated ? `${name} agreed to the updated data terms` : `${name} agreed to the data terms` });
     await touch(club, "coach", `a_${code}`);
   }
 }

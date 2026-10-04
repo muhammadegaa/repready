@@ -10,7 +10,8 @@ import { ago, dateLabel, decisionCopy } from "@/lib/copy";
 import { isLinkOwner } from "@/lib/player-auth";
 import { polarEnabled } from "@/lib/polar";
 import { todayStr } from "@/lib/run-agent";
-import { getClub, getPolarLink, getPulse } from "@/lib/store";
+import { CONSENT_VERSION } from "@/lib/consent";
+import { getAutonomy, getClub, getPolarLink, getPulse } from "@/lib/store";
 import { athleteToday } from "@/lib/views";
 import { PREVIEW, providerName } from "@/lib/wearables";
 
@@ -27,7 +28,7 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
   const { polar: polarResult } = await props.searchParams;
   const v = await athleteToday(code, today);
   if (!v) notFound();
-  const [pulse, polarLink, club] = await Promise.all([getPulse(v.athlete.club, `a_${code}`), polarEnabled() ? getPolarLink(code) : Promise.resolve(null), getClub(v.athlete.club)]);
+  const [pulse, polarLink, club, autonomy] = await Promise.all([getPulse(v.athlete.club, `a_${code}`), polarEnabled() ? getPolarLink(code) : Promise.resolve(null), getClub(v.athlete.club), getAutonomy(v.athlete.club)]);
   const { athlete, session, changed, checkin, readiness, proposal, status, week, rpeToday, prev } = v;
   const first = athlete.name.split(" ")[0];
   const preview = !process.env.JUNCTION_API_KEY && process.env.NODE_ENV !== "production";
@@ -95,6 +96,18 @@ export default async function AthleteView(props: PageProps<"/a/[code]">) {
         <h1 className="text-3xl font-semibold leading-tight tracking-tight">{session ? session.label : "No session today"}</h1>
         <p className="text-sm text-muted">{athlete.name}{athlete.group ? ` · ${athlete.group}` : ""}{session?.week_type === "deload" ? " · deload week" : ""}</p>
       </header>
+
+      {athlete.consent_version < CONSENT_VERSION && autonomy.delegated.length > 0 && !autonomy.paused && (
+        <Card className="space-y-3 border-brand/30 bg-brand-soft/50 p-4 text-sm leading-relaxed">
+          <p><b>A small update from {club?.name ?? "your club"}.</b> Your coach may now let RepReady apply routine small reductions to your session for them, such as one set fewer. They can take any of them back. Pain or illness is never changed automatically, and you still only see the session your coach has approved.</p>
+          <p className="text-muted">Until you agree, nothing is applied for you without your coach looking at it first. Your check-in works as usual.</p>
+          <form action={giveConsent} className="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="code" value={code} />
+            <input type="hidden" name="agree" value="yes" />
+            <PendingButton className={btn} pending="Saving…">OK, I understand</PendingButton>
+          </form>
+        </Card>
+      )}
 
       {session && <Steps steps={["Check in", "Coach reviews", "Session ready"]} active={active} warn={status === "agent_error"} />}
 

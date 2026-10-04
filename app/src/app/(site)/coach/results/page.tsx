@@ -3,6 +3,7 @@ import { setAutopilotPaused, setDelegation } from "@/actions/coach";
 import { PendingButton } from "@/components/Pending";
 import { btn, btnGhost, Card, Chip, Eyebrow } from "@/components/ui";
 import { MIN_DECISIONS, MIN_RATE, NEVER_AUTOMATIC, ruleStats, WINDOW_DAYS } from "@/lib/autonomy";
+import { CONSENT_VERSION } from "@/lib/consent";
 import { allRules } from "@/lib/rules";
 import { requirePage } from "@/lib/auth";
 import { summarise } from "@/lib/results";
@@ -103,6 +104,14 @@ export default async function Results(props: PageProps<"/coach/results">) {
               );
             })}
           </div>
+          {autonomy.delegated.length > 0 && (() => {
+            const waiting = athletes.filter((a) => a.approved && !a.sample && a.consented_at && a.consent_version < CONSENT_VERSION);
+            return waiting.length > 0 ? (
+              <p className="rounded-md border border-warn/30 bg-warn-bg p-3 text-sm text-warn">
+                {waiting.length} player{waiting.length === 1 ? " has" : "s have"} not yet agreed to the update that lets the agent apply routine trims ({waiting.slice(0, 5).map((a) => a.name).join(", ")}{waiting.length > 5 ? ", …" : ""}). Until they do, every suggestion for them still comes to you. They see a short note on their page.
+              </p>
+            ) : null;
+          })()}
           <form action={setAutopilotPaused} className="flex items-center justify-between gap-3 text-sm">
             <span>{autonomy.paused ? "Paused: nothing is applied without you, whatever is switched on." : "Pause everything at once if you want every suggestion to come to you."}</span>
             <input type="hidden" name="paused" value={autonomy.paused ? "no" : "yes"} />

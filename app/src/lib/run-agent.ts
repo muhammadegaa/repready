@@ -4,6 +4,7 @@ import { planFor } from "./plan";
 import type { Scenario } from "./agent/propose";
 import type { Exercise } from "./agent/schema";
 import { mayAutoApply, ruleStats } from "./autonomy";
+import { CONSENT_VERSION } from "./consent";
 import { activeRules, allRules } from "./rules";
 import {
   clubOf, decideProposal, getAthlete, getAutonomy, getFixtures, listProposals, getCheckins, getProposal, getReadinessOn, getSessionLogs, saveProposal, sessionsForDates,
@@ -110,5 +111,7 @@ async function applyIfDelegated(code: string, row: Omit<ProposalRow, "id" | "coa
   const athlete = await getAthlete(code);
   const rules = (await allRules(club)).map((r) => r.id);
   const stats = ruleStats(await listProposals(club, 500), todayStr(), rules);
-  if (mayAutoApply(row, autonomy, stats, athlete?.ask_always ?? false)) await decideProposal(club, `${code}_${row.on_date}`, "approved", { by: "delegated" });
+  // A player who has not agreed to the current wording is never touched by a handed-over rule.
+  const mustAsk = (athlete?.ask_always ?? false) || (athlete?.consent_version ?? 0) < CONSENT_VERSION;
+  if (mayAutoApply(row, autonomy, stats, mustAsk)) await decideProposal(club, `${code}_${row.on_date}`, "approved", { by: "delegated" });
 }

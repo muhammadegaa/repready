@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { getFirestore } from "firebase-admin/firestore";
 import { dayStr, runAgentFor, todayStr } from "./run-agent";
 import {
-  createClubWithOwner, createPlayers, decideProposal, getAutonomy, getProposal, listProposals, replaceSessions, saveCheckin, saveProposal, setAskAlways, setAutonomy, undoDelegated,
+  createClubWithOwner, createPlayers, decideProposal, getAthlete, getAutonomy, giveConsentTo, getProposal, listProposals, replaceSessions, saveCheckin, saveProposal, setAskAlways, setAutonomy, undoDelegated,
 } from "./store";
 
 // Needs the Firestore emulator: npm run test:emulator
@@ -13,6 +14,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("the autonomy ladder (Fire
     const made = await createClubWithOwner(`${name} ${run}`, { email: `${name.toLowerCase().replace(/\W/g, "")}-${run}@example.com`, name: "Coach", pw: "x" });
     const id = made!.club.id;
     const code = (await createPlayers(id, [{ name: "Delegate Player", shirt: null, position: "", squad: "First team" }]))[0];
+    await giveConsentTo(code); // a player has agreed to the current wording before they can check in
     await replaceSessions(id, [{ on_date: today, label: "Lower", week_type: "normal", exercises: [{ name: "Back squat", sets: 4, reps: 5, load: "85%", target_rpe: 8 }] }]);
     return { id, code };
   }
@@ -60,6 +62,22 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("the autonomy ladder (Fire
     await shortSleep(code);
     await runAgentFor(code, today);
     expect((await getProposal(code, today))?.status).toBe("pending");
+  });
+
+  it("never touches a player who agreed to the old wording until they agree to the update, then handles them", async () => {
+    const { id, code } = await club("Reconsent FC");
+    await getFirestore().collection("clubs").doc(id).collection("athletes").doc(code).update({ consent_version: 1 }); // ...made to look like an existing player on the old wording
+    await earnR1(id, code);
+    await setAutonomy(id, { delegated: ["R1"], paused: false });
+    await shortSleep(code);
+    await runAgentFor(code, today);
+    expect((await getProposal(code, today))?.status).toBe("pending"); // still comes to the coach
+
+    await giveConsentTo(code); // the player agrees to the update
+    expect((await getAthlete(code))?.consent_version).toBe(2);
+    await saveProposal({ ...(await getProposal(code, today))!, status: "pending" } as never); // run the day again from scratch
+    await runAgentFor(code, today);
+    expect((await getProposal(code, today))?.status).toBe("approved");
   });
 
   it("never applies a pain note itself, even when every rule is handed over", async () => {
