@@ -4,6 +4,8 @@
 set -e
 export PATH=/opt/homebrew/opt/openjdk/bin:$PATH
 DEMO_OUT=${DEMO_OUT:-$PWD/demo-out}; export DEMO_OUT
+# The ElevenLabs key lives outside the repo, in ~/.config/repready/elevenlabs.env (ELEVENLABS_API_KEY=...).
+[ -f "$HOME/.config/repready/elevenlabs.env" ] && { set -a; . "$HOME/.config/repready/elevenlabs.env"; set +a; }
 npx -y firebase-tools emulators:exec --only firestore --project repready-7dacd --config ../firebase.json '
   export SESSION_SECRET=demo-only FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 NEXT_PUBLIC_PAYMENT_LINK=
   npx next dev -p 3140 > "$DEMO_OUT.server.log" 2>&1 &
