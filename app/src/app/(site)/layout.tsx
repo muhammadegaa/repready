@@ -1,9 +1,8 @@
-import { resendVerification, signOutAction } from "@/actions/auth";
+import { signOutAction } from "@/actions/auth";
 import { Brand } from "@/components/Brand";
 import { Nav } from "@/components/Nav";
 import { getSession, homeFor } from "@/lib/auth";
 import { roleLabel } from "@/lib/copy";
-import { requireEmailConfirmation } from "@/lib/mail";
 
 export default async function SiteLayout({ children }: { children: React.ReactNode }) {
   const s = await getSession();
@@ -34,12 +33,6 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           <a href="/signin" className="ml-auto rounded-md border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium hover:bg-paper">Sign in</a>
         )}
       </header>
-      {s && requireEmailConfirmation() && !s.verified && (
-        <form action={resendVerification} className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-warn/30 bg-warn-bg px-4 py-2 text-sm text-warn">
-          <span>Confirm your email address ({s.email}) to receive the morning digest.</span>
-          <button className="font-medium underline underline-offset-4">Send me the link</button>
-        </form>
-      )}
       <main className="flex-1 py-8">{children}</main>
       <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-line py-6 text-xs text-muted"><span>RepReady · Session adjustments for football performance staff. Players 18 and over. Not medical advice.</span><a href="/trust" className="underline underline-offset-4 hover:text-ink">What it does and never does</a></footer>
     </div>

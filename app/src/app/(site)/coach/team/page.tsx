@@ -63,7 +63,7 @@ export default async function Team(props: PageProps<"/coach/team">) {
               </div>
               <PendingButton className={btn} pending="Creating…">Create invite link</PendingButton>
             </form>
-            <p className="text-xs text-muted">Each link works once and expires after {STAFF_INVITE_DAYS} days. Send it to the person directly. They choose their own password.</p>
+            <p className="text-xs text-muted">Each link works once and expires after {STAFF_INVITE_DAYS} days. Send it to the person directly. They sign in with signo, with a passkey or a code sent to their email.</p>
             {invites.length > 0 && (
               <div className="divide-y divide-line rounded-md border border-line">
                 {invites.map((i) => (

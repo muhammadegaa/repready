@@ -168,3 +168,23 @@ dialog.sheet::backdrop { background: rgb(20 35 29 / 0.45); animation: fade-in va
 .frames-b { opacity: 0; animation: frames 2.4s ease-in-out infinite; }
 @keyframes frames { 0%, 35% { opacity: 0; } 50%, 85% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { dialog.sheet[open], dialog.sheet::backdrop, .frames-b { animation: none !important; } }
+
+/* "Sign in with signo", as usesigno.co.uk/docs/button gives it */
+.signo-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 18px 0 12px;
+  border: 1px solid #8A938D;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #0E1411;
+  font: 600 15px/1.2 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  text-decoration: none;
+  cursor: pointer;
+}
+.signo-button:hover { background: #F4F5F2; }
+.signo-button:focus-visible { outline: 2px solid #2D6A4F; outline-offset: 2px; }
+.signo-button svg { flex: none; }
+.signo-button:disabled { opacity: 0.6; }

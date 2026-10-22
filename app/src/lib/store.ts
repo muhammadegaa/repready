@@ -129,11 +129,11 @@ export async function listEvents(club: string, limit: number): Promise<EventRow[
 // ---- clubs and staff
 export type StaffRole = "coach" | "scientist";
 export type ClubRow = { id: string; name: string; created_at: string; paid_at: string | null };
-export type StaffRow = { id: string; email: string; name: string; club: string; roles: StaffRole[]; admin: boolean; pw: string; created_at: string; verified_at: string | null };
+export type StaffRow = { id: string; email: string; name: string; club: string; roles: StaffRole[]; admin: boolean; created_at: string; verified_at: string | null };
 export type InviteRow = { token: string; kind: "staff" | "squad"; club: string; roles: StaffRole[]; expires_at: string | null; used_at: string | null; created_at: string };
 
 const staffId = (email: string) => createHash("sha256").update(email.trim().toLowerCase()).digest("hex").slice(0, 20);
-const staffRow = (id: string, d: DocumentData): StaffRow => ({ id, email: d.email, name: d.name, club: d.club, roles: d.roles, admin: Boolean(d.admin), pw: d.pw, created_at: d.created_at, verified_at: d.verified_at ?? null });
+const staffRow = (id: string, d: DocumentData): StaffRow => ({ id, email: d.email, name: d.name, club: d.club, roles: d.roles, admin: Boolean(d.admin), created_at: d.created_at, verified_at: d.verified_at ?? null });
 const inviteRow = (token: string, d: DocumentData): InviteRow => ({ token, kind: d.kind, club: d.club, roles: d.roles ?? [], expires_at: d.expires_at ?? null, used_at: d.used_at ?? null, created_at: d.created_at });
 
 export const STAFF_INVITE_DAYS = 7;
@@ -158,13 +158,14 @@ export async function markClubPaid(id: string): Promise<boolean> {
 }
 
 // Creates the club and its first staff member, who becomes the club admin with both views. Returns null when the email already has an account.
-export async function createClubWithOwner(clubName: string, owner: { email: string; name: string; pw: string }): Promise<{ club: ClubRow; staff: StaffRow } | null> {
+// The email is confirmed: signo checked it before this runs.
+export async function createClubWithOwner(clubName: string, owner: { email: string; name: string }): Promise<{ club: ClubRow; staff: StaffRow } | null> {
   const sid = staffId(owner.email);
   const now = new Date().toISOString();
   let id = randomBytes(3).toString("hex");
   while ((await fs.collection("clubs").doc(id).get()).exists) id = randomBytes(3).toString("hex");
   const staffRef = fs.collection("staff").doc(sid);
-  const data = { email: owner.email.trim().toLowerCase(), name: owner.name, club: id, roles: ["coach", "scientist"] as StaffRole[], admin: true, pw: owner.pw, created_at: now };
+  const data = { email: owner.email.trim().toLowerCase(), name: owner.name, club: id, roles: ["coach", "scientist"] as StaffRole[], admin: true, created_at: now, verified_at: now };
   let ok = false;
   await fs.runTransaction(async (t) => {
     if ((await t.get(staffRef)).exists) return;
@@ -186,94 +187,9 @@ export async function getStaffByEmail(email: string): Promise<StaffRow | null> {
   return getStaff(staffId(email));
 }
 
-// ---- password reset. The emailed token is never stored: only its hash is, and it works once for an hour.
-const RESET_MINUTES = 60;
-const RESET_THROTTLE_MS = 60_000;
-const resetId = (token: string) => createHash("sha256").update(token).digest("hex");
-
-export async function createPasswordReset(email: string): Promise<{ token: string; staff: StaffRow } | "throttled" | null> {
-  const staff = await getStaffByEmail(email);
-  if (!staff) return null;
-  const ref = fs.collection("staff").doc(staff.id);
-  const last = (await ref.get()).get("reset_requested_at") as string | undefined;
-  if (last && Date.now() - Date.parse(last) < RESET_THROTTLE_MS) return "throttled";
-  const token = randomBytes(24).toString("hex");
-  await fs.collection("resets").doc(resetId(token)).set({
-    staff_id: staff.id, used_at: null, created_at: new Date().toISOString(), expires_at: new Date(Date.now() + RESET_MINUTES * 60_000).toISOString(),
-  });
-  await ref.update({ reset_requested_at: new Date().toISOString() });
-  return { token, staff };
-}
-
-// ---- sign-in attempt limits (see lib/login-guard.ts): one small document per hashed key
-import type { Guard } from "./login-guard";
-export async function getGuard(key: string): Promise<Guard | null> {
-  const s = await fs.collection("login_guard").doc(createHash("sha256").update(key).digest("hex").slice(0, 32)).get();
-  return s.exists ? (s.data() as Guard) : null;
-}
-export async function setGuard(key: string, g: Guard | null): Promise<void> {
-  const ref = fs.collection("login_guard").doc(createHash("sha256").update(key).digest("hex").slice(0, 32));
-  if (g === null) await ref.delete().catch(() => undefined);
-  else await ref.set(g);
-}
-
-// ---- confirming an email address: a link sent to it, good for a day, worth nothing to anyone but its owner
-const VERIFY_HOURS = 24;
-export async function createEmailVerification(staffId: string): Promise<{ token: string; email: string } | "throttled" | "done" | null> {
-  const ref = fs.collection("staff").doc(staffId);
-  const st = await ref.get();
-  if (!st.exists) return null;
-  if (st.get("verified_at")) return "done";
-  const last = st.get("verify_requested_at") as string | undefined;
-  if (last && Date.now() - Date.parse(last) < RESET_THROTTLE_MS) return "throttled";
-  const token = randomBytes(24).toString("hex");
-  await fs.collection("verifications").doc(resetId(token)).set({ staff_id: staffId, email: st.get("email"), created_at: new Date().toISOString(), expires_at: new Date(Date.now() + VERIFY_HOURS * 3_600_000).toISOString() });
-  await ref.update({ verify_requested_at: new Date().toISOString() });
-  return { token, email: st.get("email") };
-}
-
-// Marks the address confirmed. Only if the account still has the address the link was sent to.
-export async function verifyEmail(token: string): Promise<"ok" | "invalid"> {
-  if (!/^[0-9a-f]{48}$/.test(token)) return "invalid";
-  const ref = fs.collection("verifications").doc(resetId(token));
-  const v = await ref.get();
-  if (!v.exists || v.get("expires_at") <= new Date().toISOString()) return "invalid";
-  const sRef = fs.collection("staff").doc(v.get("staff_id"));
-  const st = await sRef.get();
-  if (!st.exists || st.get("email") !== v.get("email")) return "invalid";
-  if (!st.get("verified_at")) await sRef.update({ verified_at: new Date().toISOString() });
-  await ref.delete();
-  return "ok";
-}
-
-export async function resetTokenUsable(token: string): Promise<boolean> {
-  if (!/^[0-9a-f]{48}$/.test(token)) return false;
-  const s = await fs.collection("resets").doc(resetId(token)).get();
-  return s.exists && !s.get("used_at") && s.get("expires_at") > new Date().toISOString();
-}
-
-// Sets the new password and spends the token in one transaction. Other open tokens for the same person are removed.
-export async function resetPassword(token: string, pw: string): Promise<StaffRow | "invalid"> {
-  if (!/^[0-9a-f]{48}$/.test(token)) return "invalid";
-  const ref = fs.collection("resets").doc(resetId(token));
-  let result: StaffRow | "invalid" = "invalid";
-  let staffId_ = "";
-  await fs.runTransaction(async (t) => {
-    const r = await t.get(ref);
-    if (!r.exists || r.get("used_at") || r.get("expires_at") <= new Date().toISOString()) return;
-    const sRef = fs.collection("staff").doc(r.get("staff_id"));
-    const st = await t.get(sRef);
-    if (!st.exists) return;
-    t.update(sRef, st.get("verified_at") ? { pw } : { pw, verified_at: new Date().toISOString() });
-    t.update(ref, { used_at: new Date().toISOString() });
-    staffId_ = sRef.id;
-    result = staffRow(sRef.id, { ...st.data()!, pw });
-  });
-  if (staffId_) {
-    const others = await fs.collection("resets").where("staff_id", "==", staffId_).get();
-    await Promise.all(others.docs.filter((d) => d.id !== ref.id).map((d) => d.ref.delete()));
-  }
-  return result;
+// Records that signo has confirmed this account's email.
+export async function confirmEmail(id: string): Promise<void> {
+  await fs.collection("staff").doc(id).update({ verified_at: new Date().toISOString() });
 }
 
 export async function listStaff(club: string): Promise<StaffRow[]> {
@@ -326,7 +242,8 @@ export async function getInvite(token: string): Promise<InviteRow | null> {
 export const inviteUsable = (i: InviteRow | null): i is InviteRow => Boolean(i) && !i!.used_at && (i!.expires_at === null || i!.expires_at > new Date().toISOString());
 
 // Consumes a staff invite and creates the account in one transaction. "taken" means the email already has an account.
-export async function acceptStaffInvite(token: string, who: { email: string; name: string; pw: string }): Promise<StaffRow | "invalid" | "taken"> {
+// The email is confirmed: signo checked it before this runs.
+export async function acceptStaffInvite(token: string, who: { email: string; name: string }): Promise<StaffRow | "invalid" | "taken"> {
   const inviteRef = fs.collection("invites").doc(token);
   const sid = staffId(who.email);
   const staffRef = fs.collection("staff").doc(sid);
@@ -337,7 +254,8 @@ export async function acceptStaffInvite(token: string, who: { email: string; nam
     const i = inviteRow(token, inv.data()!);
     if (i.kind !== "staff" || !inviteUsable(i)) return;
     if (existing.exists) { result = "taken"; return; }
-    const data = { email: who.email.trim().toLowerCase(), name: who.name, club: i.club, roles: i.roles, admin: false, pw: who.pw, created_at: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const data = { email: who.email.trim().toLowerCase(), name: who.name, club: i.club, roles: i.roles, admin: false, created_at: now, verified_at: now };
     t.set(staffRef, data);
     t.update(inviteRef, { used_at: new Date().toISOString() });
     result = staffRow(sid, data);
@@ -908,6 +826,7 @@ export async function deleteClub(club: string): Promise<void> {
   if (!/^[0-9a-f]{6}$/.test(club)) return;
   const staff = await fs.collection("staff").where("club", "==", club).get();
   const ids = staff.docs.map((d) => d.id);
+  // Password resets and email confirmations from before signo, which older accounts may still have.
   for (const c of ["resets", "verifications"]) {
     for (let i = 0; i < ids.length; i += 30) {
       const q = await fs.collection(c).where("staff_id", "in", ids.slice(i, i + 30)).get();

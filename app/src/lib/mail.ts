@@ -27,6 +27,6 @@ export async function sendMail(m: Mail): Promise<{ sent: boolean; error?: string
   }
 }
 
-// Confirming staff email addresses is switched on with REQUIRE_EMAIL_CONFIRMATION=1 once a sending domain is verified.
-// Off, the banner is hidden and the morning digest goes to every coach address.
+// With REQUIRE_EMAIL_CONFIRMATION=1, once a sending domain is verified, the morning digest goes only to confirmed
+// addresses; signing in with signo confirms one. Off, it goes to every coach address.
 export const requireEmailConfirmation = () => process.env.REQUIRE_EMAIL_CONFIRMATION === "1";

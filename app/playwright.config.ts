@@ -4,6 +4,7 @@ import { defineConfig } from "@playwright/test";
 // set PW_CHROMIUM to its path.
 const port = Number(process.env.E2E_PORT ?? 3110);
 const llmPort = Number(process.env.FAKE_LLM_PORT ?? 3199);
+const signoPort = Number(process.env.FAKE_SIGNO_PORT ?? 3197);
 
 export default defineConfig({
   testDir: "./e2e",
@@ -19,6 +20,7 @@ export default defineConfig({
   },
   webServer: [
     { command: "node e2e/fake-llm.mjs", url: `http://127.0.0.1:${llmPort}/`, reuseExistingServer: true, timeout: 20_000, gracefulShutdown: { signal: "SIGTERM", timeout: 2000 } },
+    { command: "node e2e/fake-signo.mjs", url: `http://127.0.0.1:${signoPort}/.well-known/openid-configuration`, reuseExistingServer: true, timeout: 20_000, gracefulShutdown: { signal: "SIGTERM", timeout: 2000 } },
     {
       command: `npx next dev -p ${port}`,
       url: `http://localhost:${port}/signin`,
@@ -31,6 +33,7 @@ export default defineConfig({
         REQUIRE_EMAIL_CONFIRMATION: "1",
         PLATFORM_ADMIN_EMAILS: "pilot-admin@e2e.test",
         OPENROUTER_API_KEY: "fake", OPENROUTER_MODEL: "fake", OPENROUTER_BASE_URL: `http://127.0.0.1:${llmPort}`,
+        SIGNO_ISSUER: `http://127.0.0.1:${signoPort}`, SIGNO_CLIENT_ID: "e2e", SIGNO_CLIENT_SECRET: "e2e-secret",
       },
     },
   ],

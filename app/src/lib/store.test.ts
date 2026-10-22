@@ -1,11 +1,12 @@
+import { getFirestore } from "firebase-admin/firestore";
 import { describe, expect, it } from "vitest";
 import {
   acceptStaffInvite, approvePlayer, clubOf, countSessions, createClubWithOwner, createStaffInvite, decideProposal, deleteAthleteData, getAthlete, getCheckin, getCheckins, getNotice, getProposal, getPulse, getSessionLogs,
   giveConsentTo, hasCheckin, listAthletes, listEvalRuns, listEvents, listLabels, listProposals, listProposalsFor, listRuleOverrides, listSessions,
   logEvent, replaceSessions, saveCheckin, saveEvalRun, saveLabel, saveProposal, saveRule, saveSessionLog, sessionBefore, sessionFor, sessionsOn, setGroup,
   sessionsForDates, setNotice, setProtected, touch, saveLead, listLeads, countLeads, createPlayers, claimLink, resetLink,
-  createPasswordReset, resetPassword, resetTokenUsable, createOverride, liftOverride, listOverrides, listActiveOverrides, listClubOverrides,
-  getClub, markClubPaid, getFixtures, getManualFixtures, saveCalendarLink, getCalendarLink, hasMinutesOn, saveMinutes, setFixtures, createEmailVerification, verifyEmail, getStaff, deleteClub, getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
+  createOverride, liftOverride, listOverrides, listActiveOverrides, listClubOverrides,
+  getClub, markClubPaid, getFixtures, getManualFixtures, saveCalendarLink, getCalendarLink, hasMinutesOn, saveMinutes, setFixtures, confirmEmail, getStaff, deleteClub, getInvite, getStaffByEmail, inviteUsable, listStaff, removeStaff, squadInvite, 
 } from "./store";
 
 // Needs the Firestore emulator: npm run test:emulator
@@ -16,30 +17,30 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
   const createAthlete = async (name: string, club = C) => (await createPlayers(club, [{ name, shirt: null, position: "", squad: "First team" }]))[0];
   const ex = [{ name: "Back squat", sets: 4, reps: 5, load: "85% 1RM", target_rpe: 8 }];
 
-  it("an email address is confirmed only by its own single-use link, and a changed address voids the link", async () => {
-    const made = await createClubWithOwner(`Verify FC ${run}`, { email: `verify-${run}@example.com`, name: "Val", pw: "x" });
-    const id = made!.staff.id;
-    expect(made!.staff.verified_at).toBeNull();
-    const v = await createEmailVerification(id);
-    expect(v).toMatchObject({ email: `verify-${run}@example.com` });
-    expect(await createEmailVerification(id)).toBe("throttled");
-    expect(await verifyEmail("0".repeat(48))).toBe("invalid");
-    expect(await verifyEmail((v as { token: string }).token)).toBe("ok");
+  it("accounts made through signo start with their email confirmed, and an older account is confirmed when its owner signs in", async () => {
+    const made = await createClubWithOwner(`Verify FC ${run}`, { email: `verify-${run}@example.com`, name: "Val" });
+    expect(made!.staff.verified_at).toMatch(/^\d{4}-/);
+    // An account from the password days that never confirmed its email, as it sits in Firestore.
+    const id = `legacy-${run}`;
+    await getFirestore().collection("staff").doc(id).set({ email: `legacy-${run}@example.com`, name: "Leg", club: made!.club.id, roles: ["coach"], admin: false, pw: "salt:hash", created_at: new Date().toISOString() });
+    expect((await getStaff(id))?.verified_at).toBeNull();
+    await confirmEmail(id);
     expect((await getStaff(id))?.verified_at).toMatch(/^\d{4}-/);
-    expect(await verifyEmail((v as { token: string }).token)).toBe("invalid"); // spent
-    expect(await createEmailVerification(id)).toBe("done");
   });
 
   it("deleting a club removes its players and their data, its staff and its invites, and nothing of another club", async () => {
-    const a = await createClubWithOwner(`Gone FC ${run}`, { email: `gone-${run}@example.com`, name: "Gus", pw: "x" });
-    const b = await createClubWithOwner(`Stays FC ${run}`, { email: `stays-${run}@example.com`, name: "Sam", pw: "x" });
+    const a = await createClubWithOwner(`Gone FC ${run}`, { email: `gone-${run}@example.com`, name: "Gus" });
+    const b = await createClubWithOwner(`Stays FC ${run}`, { email: `stays-${run}@example.com`, name: "Sam" });
     const ga = a!.club.id, gb = b!.club.id;
     const pa = (await createPlayers(ga, [{ name: "Gone Player", shirt: null, position: "", squad: "First team" }]))[0];
     const pb = (await createPlayers(gb, [{ name: "Stays Player", shirt: null, position: "", squad: "First team" }]))[0];
     await saveCheckin(pa, "2026-10-01", { sleep_h: 6.5, soreness: 4, stress: 3, note: null });
     const inv = await createStaffInvite(ga, ["coach"]);
-    await createEmailVerification(a!.staff.id);
+    // An email confirmation left from before signo, as older accounts may have.
+    const old = getFirestore().collection("verifications").doc(`old-${run}`);
+    await old.set({ staff_id: a!.staff.id, email: `gone-${run}@example.com`, created_at: new Date().toISOString() });
     await deleteClub(ga);
+    expect((await old.get()).exists).toBe(false);
     expect(await getClub(ga)).toBeNull();
     expect(await getStaff(a!.staff.id)).toBeNull();
     expect(await getAthlete(pa)).toBeNull();
@@ -51,7 +52,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
   });
 
   it("fixtures are one list from typed dates and the calendar, and the prompt for minutes goes once they are logged", async () => {
-    const made = await createClubWithOwner(`Cal FC ${run}`, { email: `cal-${run}@example.com`, name: "Cal", pw: "x" });
+    const made = await createClubWithOwner(`Cal FC ${run}`, { email: `cal-${run}@example.com`, name: "Cal" });
     const id = made!.club.id;
     await setFixtures(id, ["2026-10-11", "2026-10-25"]);
     await saveCalendarLink(id, { url: "https://example.com/a.ics", synced_at: null, dates: ["2026-10-18", "2026-10-25"], examples: [], error: null });
@@ -67,7 +68,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
   });
 
   it("a new club is unpaid until a payment marks it, and an unknown club cannot be marked", async () => {
-    const made = await createClubWithOwner(`Pay FC ${run}`, { email: `pay-${run}@example.com`, name: "Pat", pw: "x" });
+    const made = await createClubWithOwner(`Pay FC ${run}`, { email: `pay-${run}@example.com`, name: "Pat" });
     expect(made).not.toBeNull();
     const id = made!.club.id;
     expect((await getClub(id))?.paid_at).toBeNull();
@@ -290,20 +291,20 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
 
   it("creates a club with an admin, then lets an invite create staff exactly once", async () => {
     const email = `admin-${Date.now()}@club.test`;
-    const made = await createClubWithOwner("Test FC", { email, name: "Ada", pw: "salt:hash" });
+    const made = await createClubWithOwner("Test FC", { email, name: "Ada" });
     expect(made?.staff.admin).toBe(true);
     expect(made?.staff.roles).toEqual(["coach", "scientist"]);
-    expect(await createClubWithOwner("Other FC", { email: email.toUpperCase(), name: "Dup", pw: "x" })).toBeNull();
+    expect(await createClubWithOwner("Other FC", { email: email.toUpperCase(), name: "Dup" })).toBeNull();
     const club = made!.club.id;
     expect((await getStaffByEmail(email))?.club).toBe(club);
 
     const token = await createStaffInvite(club, ["scientist"]);
     expect(inviteUsable(await getInvite(token))).toBe(true);
-    const joined = await acceptStaffInvite(token, { email: `sci-${Date.now()}@club.test`, name: "Sam", pw: "p" });
+    const joined = await acceptStaffInvite(token, { email: `sci-${Date.now()}@club.test`, name: "Sam" });
     expect(typeof joined).toBe("object");
     if (typeof joined === "object") expect([joined.club, joined.roles, joined.admin]).toEqual([club, ["scientist"], false]);
-    expect(await acceptStaffInvite(token, { email: `again-${Date.now()}@club.test`, name: "Late", pw: "p" })).toBe("invalid");
-    expect(await acceptStaffInvite(await createStaffInvite(club, ["coach"]), { email, name: "Dup", pw: "p" })).toBe("taken");
+    expect(await acceptStaffInvite(token, { email: `again-${Date.now()}@club.test`, name: "Late" })).toBe("invalid");
+    expect(await acceptStaffInvite(await createStaffInvite(club, ["coach"]), { email, name: "Dup" })).toBe("taken");
     expect((await listStaff(club)).map((x) => x.name)).toEqual(["Ada", "Sam"]);
     if (typeof joined === "object") {
       await removeStaff(other, joined.id); // wrong club: no effect
@@ -314,7 +315,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
   });
 
   it("keeps one reusable squad link per club and replaces it on request", async () => {
-    const made = await createClubWithOwner("Link FC", { email: `link-${Date.now()}@club.test`, name: "L", pw: "p" });
+    const made = await createClubWithOwner("Link FC", { email: `link-${Date.now()}@club.test`, name: "L" });
     const club = made!.club.id;
     const first = await squadInvite(club);
     expect(await squadInvite(club)).toBe(first);
@@ -323,25 +324,6 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("store (Firestore emulator
     expect(next).not.toBe(first);
     expect(await getInvite(first)).toBeNull();
     expect(inviteUsable(await getInvite(next))).toBe(true);
-  });
-
-  it("resets a password once, with a throttle, and never for unknown emails", async () => {
-    const email = `reset-${run}@test.example`;
-    const made = await createClubWithOwner("Reset FC", { email, name: "R", pw: "old-hash" });
-    expect(made).not.toBeNull();
-    expect(await createPasswordReset(`nobody-${run}@test.example`)).toBeNull();
-    const r = await createPasswordReset(email);
-    expect(r).toMatchObject({ token: expect.stringMatching(/^[0-9a-f]{48}$/) });
-    expect(await createPasswordReset(email)).toBe("throttled");
-    const token = (r as { token: string }).token;
-    expect(await resetTokenUsable(token)).toBe(true);
-    expect(await resetTokenUsable("0".repeat(48))).toBe(false);
-    const done = await resetPassword(token, "new-hash");
-    expect(done).toMatchObject({ pw: "new-hash" });
-    expect((await getStaffByEmail(email))?.pw).toBe("new-hash");
-    expect(await resetTokenUsable(token)).toBe(false);
-    expect(await resetPassword(token, "again")).toBe("invalid");
-    expect((await getStaffByEmail(email))?.pw).toBe("new-hash");
   });
 
   it("gives each player their group's version of a session, and the base to everyone else", async () => {

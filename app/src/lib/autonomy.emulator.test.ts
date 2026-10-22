@@ -12,7 +12,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)("the autonomy ladder (Fire
   const today = todayStr();
 
   async function club(name: string) {
-    const made = await createClubWithOwner(`${name} ${run}`, { email: `${name.toLowerCase().replace(/\W/g, "")}-${run}@example.com`, name: "Coach", pw: "x" });
+    const made = await createClubWithOwner(`${name} ${run}`, { email: `${name.toLowerCase().replace(/\W/g, "")}-${run}@example.com`, name: "Coach" });
     const id = made!.club.id;
     const code = (await createPlayers(id, [{ name: "Delegate Player", shirt: null, position: "", squad: "First team" }]))[0];
     await giveConsentTo(code); // a player has agreed to the current wording before they can check in

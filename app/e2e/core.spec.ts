@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { dayStr, runAgentFor, todayStr } from "../src/lib/run-agent";
-import { createPlayers, decideProposal, giveConsentTo, saveCheckin, saveProposal, setAutonomy, setFixtures } from "../src/lib/store";
-import { addPlayer, agreeAndClaim, importProgram, newPhone, PASSWORD, pick, playerLink, signUp, squadLink, today, uniq } from "./helpers";
+import { createPlayers, createStaffInvite, decideProposal, getStaffByEmail, giveConsentTo, saveCheckin, saveProposal, setAutonomy, setFixtures } from "../src/lib/store";
+import { addPlayer, agreeAndClaim, atSigno, importProgram, newPhone, pick, playerLink, signInWithSigno, signUp, squadLink, today, uniq } from "./helpers";
 
 test("a new coach lands on a checklist that updates as they set up", async ({ page }) => {
   await signUp(page);
@@ -83,13 +83,79 @@ test("one club cannot open another club's player", async ({ browser }) => {
   await a.close(); await b.close();
 });
 
-test("staff pages need a sign-in, and a wrong password is refused", async ({ page }) => {
+test("staff pages need a sign-in, and an email with no account is turned away", async ({ page }) => {
   await page.goto("/coach");
   await expect(page).toHaveURL(/signin/);
-  await page.locator("#email").fill("nobody@e2e.test");
-  await page.locator("#password").fill(PASSWORD);
-  await page.locator("form button").click();
-  await expect(page.getByText("That email and password did not match.")).toBeVisible();
+  await signInWithSigno(page, "nobody@e2e.test");
+  await expect(page.getByText("No RepReady account uses nobody@e2e.test.")).toBeVisible();
+});
+
+test("staff sign out and back in with signo, into their own club", async ({ page }) => {
+  const { email, club } = await signUp(page);
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/signin$/);
+  await signInWithSigno(page, email);
+  await page.waitForURL(/\/coach$/);
+  await expect(page.getByText(club, { exact: true })).toBeVisible();
+});
+
+test("a sign-in finishes only in the browser that started it, and only once", async ({ page, browser, request }) => {
+  const { email } = await signUp(page);
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("button", { name: "Sign in with signo" }).click();
+  await page.waitForURL(/\/authorize\?/);
+  // Answer signo's page by hand, to learn where it sends the person back without going there.
+  const fields = await page.locator('form input[type="hidden"]').evaluateAll((els) => els.map((e) => [(e as HTMLInputElement).name, (e as HTMLInputElement).value]));
+  const answer = await request.post(page.url().replace(/\?.*$/, ""), { form: { ...Object.fromEntries(fields), email, go: "continue" }, maxRedirects: 0 });
+  const callback = answer.headers().location;
+  expect(new URL(callback).pathname).toBe("/auth/callback");
+  expect(new URL(callback).searchParams.get("code")).toBeTruthy();
+
+  // Opened anywhere else, for instance in a victim's browser by someone who wants them signed in to the wrong account.
+  const other = await (await browser.newContext()).newPage();
+  await other.goto(callback);
+  await expect(other.getByText("This sign-in took too long or was already used. Start again.")).toBeVisible();
+  await other.goto("/coach");
+  await expect(other).toHaveURL(/signin/);
+
+  // The browser that started it finishes it, once.
+  await page.goto(callback);
+  await page.waitForURL(/\/coach$/);
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page).toHaveURL(/\/signin$/);
+  await page.goto(callback);
+  await expect(page.getByText("This sign-in took too long or was already used. Start again.")).toBeVisible();
+});
+
+test("when signo is cancelled or can't confirm the email, nobody is signed in and the page says why", async ({ page }) => {
+  await page.goto("/signin");
+  await page.getByRole("button", { name: "Sign in with signo" }).click();
+  await page.waitForURL(/\/authorize\?/);
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText("Signing in was cancelled.")).toBeVisible();
+  await page.getByRole("button", { name: "Sign in with signo" }).click();
+  await page.waitForURL(/\/authorize\?/);
+  await page.locator("#email").fill("unconfirmed@e2e.test");
+  await page.getByLabel("Email not verified").check();
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByText("signo did not confirm an email address.")).toBeVisible();
+  await page.goto("/coach");
+  await expect(page).toHaveURL(/signin/);
+});
+
+test("a staff invite joins someone to the club through signo, once", async ({ page, browser }) => {
+  const { email } = await signUp(page);
+  const token = await createStaffInvite((await getStaffByEmail(email))!.club, ["scientist"]);
+  const sam = await (await browser.newContext()).newPage();
+  await sam.goto(`/join/staff/${token}`);
+  await sam.locator("#name").fill("Sam Scientist");
+  await sam.getByRole("button", { name: "Join with signo" }).click();
+  await atSigno(sam, `sci-${uniq()}@e2e.test`);
+  await sam.waitForURL(/\/science$/);
+  await expect(sam.getByTestId("role")).toHaveText("Sports scientist");
+  const late = await (await browser.newContext()).newPage();
+  await late.goto(`/join/staff/${token}`);
+  await expect(late.getByText("This invite is not valid")).toBeVisible();
 });
 
 test("the player's session shows a picture only where the library has the exact exercise", async ({ page, browser }) => {
@@ -325,15 +391,6 @@ test("results show an empty state for a new club", async ({ page }) => {
   await expect(page.getByText("Sample players are not counted.")).toBeVisible();
 });
 
-test("a new account is asked to confirm its email, and the link confirms it", async ({ page }) => {
-  await signUp(page);
-  await expect(page.getByText(/Confirm your email address/)).toBeVisible();
-  await page.getByRole("button", { name: "Send me the link" }).click();
-  await expect(page.getByText(/A link was sent a moment ago/)).toBeVisible(); // sign-up already sent one
-  await page.goto("/verify/" + "0".repeat(48));
-  await expect(page.getByText("That link did not work")).toBeVisible();
-});
-
 test("an admin deletes the whole club by typing its name, and the account is gone", async ({ page }) => {
   const { email, club } = await signUp(page);
   await addPlayer(page, "Soon Gone");
@@ -344,10 +401,8 @@ test("an admin deletes the whole club by typing its name, and the account is gon
   await page.locator("#del-name").fill(club);
   await page.getByRole("button", { name: /Delete the club/ }).click();
   await expect(page.getByText("Your club and everything in it have been deleted.")).toBeVisible();
-  await page.locator("#email").fill(email);
-  await page.locator("#password").fill(PASSWORD);
-  await page.locator("form button").click();
-  await expect(page.getByText("That email and password did not match.")).toBeVisible();
+  await signInWithSigno(page, email);
+  await expect(page.getByText(`No RepReady account uses ${email}.`)).toBeVisible();
 });
 
 test("a coach jots match minutes, checks the matches, and they show on the player's page", async ({ page }) => {
@@ -502,21 +557,7 @@ test("the person running the pilot sees every club, how far it has got and what 
   await expect(page.getByText(/Waitlist/)).toBeVisible();
 });
 
-test("repeated wrong passwords lock sign-in for a while, and pages carry security headers", async ({ page, request }) => {
-  const email = `guess-${uniq()}@e2e.test`;
-  await page.goto("/signin");
-  for (let i = 0; i < 8; i++) {
-    await page.locator("#email").fill(email);
-    await page.locator("#password").fill(`wrong-password-${i}`);
-    await page.locator("form button").first().click();
-    await expect(page.locator("#email")).toHaveValue(""); // the page reloaded with the answer; the same message each time, so wait for the reset
-    await expect(page.getByText("That email and password did not match.")).toBeVisible();
-  }
-  await page.locator("#email").fill(email);
-  await page.locator("#password").fill("another-wrong-one");
-  await page.locator("form button").first().click();
-  await expect(page.getByText(/Too many attempts/)).toBeVisible();
-
+test("pages carry security headers", async ({ request }) => {
   const h = (await request.get("/signin")).headers();
   expect(h["x-frame-options"]).toBe("DENY");
   expect(h["x-content-type-options"]).toBe("nosniff");

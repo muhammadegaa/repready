@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { signIn } from "@/actions/auth";
 import { PendingButton } from "@/components/Pending";
-import { btn, Card, input, Notice } from "@/components/ui";
+import { SignoMark } from "@/components/SignoMark";
+import { Card, Notice } from "@/components/ui";
 import { getSession, homeFor } from "@/lib/auth";
 
 export const metadata = { title: "Sign in" };
@@ -18,14 +19,10 @@ export default async function SignIn(props: PageProps<"/signin">) {
       <Card className="mt-6 p-5">
         {deleted === "1" && <div className="mb-4"><Notice tone="ok">Your club and everything in it have been deleted.</Notice></div>}
         {typeof error === "string" && <div className="mb-4"><Notice tone="bad">{error}</Notice></div>}
-        <form action={signIn} className="space-y-3">
-          <label htmlFor="email" className="block text-sm font-medium">Email</label>
-          <input id="email" name="email" type="email" autoComplete="email" required className={input} autoFocus />
-          <label htmlFor="password" className="block text-sm font-medium">Password</label>
-          <input id="password" name="password" type="password" autoComplete="current-password" required className={input} />
-          <PendingButton className={`${btn} w-full`} pending="Checking…">Sign in</PendingButton>
+        <form action={signIn}>
+          <PendingButton className="signo-button w-full justify-center" pending="Opening signo…"><SignoMark />Sign in with signo</PendingButton>
         </form>
-        <p className="mt-3 text-sm"><Link href="/forgot" className="text-muted underline underline-offset-4 hover:text-ink">Forgot your password?</Link></p>
+        <p className="mt-3 text-sm text-muted"><a href="https://usesigno.co.uk" className="underline underline-offset-4 hover:text-ink">signo</a> checks it is you with a passkey or a code it emails you, so there is no RepReady password.</p>
       </Card>
       <p className="mt-4 text-sm text-muted">New club? <Link href="/signup" className="font-medium text-ink underline underline-offset-4">Create a club account</Link>. Joining an existing club? Ask your club admin for a staff invite link.</p>
     </div>

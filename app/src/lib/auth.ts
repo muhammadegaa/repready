@@ -1,13 +1,15 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { clubHasAccess } from "./billing";
 import { getClub, getStaff, type StaffRole, type StaffRow } from "./store";
 
-export type Session = { id: string; name: string; email: string; club: string; clubName: string; roles: StaffRole[]; admin: boolean; access: boolean; verified: boolean };
+export type Session = { id: string; name: string; email: string; club: string; clubName: string; roles: StaffRole[]; admin: boolean; access: boolean };
 
-const COOKIE = "rr_s";
+// Was rr_s while staff had passwords. The new name ended every session from that time, including any held by
+// someone who had made an account in another person's name.
+const COOKIE = "rr_session";
 const DAYS = 30;
 
 // SESSION_SECRET signs the cookie. Without it the key is derived from the Firebase credential, which is already secret on the server.
@@ -18,22 +20,6 @@ const same = (a: string, b: string) => {
   const x = Buffer.from(a), y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
 };
-
-export function hashPassword(pw: string): string {
-  const salt = randomBytes(16).toString("hex");
-  return `${salt}:${scryptSync(pw, salt, 64).toString("hex")}`;
-}
-
-const DUMMY = hashPassword("not-a-real-password");
-
-// Runs a full hash comparison even when the account does not exist, so response time does not reveal which emails have accounts.
-export function checkPassword(pw: string, stored: string | null): boolean {
-  const [salt, hash] = (stored ?? DUMMY).split(":");
-  const ok = same(scryptSync(pw, salt, 64).toString("hex"), hash);
-  return stored !== null && ok;
-}
-
-export const PASSWORD_MIN = 10;
 
 export async function startSession(staff: StaffRow): Promise<void> {
   const exp = Date.now() + DAYS * 86_400_000;
@@ -55,7 +41,7 @@ export const getSession = cache(async (): Promise<Session | null> => {
   if (!staff) return null;
   const club = await getClub(staff.club);
   if (!club) return null;
-  return { id, name: staff.name, email: staff.email, club: staff.club, clubName: club.name, roles: staff.roles, admin: staff.admin, access: clubHasAccess(club), verified: Boolean(staff.verified_at) };
+  return { id, name: staff.name, email: staff.email, club: staff.club, clubName: club.name, roles: staff.roles, admin: staff.admin, access: clubHasAccess(club) };
 });
 
 // For pages: send people without the role to sign in.

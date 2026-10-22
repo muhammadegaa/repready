@@ -2,7 +2,6 @@
 // Refuses to run unless FIRESTORE_EMULATOR_HOST is set. Usage:
 //   FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 npx tsx --env-file=.env.local scripts/seed-demo.mts [--no-agent]
 import { dayStr, runAgentFor, todayStr } from "../src/lib/run-agent";
-import { hashPassword } from "../src/lib/auth";
 import {
   createClubWithOwner, getStaffByEmail, createPlayers, giveConsentTo, logEvent, replaceSessions, saveCheckin, saveReadiness, saveSessionLog, touch,
 } from "../src/lib/store";
@@ -11,7 +10,6 @@ const host = process.env.FIRESTORE_EMULATOR_HOST;
 if (!host) throw new Error("Refusing to seed: FIRESTORE_EMULATOR_HOST is not set, so this would write to the real database.");
 const project = process.env.FIREBASE_PROJECT_ID ?? "repready-7dacd";
 const DEMO_EMAIL = "demo@repready.test";
-const DEMO_PASSWORD = "demo-password-123"; // local emulator only
 const useAgent = !process.argv.includes("--no-agent");
 
 const wipe = await fetch(`http://${host}/emulator/v1/projects/${project}/databases/(default)/documents`, { method: "DELETE" });
@@ -41,7 +39,7 @@ const plan: [number, string, typeof LOWER][] = [
   [3, "Lower strength", LOWER], [4, "Upper strength", UPPER], [6, "Power day", POWER],
 ];
 const existing = await getStaffByEmail(DEMO_EMAIL);
-const club = existing?.club ?? (await createClubWithOwner("Demo FC", { email: DEMO_EMAIL, name: "Demo Admin", pw: hashPassword(DEMO_PASSWORD) }))!.club.id;
+const club = existing?.club ?? (await createClubWithOwner("Demo FC", { email: DEMO_EMAIL, name: "Demo Admin" }))!.club.id;
 await replaceSessions(club, plan.map(([off, label, ex]) => ({ on_date: dayStr(today, -off), label, week_type: "normal", exercises: ex })));
 const pastSessions = plan.filter(([off]) => off < 0).map(([off]) => dayStr(today, -off));
 
@@ -84,5 +82,5 @@ for (const { code, p } of codes) {
 }
 await touch(club, "coach", "science");
 console.log(`Seeded ${codes.length} athletes. ${useAgent ? "Agent ran for" : "Agent skipped for"} ${profiles.filter((p) => p.todayIn).length} check-ins.`);
-console.log(`Sign in at /signin with ${DEMO_EMAIL} / ${DEMO_PASSWORD} (club ${club}).`);
+console.log(`Sign in at /signin with signo as ${DEMO_EMAIL} (club ${club}). Locally, point SIGNO_ISSUER at a signo on this machine.`);
 for (const { code, p } of codes) console.log(`${p.name.padEnd(6)} /a/${code}`);

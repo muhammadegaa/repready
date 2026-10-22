@@ -1,126 +1,46 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { checkPassword, getSession, hashPassword, homeFor, PASSWORD_MIN, signOut, startSession } from "@/lib/auth";
-import { afterFailure, FRESH, isLocked, LIMIT_EMAIL, LIMIT_IP, minutesLeft } from "@/lib/login-guard";
-import { requireEmailConfirmation, sendMail } from "@/lib/mail";
-import { acceptStaffInvite, createClubWithOwner, createEmailVerification, createPasswordReset, getGuard, getStaffByEmail, resetPassword, setGuard } from "@/lib/store";
+import { signOut } from "@/lib/auth";
+import { startSigno, type Intent } from "@/lib/signo";
+import { getInvite, inviteUsable } from "@/lib/store";
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
-const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
 const fail = (path: string, msg: string): never => redirect(`${path}?error=${encodeURIComponent(msg)}`);
 
-function accountFields(f: FormData, path: string) {
-  const name = text(f, "name").slice(0, 80);
-  const email = text(f, "email").toLowerCase();
-  const password = String(f.get("password") ?? "");
-  if (!name) fail(path, "Enter your name.");
-  if (!EMAIL.test(email) || email.length > 254) fail(path, "That email does not look right.");
-  if (password.length < PASSWORD_MIN) fail(path, `Use a password of at least ${PASSWORD_MIN} characters.`);
-  return { name, email, pw: hashPassword(password) };
+// Sends the person to signo, which confirms their email; app/auth/callback does the rest.
+async function toSigno(intent: Intent, path: string) {
+  const url = await startSigno(intent).catch((error) => {
+    console.error(error);
+    return null;
+  });
+  if (!url) return fail(path, "signo could not be reached, so you can't sign in just now. Try again in a minute.");
+  redirect(url);
 }
 
-export async function signIn(f: FormData) {
-  const email = text(f, "email").toLowerCase();
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
-  const keys = [{ k: `email:${email}`, limit: LIMIT_EMAIL }, { k: `ip:${ip}`, limit: LIMIT_IP }];
-  const now = Date.now();
-  const states = await Promise.all(keys.map(async (x) => ({ ...x, g: (await getGuard(x.k)) ?? FRESH })));
-  const locked = states.find((x) => isLocked(x.g, now));
-  if (locked) fail("/signin", `Too many attempts. Try again in ${minutesLeft(locked.g, now)} minute${minutesLeft(locked.g, now) === 1 ? "" : "s"}, or reset your password.`);
-
-  const staff = await getStaffByEmail(email);
-  const ok = checkPassword(String(f.get("password") ?? ""), staff?.pw ?? null);
-  if (!staff || !ok) {
-    await Promise.all(states.map((x) => setGuard(x.k, afterFailure(x.g, now, x.limit))));
-    fail("/signin", "That email and password did not match.");
-  }
-  await setGuard(`email:${email}`, null);
-  await startSession(staff!);
-  redirect(homeFor(staff!));
+export async function signIn() {
+  await toSigno({ kind: "signin" }, "/signin");
 }
 
 export async function signUp(f: FormData) {
   const club = text(f, "club").slice(0, 80);
+  const name = text(f, "name").slice(0, 80);
   if (!club) fail("/signup", "Enter the club name.");
-  const owner = accountFields(f, "/signup");
-  const made = await createClubWithOwner(club, owner);
-  if (!made) fail("/signup", "That email already has an account. Sign in instead.");
-  await startSession(made!.staff);
-  await sendVerification(made!.staff.id);
-  redirect("/coach");
-}
-
-async function sendVerification(staffId: string): Promise<"sent" | "throttled" | "done" | "failed"> {
-  if (!requireEmailConfirmation()) return "done";
-  const v = await createEmailVerification(staffId);
-  if (v === "throttled" || v === "done") return v;
-  if (!v) return "failed";
-  const r = await sendMail({
-    to: v.email,
-    subject: "Confirm your email for RepReady",
-    text: `Confirm this email address for your RepReady account (the link works for 24 hours):\n${await origin()}/verify/${v.token}\n\nIf you did not create an account, ignore this email.`,
-  });
-  if (!r.sent) console.error(`[mail] confirmation email to ${v.email} failed: ${r.error}`);
-  return r.sent ? "sent" : "failed";
-}
-
-export async function resendVerification() {
-  const s = await getSession();
-  if (!s) redirect("/signin");
-  const r = await sendVerification(s.id);
-  redirect(`/verify/sent?r=${r}`);
+  if (!name) fail("/signup", "Enter your name.");
+  await toSigno({ kind: "signup", club, name }, "/signup");
 }
 
 export async function joinStaff(f: FormData) {
   const token = text(f, "token");
   const path = `/join/staff/${token}`;
-  const who = accountFields(f, path);
-  const res = await acceptStaffInvite(token, who);
-  if (res === "taken") fail(path, "That email already has an account. Sign in instead.");
-  if (res === "invalid") fail(path, "This invite has expired or was already used. Ask your club admin for a new one.");
-  const joined = res as Exclude<typeof res, string>;
-  await startSession(joined);
-  await sendVerification(joined.id);
-  redirect(homeFor(joined));
+  const name = text(f, "name").slice(0, 80);
+  if (!name) fail(path, "Enter your name.");
+  const invite = await getInvite(token);
+  if (!inviteUsable(invite) || invite.kind !== "staff") fail(path, "This invite has expired or was already used. Ask your club admin for a new one.");
+  await toSigno({ kind: "join", token, name }, path);
 }
 
 export async function signOutAction() {
   await signOut();
   redirect("/signin");
-}
-
-async function origin(): Promise<string> {
-  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  return `${h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https")}://${host}`;
-}
-
-// The reply is the same whether or not the email has an account, so the form cannot be used to find out who is a member.
-export async function requestReset(f: FormData) {
-  const email = text(f, "email").toLowerCase();
-  if (EMAIL.test(email) && email.length <= 254) {
-    const made = await createPasswordReset(email);
-    if (made && made !== "throttled") {
-      await sendMail({
-        to: made.staff.email,
-        subject: "Reset your RepReady password",
-        text: `Someone asked to reset the password for this RepReady account.\n\nChoose a new password here (works once, for 60 minutes):\n${await origin()}/reset/${made.token}\n\nIf this was not you, ignore this email. Your password has not changed.`,
-      });
-    }
-  }
-  redirect("/forgot?sent=1");
-}
-
-export async function setNewPassword(f: FormData) {
-  const token = text(f, "token");
-  const path = `/reset/${token}`;
-  const password = String(f.get("password") ?? "");
-  if (password.length < PASSWORD_MIN) fail(path, `Use a password of at least ${PASSWORD_MIN} characters.`);
-  const res = await resetPassword(token, hashPassword(password));
-  if (res === "invalid") fail("/forgot", "That reset link has expired or was already used. Ask for a new one.");
-  await startSession(res as Exclude<typeof res, string>);
-  redirect(homeFor(res as Exclude<typeof res, string>));
 }

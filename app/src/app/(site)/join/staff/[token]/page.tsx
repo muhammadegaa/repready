@@ -1,7 +1,7 @@
 import { joinStaff } from "@/actions/auth";
 import { PendingButton } from "@/components/Pending";
-import { btn, Card, input, Notice } from "@/components/ui";
-import { PASSWORD_MIN } from "@/lib/auth";
+import { SignoMark } from "@/components/SignoMark";
+import { Card, input, Notice } from "@/components/ui";
 import { getClub, getInvite, inviteUsable } from "@/lib/store";
 
 export const metadata = { title: "Join your club staff" };
@@ -31,13 +31,9 @@ export default async function JoinStaff(props: PageProps<"/join/staff/[token]">)
           <input type="hidden" name="token" value={token} />
           <label htmlFor="name" className="block text-sm font-medium">Your name</label>
           <input id="name" name="name" autoComplete="name" required maxLength={80} className={input} autoFocus />
-          <label htmlFor="email" className="block text-sm font-medium">Email</label>
-          <input id="email" name="email" type="email" autoComplete="email" required className={input} />
-          <label htmlFor="password" className="block text-sm font-medium">Password</label>
-          <input id="password" name="password" type="password" autoComplete="new-password" required minLength={PASSWORD_MIN} className={input} />
-          <p className="text-xs text-muted">At least {PASSWORD_MIN} characters.</p>
-          <PendingButton className={`${btn} w-full`} pending="Joining…">Join {club.name}</PendingButton>
+          <PendingButton className="signo-button w-full justify-center" pending="Opening signo…"><SignoMark />Join with signo</PendingButton>
         </form>
+        <p className="mt-3 text-sm text-muted">signo confirms your email with a passkey or a code it sends you. That email is your account.</p>
       </Card>
     </div>
   );

@@ -1,17 +1,28 @@
 import { expect, type Browser, type Page } from "@playwright/test";
 
-export const PASSWORD = "e2e-password-123";
 export const today = () => new Date().toISOString().slice(0, 10);
 export const uniq = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+// On the stand-in signo's sign-in page (e2e/fake-signo.mjs): signs in as this email.
+export async function atSigno(page: Page, email: string) {
+  await page.waitForURL(/\/authorize\?/);
+  await page.locator("#email").fill(email);
+  await page.getByRole("button", { name: "Continue" }).click();
+}
+
+export async function signInWithSigno(page: Page, email: string) {
+  await page.goto("/signin");
+  await page.getByRole("button", { name: "Sign in with signo" }).click();
+  await atSigno(page, email);
+}
 
 export async function signUp(page: Page, club = `E2E FC ${uniq()}`, emailOverride?: string) {
   const email = emailOverride ?? `coach-${uniq()}@e2e.test`;
   await page.goto("/signup");
   await page.locator("#club").fill(club);
   await page.locator("#name").fill("Alex Coach");
-  await page.locator("#email").fill(email);
-  await page.locator("#password").fill(PASSWORD);
-  await page.locator("form button").click();
+  await page.getByRole("button", { name: "Continue with signo" }).click();
+  await atSigno(page, email);
   await page.waitForURL(/\/coach$/);
   return { email, club };
 }

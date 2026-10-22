@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { PASSWORD, uniq } from "./helpers";
+import { atSigno, uniq } from "./helpers";
 
 // Runs only with a payment link set (npm run test:e2e:gate), because the gate is off without one.
 test.skip(!process.env.NEXT_PUBLIC_PAYMENT_LINK, "needs NEXT_PUBLIC_PAYMENT_LINK");
@@ -9,9 +9,8 @@ test("an unpaid club is held at Subscribe until Stripe's signed webhook says it 
   await page.goto("/signup");
   await page.locator("#club").fill(`Gate FC ${uniq()}`);
   await page.locator("#name").fill("Alex Coach");
-  await page.locator("#email").fill(`coach-${uniq()}@e2e.test`);
-  await page.locator("#password").fill(PASSWORD);
-  await page.locator("form button").click();
+  await page.getByRole("button", { name: "Continue with signo" }).click();
+  await atSigno(page, `coach-${uniq()}@e2e.test`);
   await page.waitForURL(/\/subscribe$/);
   await expect(page).toHaveURL(/\/subscribe$/);
   // Coming back from Stripe before payment is confirmed shows a waiting page, not an error or a dead end.
