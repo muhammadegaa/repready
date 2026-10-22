@@ -15,14 +15,13 @@ Not legal advice. This lists what the code does today so a lawyer or the ICO's g
 | Polar access token, Polar user id, last sync time | Athlete connects Polar (OAuth) | Firestore `polar_links` |
 | Device sleep, HRV and lowest night heart rate from Polar | Polar AccessLink, pulled on sync | Firestore `readiness` |
 | Email address and club name from a pilot request | Landing page form | Firestore `leads` (RepReady only, not visible to clubs) |
-| Staff name, email, roles, password hash | Club sign-up or staff invite | Firestore `staff` |
-| Password-reset token hash, expiry | Staff request | Firestore `resets` (the token itself is only in the email) |
+| Staff name, email, roles, when the email was confirmed | Club sign-up or staff invite, then each sign-in | Firestore `staff` |
 | Match dates | Coach enters them | Firestore club document |
 | Program (sessions, exercises) | Coach imports it | Firestore `sessions` |
 
 Sleep, soreness, stress, HRV and resting heart rate are health data. Under UK GDPR that is special-category data (Article 9), which needs a lawful basis plus an Article 9 condition. The app asks for explicit consent before the first check-in.
 
-Club staff sign in with email and password (scrypt-hashed). Each club has its own data under `clubs/{club}/` and staff can only reach their own club. Stored per staff member: name, email, roles. Players join by a personal link or a club squad link; the first phone to agree to the terms keeps the link, and staff confirm self-joined players before they can check in.
+Club staff sign in with signo (usesigno.co.uk): a passkey, or a code signo emails them. RepReady stores no passwords; records from before signo still hold an old password hash until they are cleared. Each club has its own data under `clubs/{club}/` and staff can only reach their own club. Stored per staff member: name, email, roles. Players join by a personal link or a club squad link; the first phone to agree to the terms keeps the link, and staff confirm self-joined players before they can check in.
 
 ## Who receives data
 
@@ -34,7 +33,8 @@ Club staff sign in with email and password (scrypt-hashed). Each club has its ow
 | Junction (webhook receiver exists, not live) | The athlete's wearable account link and sleep data | US company, **open**: transfer terms. |
 | Stripe | The coach's payment details, not athletes' | Out of athlete scope. |
 | Vercel (hosting) | Request logs and the running server code. Function region set to London (`lhr1`) in `app/vercel.json`; the platform's own logging and edge network are not controlled by us | **open**: confirm Vercel's data processing terms and where logs are kept. |
-| Resend (email) | Staff email addresses and names, and the text of password-reset and digest emails. The digest names players who need a decision or have not checked in; it contains no scores, notes or health detail | US company: **open**: transfer terms. A verified sending domain is not set up yet. |
+| signo (usesigno.co.uk, run by Egglabs) | Staff email addresses, to sign them in. RepReady gets back the email signo confirmed | Hosted by alwaysdata in Paris. |
+| Resend (email) | Staff email addresses and names, and the text of digest emails. The digest names players who need a decision or have not checked in; it contains no scores, notes or health detail | US company: **open**: transfer terms. A verified sending domain is not set up yet. |
 
 ## Roles (to confirm with a lawyer)
 

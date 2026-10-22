@@ -4,7 +4,8 @@ Use two devices: your laptop (coach) and your phone (player). Use a fresh club n
 
 ## Before you start: settings on Vercel (all of these must exist)
 - [ ] `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (the program reader needs them)
-- [ ] `FIREBASE_SERVICE_ACCOUNT`, `SESSION_SECRET`, `CRON_SECRET`, `APP_URL`
+- [ ] `FIREBASE_SERVICE_ACCOUNT`, `SESSION_SECRET`, `CRON_SECRET`, `APP_URL` (links in the digest email)
+- [ ] `SIGNO_CLIENT_ID`, `SIGNO_CLIENT_SECRET`, from the app's site at usesigno.co.uk/account/sites, whose callback URLs list `https://<the address you use>/auth/callback`
 - [ ] `NEXT_PUBLIC_PAYMENT_LINK`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_SECRET_KEY` (Stripe still in test mode)
 - [ ] `PLATFORM_ADMIN_EMAILS` (your sign-in email)
 - [ ] Optional: `RESEND_API_KEY` + a verified `MAIL_FROM` (email), `COMPED_CLUBS` (a free club)
@@ -16,7 +17,7 @@ Use two devices: your laptop (coach) and your phone (player). Use a fresh club n
 - [ ] Type a wrong email, then a real one, in Request a pilot. Check `/admin` shows the request.
 
 ## 1 Coach: first run
-- [ ] Sign up with a new club. You land on "One step left" (payment gate).
+- [ ] Sign up with a new club: signo asks for your email and sends a code, or you use a passkey. You land on "One step left" (payment gate).
 - [ ] Pay with the Stripe test card `4242 4242 4242 4242`. You come back to the app and go straight to Today. Note how long it took.
 - [ ] Today shows the 4-step checklist. Nothing looks broken or confusing.
 - [ ] The top bar shows three tabs (Today, Squad, Program) and a More menu holding Agent and Staff. Open More: it closes on Escape and on a click elsewhere.
@@ -51,7 +52,8 @@ Use two devices: your laptop (coach) and your phone (player). Use a fresh club n
 
 ## 5 Things that must not work
 - [ ] Open `/admin` while signed in as a normal club account: not found. As your admin email: the pilot view.
-- [ ] Five wrong passwords: the sixth ... eighth then "Too many attempts".
+- [ ] Sign in with signo as an email that has no RepReady account: "No RepReady account uses …", and nothing is created.
+- [ ] Sign out, then press Sign in with signo: signo asks who you are again before letting you back in.
 - [ ] Delete a player. Delete the club (type its name): you are signed out and cannot sign back in.
 
 ## What to send me

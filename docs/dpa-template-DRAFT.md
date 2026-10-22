@@ -32,7 +32,8 @@ The Controller decides the lawful basis and Article 9 condition for using player
 |---|---|---|
 | Google (Firebase, Firestore) | Database | London (europe-west2) |
 | Vercel | Hosting and server code | Functions pinned to London (lhr1); platform logs: [confirm] |
-| Resend | Staff emails (password reset, morning digest) | [confirm] |
+| signo (usesigno.co.uk, run by Egglabs) | Signs staff in: receives their email address and confirms it | France (alwaysdata, Paris) |
+| Resend | Staff emails (morning digest) | [confirm] |
 | Polar Electro | Only if a player connects a Polar device | Finland [confirm] |
 | OpenRouter (routes to an upstream model provider) | Reads the training program a coach pastes or uploads, into a draft the coach checks. Receives only that text. Known player names are replaced by codes in our own code before the call and restored after; check-ins and health data are never sent. Squad lists and fixtures are read in our own code and never leave it | [confirm upstream region, retention and training use] |
 | Junction | Wearable aggregator. Webhook exists but is not live | US [confirm]. Not used unless agreed |
@@ -43,11 +44,11 @@ No AI model service receives player data. The program reader receives the coach'
 
 - Each club's data is separated; staff reach only their own club.
 - The database denies all direct browser access; only the server reads and writes.
-- Staff passwords are stored hashed (scrypt). Password-reset tokens are stored hashed, work once and expire after an hour.
+- Staff sign in with signo, using a passkey or a one-time code sent to their email, and signo checks them at every sign-in. RepReady has no staff passwords.
 - Player links are private, and each works on one phone.
 - Staff email digests contain names and counts only.
 - Data is encrypted at rest and in transit by the providers' standard settings. [Not independently verified by RepReady.]
-- Not yet in place: automatic retention deletion, two-factor sign-in, session revocation on password reset, audit logging of staff access.
+- Not yet in place: automatic retention deletion, ending a staff member's sessions from another device, audit logging of staff access.
 
 ## 6. Personal data breach
 
