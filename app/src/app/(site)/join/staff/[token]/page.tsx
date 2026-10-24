@@ -33,7 +33,7 @@ export default async function JoinStaff(props: PageProps<"/join/staff/[token]">)
           <input id="name" name="name" autoComplete="name" required maxLength={80} className={input} autoFocus />
           <PendingButton className="signo-button w-full justify-center" pending="Opening signo…"><SignoMark />Join with signo</PendingButton>
         </form>
-        <p className="mt-3 text-sm text-muted">signo confirms your email with a passkey or a code it sends you. That email is your account.</p>
+        <p className="mt-3 text-sm text-muted">signo confirms your email with a passkey or an email it sends you. That email is your account.</p>
       </Card>
     </div>
   );

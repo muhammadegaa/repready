@@ -44,7 +44,7 @@ No AI model service receives player data. The program reader receives the coach'
 
 - Each club's data is separated; staff reach only their own club.
 - The database denies all direct browser access; only the server reads and writes.
-- Staff sign in with signo, using a passkey or a one-time code sent to their email, and signo checks them at every sign-in. RepReady has no staff passwords.
+- Staff sign in with signo, using a passkey or a one-time code or link sent to their email, and signo checks them at every sign-in. RepReady has no staff passwords.
 - Player links are private, and each works on one phone.
 - Staff email digests contain names and counts only.
 - Data is encrypted at rest and in transit by the providers' standard settings. [Not independently verified by RepReady.]

@@ -21,7 +21,7 @@ Not legal advice. This lists what the code does today so a lawyer or the ICO's g
 
 Sleep, soreness, stress, HRV and resting heart rate are health data. Under UK GDPR that is special-category data (Article 9), which needs a lawful basis plus an Article 9 condition. The app asks for explicit consent before the first check-in.
 
-Club staff sign in with signo (usesigno.co.uk): a passkey, or a code signo emails them. RepReady stores no passwords; records from before signo still hold an old password hash until they are cleared. Each club has its own data under `clubs/{club}/` and staff can only reach their own club. Stored per staff member: name, email, roles. Players join by a personal link or a club squad link; the first phone to agree to the terms keeps the link, and staff confirm self-joined players before they can check in.
+Club staff sign in with signo (usesigno.co.uk): a passkey, or an email signo sends them with a one-time code and link (only a link, once they have a passkey). RepReady stores no passwords; records from before signo still hold an old password hash until they are cleared. Each club has its own data under `clubs/{club}/` and staff can only reach their own club. Stored per staff member: name, email, roles. Players join by a personal link or a club squad link; the first phone to agree to the terms keeps the link, and staff confirm self-joined players before they can check in.
 
 ## Who receives data
 

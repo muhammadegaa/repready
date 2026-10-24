@@ -28,7 +28,7 @@ Players' views: not yet gathered (**open**: ask the pilot squad before go-live).
 | Wrong data from a wearable | Medium | Low | Player confirms or corrects device sleep; compared with the player's own history | Different brands measure differently |
 | Data kept longer than needed | High today | Medium | Players and staff can delete | No automatic retention (**open**: pick a period and build it) |
 | Breach at a provider, or transfer outside the UK | Low | High | London database; minimal staff email | Provider terms unconfirmed (**open**) |
-| Account takeover (staff) | Medium | High | Staff sign in with signo: a passkey or a one-time code sent to their email, asked for at every sign-in; no passwords | Whoever controls a staff email can sign in as that person; a session lasts 30 days and can't be ended from another device |
+| Account takeover (staff) | Medium | High | Staff sign in with signo: a passkey or a one-time code or link sent to their email, asked for at every sign-in; no passwords | Whoever controls a staff email can sign in as that person; a session lasts 30 days and can't be ended from another device |
 | Players under 18 | Low | High | Adults only in the pilot | Needs parental consent and safeguarding before any academy use |
 
 ## 5. Outcome

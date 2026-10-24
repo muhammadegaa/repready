@@ -25,7 +25,7 @@ export default async function SignUp(props: PageProps<"/signup">) {
           <input id="name" name="name" autoComplete="name" required maxLength={80} className={input} />
           <PendingButton className="signo-button w-full justify-center" pending="Opening signo…"><SignoMark />Continue with signo</PendingButton>
         </form>
-        <p className="mt-3 text-sm text-muted">signo confirms your work email with a passkey or a code it sends you. That email is your account.</p>
+        <p className="mt-3 text-sm text-muted">signo confirms your work email with a passkey or an email it sends you. That email is your account.</p>
       </Card>
       <p className="mt-4 text-sm text-muted">Already have an account? <Link href="/signin" className="font-medium text-ink underline underline-offset-4">Sign in</Link>.</p>
     </div>

@@ -1,7 +1,8 @@
 import { cookies, headers } from "next/headers";
 import * as oidc from "openid-client";
 
-// Staff sign in with signo (usesigno.co.uk): a passkey, or a code signo emails them. RepReady keeps no passwords.
+// Staff sign in with signo (usesigno.co.uk): a passkey, or an email signo sends them (a code and a link, or only a link
+// once they have a passkey). RepReady keeps no passwords.
 // signo speaks OpenID Connect, and RepReady is registered there as a site with a server, so it has a client secret.
 
 export type Intent = { kind: "signin" } | { kind: "signup"; club: string; name: string } | { kind: "join"; token: string; name: string };

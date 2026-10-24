@@ -22,7 +22,7 @@ export default async function SignIn(props: PageProps<"/signin">) {
         <form action={signIn}>
           <PendingButton className="signo-button w-full justify-center" pending="Opening signo…"><SignoMark />Sign in with signo</PendingButton>
         </form>
-        <p className="mt-3 text-sm text-muted"><a href="https://usesigno.co.uk" className="underline underline-offset-4 hover:text-ink">signo</a> checks it is you with a passkey or a code it emails you, so there is no RepReady password.</p>
+        <p className="mt-3 text-sm text-muted"><a href="https://usesigno.co.uk" className="underline underline-offset-4 hover:text-ink">signo</a> checks it is you with a passkey or an email it sends you, so there is no RepReady password.</p>
       </Card>
       <p className="mt-4 text-sm text-muted">New club? <Link href="/signup" className="font-medium text-ink underline underline-offset-4">Create a club account</Link>. Joining an existing club? Ask your club admin for a staff invite link.</p>
     </div>
