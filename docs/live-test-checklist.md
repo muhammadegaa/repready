@@ -50,6 +50,12 @@ Use two devices: your laptop (coach) and your phone (player). Use a fresh club n
 - [ ] If you have handed a rule to the agent (More → Agent), what it did shows under "Handled for you" on Today with "Take it back".
 - [ ] If you invited a sports scientist, they see Rules and Evaluation under More. A coach without that role does not.
 
+## 4c Signing in with a passkey (signo)
+- [ ] After a sign-in by email code, signo offers to create a passkey on this device. Create it.
+- [ ] Sign out, then press Sign in with signo: signo asks for the passkey again, because RepReady asks signo to check at every sign-in.
+- [ ] On signo's page, ask for an email instead: it has a sign-in link and no code, because your account has a passkey. Open the link in the same browser.
+- [ ] At usesigno.co.uk/account, the passkey says where it is saved (for example Apple Passwords), and RepReady is listed under the sites you've allowed.
+
 ## 5 Things that must not work
 - [ ] Open `/admin` while signed in as a normal club account: not found. As your admin email: the pilot view.
 - [ ] Sign in with signo as an email that has no RepReady account: "No RepReady account uses …", and nothing is created.
